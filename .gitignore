@@ -1,0 +1,41 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode user state and build products
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+DerivedData/
+.build/
+.swiftpm/
+build/
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Signing material and local configuration
+*.p12
+*.mobileprovision
+*.cer
+*.pem
+*.key
+.env
+.env.*
+.gnupg/
+
+# Local reference media — deliberately excluded from GitHub
+/IMG_*.PNG
+/IMG_*.png
+/IMG_*.JPG
+/IMG_*.jpg
+/IMG_*.JPEG
+/IMG_*.jpeg
+/ScreenRecording_*.mov
+
+# Temporary files
+*.tmp
+*.swp
+*~
