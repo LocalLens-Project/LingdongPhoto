@@ -7,9 +7,9 @@
 ## 界面预览
 
 <p align="center">
-  <img src="./灵动卡片.png" alt="灵动卡片" width="31%">
-  <img src="./琉璃色盘.png" alt="琉璃色盘" width="31%">
-  <img src="./气泡印章.png" alt="气泡印章" width="31%">
+  <img src="./灵动卡片.png?v=2" alt="灵动卡片" width="31%">
+  <img src="./琉璃色盘.png?v=2" alt="琉璃色盘" width="31%">
+  <img src="./气泡印章.png?v=2" alt="气泡印章" width="31%">
 </p>
 
 | 灵动卡片 | 琉璃色盘 | 气泡印章 |
