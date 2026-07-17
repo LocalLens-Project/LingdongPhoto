@@ -1,0 +1,4 @@
+// Copy this file to Signing.local.xcconfig and fill in your own values.
+// Signing.local.xcconfig is ignored by Git.
+DEVELOPMENT_TEAM = YOUR_TEAM_ID
+PRODUCT_BUNDLE_IDENTIFIER = com.example.yourapp

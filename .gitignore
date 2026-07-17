@@ -25,6 +25,7 @@ build/
 .env
 .env.*
 .gnupg/
+/lingdongzhaopian/Config/Signing.local.xcconfig
 
 # Local reference media — deliberately excluded from GitHub
 /IMG_*.PNG

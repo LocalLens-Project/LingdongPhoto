@@ -143,11 +143,16 @@
    open lingdongzhaopian/lingdongzhaopian.xcodeproj
    ```
 
-3. 在 `Signing & Capabilities` 中选择自己的开发团队。
+3. 创建只在本机使用的签名配置：
 
-4. 将示例 Bundle Identifier `com.example.lingdongphoto` 改为自己的唯一标识。
+   ```bash
+   cp lingdongzhaopian/Config/Signing.local.example.xcconfig \
+      lingdongzhaopian/Config/Signing.local.xcconfig
+   ```
 
-5. 选择一台 iOS 18+ 模拟器或真机并运行。
+4. 在 `Signing.local.xcconfig` 中填写自己的 `DEVELOPMENT_TEAM` 和唯一的 `PRODUCT_BUNDLE_IDENTIFIER`。该文件已被 Git 忽略，不会随提交泄露。
+
+5. 选择一台 iOS 18+ 模拟器或真机并运行；Archive 也会自动使用这份本地签名配置。
 
 ## 相册权限
 

@@ -649,30 +649,17 @@ struct ContentView: View {
     private func finishSettings() {
         guard modeChangedInSettings else { return }
         modeChangedInSettings = false
-        resetToIntro()
-    }
 
-    private func resetToIntro() {
-        revealTask?.cancel()
+        // Switching creation modes changes only the presentation. The selected
+        // photo, its metadata/semantic analysis, palette and Live Photo resource
+        // remain the source material until the user explicitly picks a new photo.
+        guard !selectedPhotos.isEmpty, !images.isEmpty else { return }
         toastTask?.cancel()
-        PhotoAssetLoader.removeTemporaryResources(for: selectedPhotos)
-        withAnimation(.easeInOut(duration: 0.35)) {
-            selectedPhotos = []
-            images = []
-            pickerItems = []
-            palette = RGBColor.fallback
-            palettePercentages = [Double](repeating: 0, count: 6)
-            isEditorVisible = false
-            isLoading = false
-            canSave = false
-            canvasRevealed = false
-            paletteRevealStage = 0
-            generationProgress = 0
-            saveState = .idle
-            toastMessage = nil
-            importStatus = ""
-        }
+        toastMessage = nil
         resetComposition(animated: false)
+        isEditorVisible = true
+        isLoading = false
+        startRevealSequence()
     }
 
     private func resetComposition(animated: Bool = true) {
