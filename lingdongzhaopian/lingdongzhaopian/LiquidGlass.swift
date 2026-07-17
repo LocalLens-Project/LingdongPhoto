@@ -91,6 +91,37 @@ struct LiquidCircleButton: View {
     }
 }
 
+struct LivePhotoPlaybackButton: View {
+    let isAvailable: Bool
+    let isPlaying: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: isAvailable ? "livephoto" : "livephoto.slash")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(isAvailable ? Color.primary : Color.orange)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+                .rotationEffect(.degrees(isPlaying ? 360 : 0))
+                .animation(
+                    isPlaying
+                        ? .linear(duration: 1.15).repeatForever(autoreverses: false)
+                        : .easeOut(duration: 0.18),
+                    value: isPlaying
+                )
+        }
+        .buttonStyle(LiquidPressButtonStyle())
+        .liquidGlass(in: Circle(), interactive: true, variant: .clear)
+        .disabled(isPlaying)
+        .accessibilityLabel(
+            isAvailable
+                ? isPlaying ? "正在播放实况照片" : "播放实况照片一次"
+                : "实况照片动态资源不可用"
+        )
+    }
+}
+
 struct LiquidPressButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

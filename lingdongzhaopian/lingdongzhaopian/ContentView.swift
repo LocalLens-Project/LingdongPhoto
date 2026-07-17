@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2026 LocalLens-Project
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import Photos
-import PhotosUI
 import SwiftUI
 import UIKit
 
@@ -36,7 +34,7 @@ struct ContentView: View {
     @AppStorage("privacyMosaicStrength") private var privacyMosaicStrength = 0.62
 
     @State private var mode: CreationMode = .motionCard
-    @State private var pickerItems: [PhotosPickerItem] = []
+    @State private var pickerSelections: [PhotoPickerSelection] = []
     @State private var isPickerPresented = false
     @State private var selectedPhotos: [SelectedPhoto] = []
     @State private var images: [UIImage] = []
@@ -91,6 +89,9 @@ struct ContentView: View {
 
     @State private var revealTask: Task<Void, Never>?
     @State private var toastTask: Task<Void, Never>?
+    @State private var livePlaybackTask: Task<Void, Never>?
+    @State private var livePreviewFrames: [Int: UIImage] = [:]
+    @State private var isLivePhotoPlaying = false
 
     private var pickerLimit: Int {
         if mode == .journal, shouldAppendSelection {
@@ -108,6 +109,21 @@ struct ContentView: View {
     }
     private var enabledPrivacyMaskCount: Int { privacyMasks.filter(\.isEnabled).count }
     private var disabledPrivacyMaskCount: Int { privacyMasks.count - enabledPrivacyMaskCount }
+    private var liveSourceVideoURLs: [Int: URL] {
+        Dictionary(uniqueKeysWithValues: selectedPhotos.enumerated().compactMap { index, photo in
+            photo.pairedVideoURL.map { (index, $0) }
+        })
+    }
+    private var showsLivePlaybackControl: Bool {
+        mode != .privacyMosaic && selectedPhotos.contains(where: \.isLivePhoto)
+    }
+    private var displayedImages: [UIImage] {
+        var result = images
+        for (index, frame) in livePreviewFrames where result.indices.contains(index) {
+            result[index] = frame
+        }
+        return result
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -140,17 +156,21 @@ struct ContentView: View {
         }
         .preferredColorScheme(.light)
         .statusBarHidden(true)
-        .photosPicker(
-            isPresented: $isPickerPresented,
-            selection: $pickerItems,
-            maxSelectionCount: pickerLimit,
-            matching: .any(of: [.images, .livePhotos])
-        )
+        .sheet(isPresented: $isPickerPresented) {
+            PrivacyPreservingPhotoPicker(
+                isPresented: $isPickerPresented,
+                selectionLimit: pickerLimit
+            ) { selections in
+                pickerSelections = selections
+            }
+            .ignoresSafeArea()
+        }
         .onChange(of: isPickerPresented) { _, isPresented in
-            guard !isPresented, !pickerItems.isEmpty else { return }
+            guard !isPresented, !pickerSelections.isEmpty else { return }
             Task { await loadSelectedPhotos() }
         }
         .onChange(of: mode) { _, newMode in
+            stopLivePhotoPlayback()
             ratio = newMode.defaultRatio
             if newMode == .privacyMosaic {
                 refreshPrivacyPreview()
@@ -230,6 +250,9 @@ struct ContentView: View {
 #if DEBUG
             await loadDebugPreviewIfNeeded()
 #endif
+        }
+        .onDisappear {
+            stopLivePhotoPlayback()
         }
     }
 
@@ -334,21 +357,6 @@ struct ContentView: View {
                 Text("灵动照片")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
 
-                if selectedPhotos.contains(where: \.isLivePhoto) {
-                    let hasDynamicResource = selectedPhotos.contains { $0.pairedVideoURL != nil }
-                    let forcesStaticExport = mode == .privacyMosaic
-                    Image(systemName: hasDynamicResource && !forcesStaticExport ? "livephoto" : "livephoto.slash")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(hasDynamicResource && !forcesStaticExport ? Color.primary.opacity(0.72) : Color.orange)
-                        .accessibilityLabel(
-                            forcesStaticExport
-                                ? "隐私遮挡仅支持静态导出"
-                                : hasDynamicResource
-                                ? "Live Photo 动态导出已启用"
-                                : "Live Photo 动态资源不可用，将保存静态作品"
-                        )
-                }
-
                 Spacer()
 
                 LiquidCircleButton(
@@ -387,9 +395,23 @@ struct ContentView: View {
             .padding(.horizontal, 16)
             .padding(.top, 10)
 
+            if showsLivePlaybackControl {
+                HStack {
+                    LivePhotoPlaybackButton(
+                        isAvailable: !liveSourceVideoURLs.isEmpty,
+                        isPlaying: isLivePhotoPlaying,
+                        action: playLivePhotoOnce
+                    )
+                    Spacer()
+                }
+                .frame(width: canvasWidth)
+                .padding(.top, 12)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
             ArtworkCanvas(
                 mode: mode,
-                images: images,
+                images: displayedImages,
                 palette: palette,
                 palettePercentages: palettePercentages,
                 ratio: ratio,
@@ -432,7 +454,7 @@ struct ContentView: View {
                 }
             }
             .accessibilityAction(named: "恢复默认构图") { resetComposition() }
-            .padding(.top, 20)
+            .padding(.top, showsLivePlaybackControl ? 8 : 20)
 
             if mode == .privacyMosaic {
                 PrivacyMosaicControls(
@@ -880,14 +902,16 @@ struct ContentView: View {
 
     private func openPicker(append: Bool = false) {
         guard !isLoading, saveState == .idle else { return }
+        stopLivePhotoPlayback()
         finishPrivacyPainting()
         shouldAppendSelection = append && mode == .journal && !selectedPhotos.isEmpty
-        pickerItems = []
+        pickerSelections = []
         isPickerPresented = true
     }
 
     private func removeLastJournalPhoto() {
         guard mode == .journal, selectedPhotos.count > 1 else { return }
+        stopLivePhotoPlayback()
         let removed = selectedPhotos.last.map { [$0] } ?? []
         withAnimation(.snappy) {
             selectedPhotos.removeLast()
@@ -899,6 +923,7 @@ struct ContentView: View {
 
     private func loadSelectedPhotos() async {
         guard !isLoading else { return }
+        stopLivePhotoPlayback()
 
         let appending = shouldAppendSelection && mode == .journal && !selectedPhotos.isEmpty
         withAnimation(.easeOut(duration: 0.18)) {
@@ -912,10 +937,16 @@ struct ContentView: View {
         }
 
         var imported: [SelectedPhoto] = []
-        for (index, item) in pickerItems.prefix(pickerLimit).enumerated() {
-            importStatus = "正在识别第 \(index + 1) 张，共 \(min(pickerItems.count, pickerLimit)) 张的画面内容…"
-            if let photo = try? await PhotoAssetLoader.load(item, includeLiveResource: supportsLivePhotos) {
+        var firstImportError: Error?
+        for (index, selection) in pickerSelections.prefix(pickerLimit).enumerated() {
+            importStatus = "正在识别第 \(index + 1) 张，共 \(min(pickerSelections.count, pickerLimit)) 张的画面内容…"
+            // Always retain the paired resource while this photo is selected.
+            // The Live export setting can then be changed without reselecting it.
+            do {
+                let photo = try await PhotoAssetLoader.load(selection, includeLiveResource: true)
                 imported.append(photo)
+            } catch {
+                firstImportError = firstImportError ?? error
             }
         }
 
@@ -925,7 +956,8 @@ struct ContentView: View {
             shouldAppendSelection = false
             if appending { isEditorVisible = true; canSave = true; canvasRevealed = true }
             presentSaveError(
-                "未能读取所选照片，请确认照片已下载到本机后重试。",
+                firstImportError?.localizedDescription
+                    ?? "未能读取所选照片，请确认照片已下载到本机后重试。",
                 title: "无法读取照片"
             )
             return
@@ -1088,6 +1120,7 @@ struct ContentView: View {
 
     private func performSaveArtwork(removeLocation: Bool) {
         guard canSave, saveState == .idle else { return }
+        stopLivePhotoPlayback()
         withAnimation(.easeOut(duration: 0.16)) { saveState = .saving }
         showToast(
             mode == .privacyMosaic ? "正在渲染隐私静态作品…" : "正在渲染高清作品…",
@@ -1105,10 +1138,14 @@ struct ContentView: View {
                 let metadata = selectedPhotos.first?.metadata ?? .empty
                 let originalData = selectedPhotos.first?.originalData
                 let pairedVideoURLs: [Int: URL] = supportsLivePhotos && mode != .privacyMosaic
-                    ? Dictionary(uniqueKeysWithValues: selectedPhotos.enumerated().compactMap { index, photo in
-                        photo.pairedVideoURL.map { (index, $0) }
-                    })
+                    ? liveSourceVideoURLs
                     : [:]
+                let hasMissingLiveResource = supportsLivePhotos
+                    && mode != .privacyMosaic
+                    && selectedPhotos.contains { $0.isLivePhoto && $0.pairedVideoURL == nil }
+                if hasMissingLiveResource {
+                    throw ArtworkExportError.missingVideo
+                }
                 if !pairedVideoURLs.isEmpty {
                     showToast("正在生成 Live Photo 动态资源…", duration: 30)
                     try await ArtworkExporter.saveLivePhoto(
@@ -1152,6 +1189,43 @@ struct ContentView: View {
                 presentSaveError(error.localizedDescription)
             }
         }
+    }
+
+    private func playLivePhotoOnce() {
+        guard showsLivePlaybackControl, !isLivePhotoPlaying else { return }
+        let sourceURLs = liveSourceVideoURLs
+        guard !sourceURLs.isEmpty else {
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            showToast("未取得实况照片动态片段，请确认原片已从 iCloud 下载后重新选择", duration: 3.4)
+            return
+        }
+
+        stopLivePhotoPlayback()
+        isLivePhotoPlaying = true
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        livePlaybackTask = Task {
+            do {
+                try await LivePhotoPreview.playOnce(sourceVideoURLs: sourceURLs) { frames in
+                    livePreviewFrames = frames
+                }
+            } catch is CancellationError {
+                // Cancellation is expected when switching modes, selecting a new
+                // photo, saving, or leaving the editor.
+            } catch {
+                presentSaveError(error.localizedDescription, title: "无法播放实况照片")
+            }
+
+            livePreviewFrames = [:]
+            isLivePhotoPlaying = false
+            livePlaybackTask = nil
+        }
+    }
+
+    private func stopLivePhotoPlayback() {
+        livePlaybackTask?.cancel()
+        livePlaybackTask = nil
+        livePreviewFrames = [:]
+        isLivePhotoPlaying = false
     }
 
     private func renderArtwork(replacingImages replacements: [Int: UIImage] = [:]) -> UIImage? {
@@ -1270,6 +1344,11 @@ struct ContentView: View {
         let fixturePath = arguments
             .first(where: { $0.hasPrefix("--fixture-path=") })
             .map { String($0.dropFirst("--fixture-path=".count)) }
+        let liveFixturePath = arguments
+            .first(where: { $0.hasPrefix("--live-fixture-path=") })
+            .map { String($0.dropFirst("--live-fixture-path=".count)) }
+        let liveFixtureURL = liveFixturePath.map { URL(fileURLWithPath: $0) }
+            .flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
         let fixtureData = arguments.contains("--fixture")
             ? fixturePath.flatMap { try? Data(contentsOf: URL(fileURLWithPath: $0)) }
                 ?? Bundle.main.url(forResource: "Fixture", withExtension: "jpeg").flatMap { try? Data(contentsOf: $0) }
@@ -1299,9 +1378,8 @@ struct ContentView: View {
             originalData: data,
             metadata: debugMetadata,
             semantic: semantic,
-            assetLocalIdentifier: nil,
-            pairedVideoURL: nil,
-            isLivePhoto: false
+            pairedVideoURL: liveFixtureURL,
+            isLivePhoto: liveFixtureURL != nil
         )]
         images = [image]
         resetPrivacyEdits(for: image)

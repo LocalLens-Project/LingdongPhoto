@@ -9,9 +9,9 @@
 ## 界面预览
 
 <p align="center">
-  <img src="./灵动卡片.png?v=2" alt="灵动卡片" width="23%">
-  <img src="./琉璃色盘.png?v=2" alt="琉璃色盘" width="23%">
-  <img src="./气泡印章.png?v=2" alt="气泡印章" width="23%">
+  <img src="./灵动卡片_new.png?v=3" alt="灵动卡片" width="23%">
+  <img src="./琉璃色盘_new.png?v=3" alt="琉璃色盘" width="23%">
+  <img src="./气泡印章_new.png?v=3" alt="气泡印章" width="23%">
   <img src="./隐私马赛克.png?v=3" alt="隐私马赛克" width="23%">
 </p>
 
@@ -110,7 +110,7 @@
 
 ## 液态玻璃
 
-- iOS 26 及以上使用系统原生 Liquid Glass API
+- iOS 26 使用系统原生 Liquid Glass API
 - iOS 18 自动切换为兼容磨砂材质
 - 按钮支持按压缩放、回弹和触觉反馈
 - 设置页、编辑弹窗、色盘面板和导出作品使用统一玻璃语言
@@ -121,7 +121,10 @@
 - 使用 PhotosPicker 读取用户主动选择的照片
 - 从原始数据读取真实 EXIF、TIFF 与 GPS 字段
 - 支持读取 Live Photo 配对视频资源
+- 选择 Live Photo 后，除“隐私马赛克”外均会保留动态资源
+- 点击照片区域左上角的实况图标可播放一次，播放结束后自动停在静态画面
 - 动态导出会逐帧合成作品，并写入匹配的资源标识
+- 实况关键帧与动态帧统一转换至标准动态范围，避免 HDR 内容导致界面和文字明暗异常
 - 静态导出尽可能保留原照片元数据
 - 一键手帐可组合多张 Live Photo 的动态内容
 
@@ -193,9 +196,9 @@
 ├── README.md                     # 项目说明
 ├── LICENSE
 ├── TRADEMARKS.md
-├── 灵动卡片.png
-├── 琉璃色盘.png
-├── 气泡印章.png
+├── 灵动卡片_new.png
+├── 琉璃色盘_new.png
+├── 气泡印章_new.png
 ├── 隐私马赛克.png
 └── lingdongzhaopian/
     ├── Config/
@@ -207,9 +210,12 @@
         ├── ArtworkCanvas.swift
         ├── ArtworkExporter.swift
         ├── ContentView.swift
+        ├── DisplayImageNormalizer.swift
         ├── LiquidGlass.swift
+        ├── LivePhotoPreview.swift
         ├── PhotoAsset.swift
         ├── PhotoContentAnalyzer.swift
+        ├── PhotoPickerBridge.swift
         ├── PrivacyMosaic.swift
         ├── SettingsView.swift
         └── lingdongzhaopianApp.swift

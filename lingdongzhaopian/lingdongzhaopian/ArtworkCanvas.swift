@@ -37,6 +37,23 @@ struct ArtworkCanvas: View {
         palette.isEmpty ? RGBColor.fallback : palette
     }
 
+    private var lightestColor: RGBColor {
+        colors.max(by: { $0.relativeLuminance < $1.relativeLuminance }) ?? RGBColor.fallback[2]
+    }
+
+    private var darkestColor: RGBColor {
+        colors.min(by: { $0.relativeLuminance < $1.relativeLuminance }) ?? RGBColor.fallback[3]
+    }
+
+    private func readableForeground(preferred: RGBColor, background: RGBColor) -> RGBColor {
+        guard preferred.contrastRatio(with: background) < 4.5 else { return preferred }
+        let black = RGBColor(red: 0.035, green: 0.035, blue: 0.035)
+        let white = RGBColor(red: 0.965, green: 0.965, blue: 0.965)
+        return black.contrastRatio(with: background) >= white.contrastRatio(with: background)
+            ? black
+            : white
+    }
+
     private var percentages: [Double] {
         if palettePercentages.count >= 6 {
             return palettePercentages
@@ -89,11 +106,14 @@ struct ArtworkCanvas: View {
     }
 
     private func motionCard(size: CGSize) -> some View {
-        VStack(spacing: 0) {
+        let background = lightestColor.adjusted(brightness: 0.10, saturation: -0.08)
+        let foreground = readableForeground(
+            preferred: darkestColor.adjusted(brightness: -0.04, saturation: 0.04),
+            background: background
+        )
+        return VStack(spacing: 0) {
             ZStack {
-                colors[min(2, colors.count - 1)]
-                    .adjusted(brightness: 0.10, saturation: -0.08)
-                    .color
+                background.color
 
                 VStack(spacing: 3) {
                     Text(copy.title)
@@ -103,7 +123,7 @@ struct ArtworkCanvas: View {
                     Text(metadata.captureTimeText)
                         .font(.system(size: max(6, size.width * 0.017), weight: .medium))
                 }
-                .foregroundStyle(.black.opacity(0.48))
+                .foregroundStyle(foreground.color)
             }
             .frame(height: size.height * 0.43)
 
@@ -240,10 +260,15 @@ struct ArtworkCanvas: View {
     }
 
     private func bubbleStamp(size: CGSize) -> some View {
-        let foreground = colors[0].adjusted(brightness: 0.18).color
+        let background = darkestColor.adjusted(brightness: -0.06, saturation: 0.12)
+        let foregroundRGB = readableForeground(
+            preferred: lightestColor.adjusted(brightness: 0.18, saturation: -0.04),
+            background: background
+        )
+        let foreground = foregroundRGB.color
         let photoSide = size.width - 32
         return ZStack {
-            colors[min(3, colors.count - 1)].adjusted(brightness: -0.06, saturation: 0.12).color
+            background.color
 
             VStack(spacing: 0) {
                 primaryPhoto(

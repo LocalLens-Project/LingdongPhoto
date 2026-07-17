@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import CoreLocation
+import Foundation
 import ImageIO
 import Photos
-import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
@@ -137,23 +137,40 @@ struct SelectedPhoto: Identifiable {
     let originalData: Data
     var metadata: PhotoMetadata
     let semantic: PhotoSemantic
-    let assetLocalIdentifier: String?
     let pairedVideoURL: URL?
     let isLivePhoto: Bool
 }
 
 enum PhotoImportError: LocalizedError {
     case unreadableImage
+    case unreadableLivePhoto
+    case missingLivePhotoVideo
 
     var errorDescription: String? {
         switch self {
         case .unreadableImage:
             "无法读取所选照片，请换一张照片后重试。"
+        case .unreadableLivePhoto:
+            "无法读取所选实况照片的动态内容，请确认原片已从 iCloud 下载后重试。"
+        case .missingLivePhotoVideo:
+            "所选实况照片没有提供可用的配对视频，请在系统照片中确认它仍可播放后重试。"
         }
     }
 }
 
 enum PhotoAssetLoader {
+    private struct LivePhotoResourceInfo {
+        let isLivePhoto: Bool
+        let imageData: Data?
+        let pairedVideoURL: URL?
+
+        static let unavailable = LivePhotoResourceInfo(
+            isLivePhoto: false,
+            imageData: nil,
+            pairedVideoURL: nil
+        )
+    }
+
     static func removeTemporaryResources(for photos: [SelectedPhoto]) {
         for url in photos.compactMap(\.pairedVideoURL) where url.lastPathComponent.hasPrefix("lingdong-live-") {
             try? FileManager.default.removeItem(at: url)
@@ -175,11 +192,32 @@ enum PhotoAssetLoader {
         }
     }
 
-    static func load(_ item: PhotosPickerItem, includeLiveResource: Bool) async throws -> SelectedPhoto {
-        guard let data = try await item.loadTransferable(type: Data.self),
-              let image = UIImage(data: data) else {
+    static func load(_ selection: PhotoPickerSelection, includeLiveResource: Bool) async throws -> SelectedPhoto {
+        let provider = selection.itemProvider
+        let isLivePhoto = provider.canLoadObject(ofClass: PHLivePhoto.self)
+        let resourceInfo: LivePhotoResourceInfo
+        if isLivePhoto {
+            guard let livePhoto = try await loadLivePhoto(from: provider) else {
+                throw PhotoImportError.unreadableLivePhoto
+            }
+            resourceInfo = try await livePhotoResourceInfo(
+                livePhoto: livePhoto,
+                copyPairedVideo: includeLiveResource
+            )
+        } else {
+            resourceInfo = .unavailable
+        }
+
+        let data: Data
+        if let livePhotoImageData = resourceInfo.imageData {
+            data = livePhotoImageData
+        } else {
+            data = try await loadImageData(from: provider)
+        }
+        guard let decodedImage = UIImage(data: data) else {
             throw PhotoImportError.unreadableImage
         }
+        let image = DisplayImageNormalizer.standardDynamicRange(decodedImage)
 
         async let semanticAnalysis = PhotoContentAnalyzer.analyze(data)
         var metadata = PhotoMetadata.read(from: data)
@@ -187,23 +225,51 @@ enum PhotoAssetLoader {
             metadata.placeName = await reverseGeocode(coordinate)
         }
 
-        let isLivePhoto = item.supportedContentTypes.contains { type in
-            type.conforms(to: .livePhoto)
-        }
-        var pairedVideoURL: URL?
-        if includeLiveResource, isLivePhoto, let identifier = item.itemIdentifier {
-            pairedVideoURL = try? await copyPairedVideo(assetIdentifier: identifier)
-        }
-
         return SelectedPhoto(
             image: image,
             originalData: data,
             metadata: metadata,
             semantic: await semanticAnalysis,
-            assetLocalIdentifier: item.itemIdentifier,
-            pairedVideoURL: pairedVideoURL,
+            pairedVideoURL: resourceInfo.pairedVideoURL,
             isLivePhoto: isLivePhoto
         )
+    }
+
+    private static func loadLivePhoto(from provider: NSItemProvider) async throws -> PHLivePhoto? {
+        try await withCheckedThrowingContinuation { continuation in
+            provider.loadObject(ofClass: PHLivePhoto.self) { object, error in
+                if let livePhoto = object as? PHLivePhoto {
+                    continuation.resume(returning: livePhoto)
+                } else if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
+        }
+    }
+
+    private static func loadImageData(from provider: NSItemProvider) async throws -> Data {
+        let typeIdentifier = provider.registeredTypeIdentifiers.first { identifier in
+            guard !identifier.localizedCaseInsensitiveContains("live-photo"),
+                  let type = UTType(identifier) else { return false }
+            return type.conforms(to: .image)
+        }
+        guard let typeIdentifier else {
+            throw PhotoImportError.unreadableImage
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            provider.loadDataRepresentation(forTypeIdentifier: typeIdentifier) { data, error in
+                if let data {
+                    continuation.resume(returning: data)
+                } else if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(throwing: PhotoImportError.unreadableImage)
+                }
+            }
+        }
     }
 
     private static func metadataCoordinate(_ metadata: PhotoMetadata) -> CLLocation? {
@@ -233,15 +299,34 @@ enum PhotoAssetLoader {
         }
     }
 
-    private static func copyPairedVideo(assetIdentifier: String) async throws -> URL? {
-        let authorization = await photoLibraryAuthorization()
-        guard authorization == .authorized || authorization == .limited else { return nil }
+    private static func livePhotoResourceInfo(
+        livePhoto: PHLivePhoto,
+        copyPairedVideo: Bool
+    ) async throws -> LivePhotoResourceInfo {
+        guard copyPairedVideo else {
+            return LivePhotoResourceInfo(
+                isLivePhoto: true,
+                imageData: nil,
+                pairedVideoURL: nil
+            )
+        }
 
-        let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: nil)
-        guard let asset = fetchResult.firstObject else { return nil }
-        let resources = PHAssetResource.assetResources(for: asset)
+        // PHLivePhoto is loaded from the system picker's item provider. Its
+        // resources therefore represent the item the user explicitly selected
+        // and don't require direct PhotoKit library access.
+        let resources = PHAssetResource.assetResources(for: livePhoto)
+        let imageResource = resources.first(where: { $0.type == .fullSizePhoto })
+            ?? resources.first(where: { $0.type == .photo })
+        let imageData: Data?
+        if let imageResource {
+            imageData = try await resourceData(imageResource)
+        } else {
+            imageData = nil
+        }
         guard let resource = resources.first(where: { $0.type == .fullSizePairedVideo })
-                ?? resources.first(where: { $0.type == .pairedVideo }) else { return nil }
+                ?? resources.first(where: { $0.type == .pairedVideo }) else {
+            throw PhotoImportError.missingLivePhotoVideo
+        }
 
         let extensionName = URL(fileURLWithPath: resource.originalFilename).pathExtension
         let url = FileManager.default.temporaryDirectory
@@ -250,6 +335,37 @@ enum PhotoAssetLoader {
         let options = PHAssetResourceRequestOptions()
         options.isNetworkAccessAllowed = true
 
+        do {
+            try await write(resource, to: url, options: options)
+        } catch {
+            try? FileManager.default.removeItem(at: url)
+            throw error
+        }
+        return LivePhotoResourceInfo(
+            isLivePhoto: true,
+            imageData: imageData,
+            pairedVideoURL: url
+        )
+    }
+
+    private static func resourceData(_ resource: PHAssetResource) async throws -> Data {
+        let extensionName = URL(fileURLWithPath: resource.originalFilename).pathExtension
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lingdong-live-still-\(UUID().uuidString)")
+            .appendingPathExtension(extensionName.isEmpty ? "heic" : extensionName)
+        let options = PHAssetResourceRequestOptions()
+        options.isNetworkAccessAllowed = true
+
+        defer { try? FileManager.default.removeItem(at: url) }
+        try await write(resource, to: url, options: options)
+        return try Data(contentsOf: url)
+    }
+
+    private static func write(
+        _ resource: PHAssetResource,
+        to url: URL,
+        options: PHAssetResourceRequestOptions
+    ) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             PHAssetResourceManager.default().writeData(for: resource, toFile: url, options: options) { error in
                 if let error {
@@ -257,17 +373,6 @@ enum PhotoAssetLoader {
                 } else {
                     continuation.resume()
                 }
-            }
-        }
-        return url
-    }
-
-    private static func photoLibraryAuthorization() async -> PHAuthorizationStatus {
-        let current = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        guard current == .notDetermined else { return current }
-        return await withCheckedContinuation { continuation in
-            PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
-                continuation.resume(returning: status)
             }
         }
     }

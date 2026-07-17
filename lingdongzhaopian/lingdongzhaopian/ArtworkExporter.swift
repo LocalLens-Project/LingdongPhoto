@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 LocalLens-Project
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import AVFoundation
+@preconcurrency import AVFoundation
 import CoreMedia
 import CoreVideo
 import CoreLocation
@@ -30,6 +30,36 @@ enum ArtworkExportError: LocalizedError {
         case .photoLibraryFailed:
             "保存失败，请确认设备存储空间后重试。"
         }
+    }
+}
+
+private nonisolated final class LiveAudioWriterContext: @unchecked Sendable {
+    let reader: AVAssetReader
+    let output: AVAssetReaderTrackOutput
+    let input: AVAssetWriterInput
+    let writer: AVAssetWriter
+    private var completed = false
+
+    init(
+        reader: AVAssetReader,
+        output: AVAssetReaderTrackOutput,
+        input: AVAssetWriterInput,
+        writer: AVAssetWriter
+    ) {
+        self.reader = reader
+        self.output = output
+        self.input = input
+        self.writer = writer
+    }
+
+    func finish(
+        _ result: Result<Void, Error>,
+        continuation: CheckedContinuation<Void, Error>
+    ) {
+        guard !completed else { return }
+        completed = true
+        input.markAsFinished()
+        continuation.resume(with: result)
     }
 }
 
@@ -300,13 +330,27 @@ enum ArtworkExporter {
         var audioOutput: AVAssetReaderTrackOutput?
         var audioInput: AVAssetWriterInput?
         if let sourceAudioTrack,
-           let formatHint = try await sourceAudioTrack.load(.formatDescriptions).first {
+           let formatHint = try await sourceAudioTrack.load(.formatDescriptions).first,
+           let audioDescription = CMAudioFormatDescriptionGetStreamBasicDescription(formatHint)?.pointee {
             let reader = try AVAssetReader(asset: asset)
-            let output = AVAssetReaderTrackOutput(track: sourceAudioTrack, outputSettings: nil)
+            let output = AVAssetReaderTrackOutput(
+                track: sourceAudioTrack,
+                outputSettings: [
+                    AVFormatIDKey: kAudioFormatLinearPCM,
+                    AVLinearPCMBitDepthKey: 16,
+                    AVLinearPCMIsFloatKey: false,
+                    AVLinearPCMIsBigEndianKey: false,
+                    AVLinearPCMIsNonInterleaved: false
+                ]
+            )
             let input = AVAssetWriterInput(
                 mediaType: .audio,
-                outputSettings: nil,
-                sourceFormatHint: formatHint
+                outputSettings: [
+                    AVFormatIDKey: kAudioFormatMPEG4AAC,
+                    AVSampleRateKey: audioDescription.mSampleRate,
+                    AVNumberOfChannelsKey: max(1, Int(audioDescription.mChannelsPerFrame)),
+                    AVEncoderBitRateKey: 128_000
+                ]
             )
             input.expectsMediaDataInRealTime = false
             if reader.canAdd(output), writer.canAdd(input) {
@@ -334,12 +378,23 @@ enum ArtworkExporter {
             throw ArtworkExportError.videoWriterFailed(writer.error?.localizedDescription ?? "视频写入器无法启动。")
         }
         writer.startSession(atSourceTime: .zero)
-        if let audioReader, !audioReader.startReading() {
-            audioInput?.markAsFinished()
+        let audioWritingTask: Task<Void, Error>?
+        if let audioReader, let audioOutput, let audioInput {
+            audioWritingTask = Task {
+                try await writeAudioSamples(
+                    reader: audioReader,
+                    output: audioOutput,
+                    input: audioInput,
+                    writer: writer
+                )
+            }
+        } else {
+            audioWritingTask = nil
         }
 
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
+        generator.dynamicRangePolicy = .forceSDR
         generator.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 60)
         generator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 60)
         var frameGenerators: [Int: (generator: AVAssetImageGenerator, duration: CMTime)] = [:]
@@ -351,6 +406,7 @@ enum ArtworkExporter {
                 let additionalDuration = try await additionalAsset.load(.duration)
                 let additionalGenerator = AVAssetImageGenerator(asset: additionalAsset)
                 additionalGenerator.appliesPreferredTrackTransform = true
+                additionalGenerator.dynamicRangePolicy = .forceSDR
                 additionalGenerator.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 60)
                 additionalGenerator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 60)
                 frameGenerators[index] = (additionalGenerator, additionalDuration)
@@ -397,27 +453,69 @@ enum ArtworkExporter {
                 writer.cancelWriting()
                 throw ArtworkExportError.videoWriterFailed(writer.error?.localizedDescription ?? "视频帧写入失败。")
             }
-            progress(Double(index + 1) / Double(frameCount))
-        }
 
-        if let audioReader, let audioOutput, let audioInput, audioReader.status == .reading {
-            while let sampleBuffer = audioOutput.copyNextSampleBuffer() {
-                while !audioInput.isReadyForMoreMediaData {
-                    if writer.status == .failed { break }
-                    try await Task.sleep(for: .milliseconds(4))
-                }
-                guard writer.status != .failed, audioInput.append(sampleBuffer) else { break }
-            }
-            audioInput.markAsFinished()
-        } else {
-            audioInput?.markAsFinished()
+            progress(Double(index + 1) / Double(frameCount))
         }
 
         videoInput.markAsFinished()
         metadataInput.markAsFinished()
+        do {
+            try await audioWritingTask?.value
+        } catch {
+            writer.cancelWriting()
+            throw error
+        }
         await writer.finishWriting()
         guard writer.status == .completed else {
             throw ArtworkExportError.videoWriterFailed(writer.error?.localizedDescription ?? "动态视频未完成。")
+        }
+    }
+
+    private static func writeAudioSamples(
+        reader: AVAssetReader,
+        output: AVAssetReaderTrackOutput,
+        input: AVAssetWriterInput,
+        writer: AVAssetWriter
+    ) async throws {
+        guard reader.startReading() else {
+            input.markAsFinished()
+            return
+        }
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let context = LiveAudioWriterContext(
+                reader: reader,
+                output: output,
+                input: input,
+                writer: writer
+            )
+            let queue = DispatchQueue(label: "LivePhotoAudioWriter")
+            context.input.requestMediaDataWhenReady(on: queue) {
+                while context.input.isReadyForMoreMediaData {
+                    if context.writer.status == .failed {
+                        context.finish(.failure(ArtworkExportError.videoWriterFailed(
+                            context.writer.error?.localizedDescription ?? "Live Photo 音频写入中断。"
+                        )), continuation: continuation)
+                        return
+                    }
+                    guard let sampleBuffer = context.output.copyNextSampleBuffer() else {
+                        if context.reader.status == .failed {
+                            context.finish(.failure(ArtworkExportError.videoWriterFailed(
+                                context.reader.error?.localizedDescription ?? "Live Photo 音频读取失败。"
+                            )), continuation: continuation)
+                        } else {
+                            context.finish(.success(()), continuation: continuation)
+                        }
+                        return
+                    }
+                    guard context.input.append(sampleBuffer) else {
+                        context.finish(.failure(ArtworkExportError.videoWriterFailed(
+                            context.writer.error?.localizedDescription ?? "Live Photo 音频写入失败。"
+                        )), continuation: continuation)
+                        return
+                    }
+                }
+            }
         }
     }
 

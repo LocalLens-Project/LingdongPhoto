@@ -169,6 +169,23 @@ struct RGBColor: Hashable {
 
     var luminance: CGFloat { red * 0.299 + green * 0.587 + blue * 0.114 }
 
+    var relativeLuminance: CGFloat {
+        func linearized(_ component: CGFloat) -> CGFloat {
+            component <= 0.04045
+                ? component / 12.92
+                : pow((component + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linearized(red)
+            + 0.7152 * linearized(green)
+            + 0.0722 * linearized(blue)
+    }
+
+    func contrastRatio(with other: RGBColor) -> CGFloat {
+        let lighter = max(relativeLuminance, other.relativeLuminance)
+        let darker = min(relativeLuminance, other.relativeLuminance)
+        return (lighter + 0.05) / (darker + 0.05)
+    }
+
     var literaryName: String {
         let lab = OKLab(rgb: self)
         let chroma = hypot(lab.a, lab.b)
