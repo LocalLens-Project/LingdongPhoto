@@ -38,6 +38,7 @@ struct SettingsView: View {
                     stampTips
                     journalOptions
                     wallpaperOptions
+                    privacyOptions
 
                     Text("灵动照片 · 完全免费")
                         .font(.caption)
@@ -73,7 +74,7 @@ struct SettingsView: View {
                                 HStack(spacing: 7) {
                                     Text(item.title)
                                         .font(.headline)
-                                    if item == .journal {
+                                    if item == .journal || item == .privacyMosaic {
                                         Text("新")
                                             .font(.system(size: 10, weight: .bold))
                                             .foregroundStyle(.white)
@@ -247,6 +248,24 @@ struct SettingsView: View {
                 tipRow(symbol: "info.circle", text: "生成的壁纸仅适配当前设备尺寸")
                 sectionDivider
                 tipRow(symbol: "c.circle", text: "本应用完全免费；版权所有，禁止商业转售")
+            }
+        }
+    }
+
+    private var privacyOptions: some View {
+        settingsSection("隐私马赛克选项") {
+            VStack(spacing: 0) {
+                tipRow(symbol: "hand.draw", text: "进入“手动涂抹”后，单指用于添加或擦除马赛克；完成后恢复拖动照片")
+                sectionDivider
+                tipRow(symbol: "viewfinder", text: "智能识别会在本机检测人脸、车牌、二维码及手机号、地址、证件号等敏感文字")
+                sectionDivider
+                tipRow(symbol: "eye.slash", text: "点击自动识别区域可关闭遮挡，再次点击即可恢复；手动画笔可切换为橡皮擦")
+                sectionDivider
+                tipRow(symbol: "circle.grid.3x3.fill", text: "导出使用明确的强模糊像素马赛克，不使用可能看清原内容的透明玻璃遮挡")
+                sectionDivider
+                tipRow(symbol: "livephoto.slash", text: "为避免后续动态帧泄露隐私，隐私马赛克仅支持静态导出")
+                sectionDivider
+                tipRow(symbol: "location.slash", text: "保存前可选择移除 GPS 位置信息，形成完整的隐私导出")
             }
         }
     }

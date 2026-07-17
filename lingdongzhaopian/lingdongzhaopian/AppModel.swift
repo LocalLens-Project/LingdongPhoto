@@ -10,6 +10,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
     case journal
     case bubbleStamp
     case spectrumWallpaper
+    case privacyMosaic
 
     var id: String { rawValue }
 
@@ -20,6 +21,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .journal: "一键手帐"
         case .bubbleStamp: "气泡印章"
         case .spectrumWallpaper: "色谱壁纸"
+        case .privacyMosaic: "隐私马赛克"
         }
     }
 
@@ -30,6 +32,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .journal: "选取 1～5 张照片，自动排版电子手帐"
         case .bubbleStamp: "随心而动的有机气泡，捕捉影像跳动的呼吸节奏"
         case .spectrumWallpaper: "拒绝千篇一律，每一次亮屏都是你的专属艺术创作"
+        case .privacyMosaic: "手动涂抹或智能识别人脸、车牌、二维码与敏感文字"
         }
     }
 
@@ -45,6 +48,8 @@ enum CreationMode: String, CaseIterable, Identifiable {
             "记忆像气泡般轻盈跳动"
         case .spectrumWallpaper:
             "拒绝千篇一律\n每一次亮屏都是你的专属艺术创作"
+        case .privacyMosaic:
+            "让隐私留在画面之外\n手动涂抹或智能识别，安心分享每一张照片"
         }
     }
 
@@ -55,6 +60,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .journal: "bookmark"
         case .bubbleStamp: "seal"
         case .spectrumWallpaper: "rectangle.on.rectangle"
+        case .privacyMosaic: "eye.slash"
         }
     }
 
@@ -65,6 +71,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .journal: Color(red: 0.99, green: 0.79, blue: 0.62)
         case .bubbleStamp: Color(red: 0.82, green: 0.93, blue: 0.55)
         case .spectrumWallpaper: Color(red: 0.86, green: 1.00, blue: 0.83)
+        case .privacyMosaic: Color(red: 0.62, green: 0.84, blue: 1.00)
         }
     }
 
@@ -72,7 +79,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         switch self {
         case .journal, .spectrumWallpaper:
             .nineSixteen
-        case .motionCard, .colorPalette, .bubbleStamp:
+        case .motionCard, .colorPalette, .bubbleStamp, .privacyMosaic:
             .threeFour
         }
     }

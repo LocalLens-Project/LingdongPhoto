@@ -29,6 +29,9 @@ struct ArtworkCanvas: View {
     var isExporting = false
     var paletteRevealStage: Int = 4
     var generationProgress: CGFloat = 1
+    var privacyMasks: [PrivacyMask] = []
+    var privacyStrokes: [PrivacyStroke] = []
+    var privacyPixelatedImage: UIImage?
 
     private var colors: [RGBColor] {
         palette.isEmpty ? RGBColor.fallback : palette
@@ -52,21 +55,36 @@ struct ArtworkCanvas: View {
     var body: some View {
         GeometryReader { proxy in
             Group {
-                switch mode {
-                case .motionCard:
-                    motionCard(size: proxy.size)
-                case .colorPalette:
-                    colorPalette(size: proxy.size)
-                case .journal:
-                    journal(size: proxy.size)
-                case .bubbleStamp:
-                    bubbleStamp(size: proxy.size)
-                case .spectrumWallpaper:
-                    spectrumWallpaper(size: proxy.size)
+                if isExporting {
+                    canvasContent(size: proxy.size)
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                } else {
+                    canvasContent(size: proxy.size)
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .clipShape(RoundedRectangle(
+                            cornerRadius: canvasCornerRadius,
+                            style: .continuous
+                        ))
                 }
             }
-            .frame(width: proxy.size.width, height: proxy.size.height)
-            .clipShape(RoundedRectangle(cornerRadius: canvasCornerRadius, style: .continuous))
+        }
+    }
+
+    @ViewBuilder
+    private func canvasContent(size: CGSize) -> some View {
+        switch mode {
+        case .motionCard:
+            motionCard(size: size)
+        case .colorPalette:
+            colorPalette(size: size)
+        case .journal:
+            journal(size: size)
+        case .bubbleStamp:
+            bubbleStamp(size: size)
+        case .spectrumWallpaper:
+            spectrumWallpaper(size: size)
+        case .privacyMosaic:
+            privacyMosaic(size: size)
         }
     }
 
@@ -282,6 +300,10 @@ struct ArtworkCanvas: View {
         let gradientPhase = min(max((generationProgress - 0.48) / 0.38, 0), 1)
 
         return ZStack {
+            colors[min(2, colors.count - 1)]
+                .adjusted(brightness: 0.18, saturation: -0.18)
+                .color
+
             if let image = images.first {
                 Image(uiImage: image)
                     .resizable()
@@ -307,6 +329,31 @@ struct ArtworkCanvas: View {
             .blendMode(.screen)
             .opacity(gradientPhase * (gentleBackground ? 0.94 : 0.76))
         }
+    }
+
+    private func privacyMosaic(size: CGSize) -> some View {
+        Group {
+            if let image = images.first {
+                PrivacyMosaicCanvas(
+                    image: image,
+                    pixelatedImage: privacyPixelatedImage,
+                    masks: privacyMasks,
+                    strokes: privacyStrokes,
+                    imageScale: imageScale,
+                    imageOffset: imageOffset,
+                    isExporting: isExporting
+                )
+            } else {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(.black.opacity(0.72))
+                    .overlay {
+                        Image(systemName: "eye.slash")
+                            .font(.largeTitle)
+                            .foregroundStyle(.white.opacity(0.72))
+                    }
+            }
+        }
+        .frame(width: size.width, height: size.height)
     }
 
     @ViewBuilder

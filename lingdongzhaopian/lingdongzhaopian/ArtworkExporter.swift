@@ -34,18 +34,42 @@ enum ArtworkExportError: LocalizedError {
 }
 
 enum ArtworkExporter {
+#if DEBUG
+    static func debugJPEGData(
+        _ image: UIImage,
+        metadata: PhotoMetadata,
+        originalImageData: Data?,
+        preserveLocation: Bool
+    ) throws -> Data {
+        try jpegData(
+            image: image,
+            metadata: metadata,
+            originalImageData: originalImageData,
+            assetIdentifier: nil,
+            preserveLocation: preserveLocation
+        )
+    }
+#endif
+
     static func saveStill(
         _ image: UIImage,
         metadata: PhotoMetadata,
-        originalImageData: Data?
+        originalImageData: Data?,
+        preserveLocation: Bool = true
     ) async throws {
         let data = try jpegData(
             image: image,
             metadata: metadata,
             originalImageData: originalImageData,
-            assetIdentifier: nil
+            assetIdentifier: nil,
+            preserveLocation: preserveLocation
         )
-        try await saveToPhotoLibrary(photoData: data, pairedVideoURL: nil, metadata: metadata)
+        try await saveToPhotoLibrary(
+            photoData: data,
+            pairedVideoURL: nil,
+            metadata: metadata,
+            preserveLocation: preserveLocation
+        )
     }
 
     static func saveLivePhoto(
@@ -64,7 +88,8 @@ enum ArtworkExporter {
             image: renderedStill,
             metadata: metadata,
             originalImageData: originalImageData,
-            assetIdentifier: identifier
+            assetIdentifier: identifier,
+            preserveLocation: true
         )
         let pairedURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("lingdong-export-\(identifier)")
@@ -81,14 +106,20 @@ enum ArtworkExporter {
             renderFrame: renderFrame,
             progress: progress
         )
-        try await saveToPhotoLibrary(photoData: stillData, pairedVideoURL: pairedURL, metadata: metadata)
+        try await saveToPhotoLibrary(
+            photoData: stillData,
+            pairedVideoURL: pairedURL,
+            metadata: metadata,
+            preserveLocation: true
+        )
     }
 
     private static func jpegData(
         image: UIImage,
         metadata: PhotoMetadata,
         originalImageData: Data?,
-        assetIdentifier: String?
+        assetIdentifier: String?,
+        preserveLocation: Bool
     ) throws -> Data {
         guard let cgImage = image.cgImage,
               let destinationData = CFDataCreateMutable(nil, 0),
@@ -107,11 +138,20 @@ enum ArtworkExporter {
            let originalProperties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] {
             properties = originalProperties
         }
+        if !preserveLocation {
+            properties.removeValue(forKey: kCGImagePropertyGPSDictionary)
+        }
         properties[kCGImagePropertyPixelWidth] = cgImage.width
         properties[kCGImagePropertyPixelHeight] = cgImage.height
         properties[kCGImagePropertyOrientation] = 1
         properties[kCGImageDestinationLossyCompressionQuality] = 0.94
-        merge(metadata: metadata, pixelWidth: cgImage.width, pixelHeight: cgImage.height, into: &properties)
+        merge(
+            metadata: metadata,
+            pixelWidth: cgImage.width,
+            pixelHeight: cgImage.height,
+            preserveLocation: preserveLocation,
+            into: &properties
+        )
 
         var makerApple = properties[kCGImagePropertyMakerAppleDictionary] as? [String: Any] ?? [:]
         if let assetIdentifier {
@@ -132,6 +172,7 @@ enum ArtworkExporter {
         metadata: PhotoMetadata,
         pixelWidth: Int,
         pixelHeight: Int,
+        preserveLocation: Bool,
         into properties: inout [CFString: Any]
     ) {
         var tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any] ?? [:]
@@ -157,18 +198,23 @@ enum ArtworkExporter {
             tiff[kCGImagePropertyTIFFDateTime] = value
         }
 
-        var gps = properties[kCGImagePropertyGPSDictionary] as? [CFString: Any] ?? [:]
-        if let latitude = metadata.latitude {
-            gps[kCGImagePropertyGPSLatitude] = abs(latitude)
-            gps[kCGImagePropertyGPSLatitudeRef] = latitude < 0 ? "S" : "N"
-        }
-        if let longitude = metadata.longitude {
-            gps[kCGImagePropertyGPSLongitude] = abs(longitude)
-            gps[kCGImagePropertyGPSLongitudeRef] = longitude < 0 ? "W" : "E"
-        }
-        if let altitude = metadata.altitude {
-            gps[kCGImagePropertyGPSAltitude] = abs(altitude)
-            gps[kCGImagePropertyGPSAltitudeRef] = altitude < 0 ? 1 : 0
+        var gps: [CFString: Any] = [:]
+        if preserveLocation {
+            gps = properties[kCGImagePropertyGPSDictionary] as? [CFString: Any] ?? [:]
+            if let latitude = metadata.latitude {
+                gps[kCGImagePropertyGPSLatitude] = abs(latitude)
+                gps[kCGImagePropertyGPSLatitudeRef] = latitude < 0 ? "S" : "N"
+            }
+            if let longitude = metadata.longitude {
+                gps[kCGImagePropertyGPSLongitude] = abs(longitude)
+                gps[kCGImagePropertyGPSLongitudeRef] = longitude < 0 ? "W" : "E"
+            }
+            if let altitude = metadata.altitude {
+                gps[kCGImagePropertyGPSAltitude] = abs(altitude)
+                gps[kCGImagePropertyGPSAltitudeRef] = altitude < 0 ? 1 : 0
+            }
+        } else {
+            properties.removeValue(forKey: kCGImagePropertyGPSDictionary)
         }
 
         if !tiff.isEmpty { properties[kCGImagePropertyTIFFDictionary] = tiff }
@@ -404,7 +450,8 @@ enum ArtworkExporter {
     private static func saveToPhotoLibrary(
         photoData: Data,
         pairedVideoURL: URL?,
-        metadata: PhotoMetadata
+        metadata: PhotoMetadata,
+        preserveLocation: Bool
     ) async throws {
         let authorization = await addAuthorization()
         guard authorization == .authorized || authorization == .limited else {
@@ -415,7 +462,9 @@ enum ArtworkExporter {
             PHPhotoLibrary.shared().performChanges {
                 let request = PHAssetCreationRequest.forAsset()
                 request.creationDate = metadata.captureDate ?? .now
-                if let latitude = metadata.latitude, let longitude = metadata.longitude {
+                if preserveLocation,
+                   let latitude = metadata.latitude,
+                   let longitude = metadata.longitude {
                     request.location = CLLocation(latitude: latitude, longitude: longitude)
                 }
 

@@ -85,6 +85,7 @@ struct LiquidCircleButton: View {
         case "arrow.down": "保存照片"
         case "checkmark": "保存成功"
         case "gearshape": "设置"
+        case "arrow.uturn.backward": "撤销上一步"
         default: symbol
         }
     }

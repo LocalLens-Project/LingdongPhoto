@@ -33,6 +33,7 @@ struct ContentView: View {
     @AppStorage("showDeviceInfo") private var showDeviceInfo = true
     @AppStorage("showBubbles") private var showBubbles = true
     @AppStorage("gentleBackground") private var gentleBackground = true
+    @AppStorage("privacyMosaicStrength") private var privacyMosaicStrength = 0.62
 
     @State private var mode: CreationMode = .motionCard
     @State private var pickerItems: [PhotosPickerItem] = []
@@ -75,6 +76,19 @@ struct ContentView: View {
     @State private var copyWasEdited = false
     @State private var activeDragRole: CanvasDragRole?
 
+    @State private var privacyMasks: [PrivacyMask] = []
+    @State private var privacyStrokes: [PrivacyStroke] = []
+    @State private var privacyHistory: [PrivacyEditSnapshot] = []
+    @State private var privacyBrushMode: PrivacyBrushMode = .paint
+    @State private var isPrivacyPainting = false
+    @State private var isPrivacyDetecting = false
+    @State private var privacyPixelatedImage: UIImage?
+    @State private var activePrivacyStrokeID: UUID?
+    @State private var privacyGestureHasSnapshot = false
+    @State private var lastPrivacyGesturePoint: CGPoint?
+    @State private var privacyExportConfirmationPresented = false
+    @State private var privacyPreviewTask: Task<Void, Never>?
+
     @State private var revealTask: Task<Void, Never>?
     @State private var toastTask: Task<Void, Never>?
 
@@ -92,6 +106,8 @@ struct ContentView: View {
     private var combinedSemantic: PhotoSemantic {
         PhotoSemantic.combined(selectedPhotos.map(\.semantic))
     }
+    private var enabledPrivacyMaskCount: Int { privacyMasks.filter(\.isEnabled).count }
+    private var disabledPrivacyMaskCount: Int { privacyMasks.count - enabledPrivacyMaskCount }
 
     var body: some View {
         GeometryReader { proxy in
@@ -136,9 +152,17 @@ struct ContentView: View {
         }
         .onChange(of: mode) { _, newMode in
             ratio = newMode.defaultRatio
+            if newMode == .privacyMosaic {
+                refreshPrivacyPreview()
+            } else {
+                finishPrivacyPainting()
+            }
             if settingsPresented {
                 modeChangedInSettings = true
             }
+        }
+        .onChange(of: privacyMosaicStrength) { _, _ in
+            schedulePrivacyPreviewRefresh()
         }
         .onChange(of: showMoodCopy) { _, _ in
             guard let photo = selectedPhotos.first else { return }
@@ -179,6 +203,27 @@ struct ContentView: View {
             Button("好", role: .cancel) {}
         } message: {
             Text(saveErrorMessage)
+        }
+        .confirmationDialog(
+            "隐私导出",
+            isPresented: $privacyExportConfirmationPresented,
+            titleVisibility: .visible
+        ) {
+            if primaryMetadata.hasLocation {
+                Button("保存并移除 GPS 位置") {
+                    performSaveArtwork(removeLocation: true)
+                }
+                Button("保留位置并保存") {
+                    performSaveArtwork(removeLocation: false)
+                }
+            } else {
+                Button("保存静态图片") {
+                    performSaveArtwork(removeLocation: false)
+                }
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("隐私马赛克仅导出静态图片。像素遮挡会写入成品，Live Photo 动态片段不会导出。")
         }
         .task {
             PhotoAssetLoader.cleanupStaleTemporaryResources()
@@ -273,9 +318,15 @@ struct ContentView: View {
 
     private func editorView(in size: CGSize) -> some View {
         let ratioValue = editorRatio(in: size)
-        let canvasWidth = mode == .spectrumWallpaper
-            ? min(size.width - 96, UIScreen.main.bounds.width * 0.686)
-            : size.width - 32
+        let availableWidth = size.width - 32
+        let canvasWidth: CGFloat
+        if mode == .spectrumWallpaper {
+            canvasWidth = min(size.width - 96, UIScreen.main.bounds.width * 0.686)
+        } else if mode == .privacyMosaic {
+            canvasWidth = min(availableWidth, max(280, size.height - 340) * ratioValue)
+        } else {
+            canvasWidth = availableWidth
+        }
         let canvasHeight = canvasWidth / ratioValue
 
         return VStack(spacing: 0) {
@@ -285,11 +336,14 @@ struct ContentView: View {
 
                 if selectedPhotos.contains(where: \.isLivePhoto) {
                     let hasDynamicResource = selectedPhotos.contains { $0.pairedVideoURL != nil }
-                    Image(systemName: hasDynamicResource ? "livephoto" : "livephoto.slash")
+                    let forcesStaticExport = mode == .privacyMosaic
+                    Image(systemName: hasDynamicResource && !forcesStaticExport ? "livephoto" : "livephoto.slash")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(hasDynamicResource ? Color.primary.opacity(0.72) : Color.orange)
+                        .foregroundStyle(hasDynamicResource && !forcesStaticExport ? Color.primary.opacity(0.72) : Color.orange)
                         .accessibilityLabel(
-                            hasDynamicResource
+                            forcesStaticExport
+                                ? "隐私遮挡仅支持静态导出"
+                                : hasDynamicResource
                                 ? "Live Photo 动态导出已启用"
                                 : "Live Photo 动态资源不可用，将保存静态作品"
                         )
@@ -356,22 +410,22 @@ struct ContentView: View {
                 preservePaletteBackground: preservePaletteBackground,
                 applyLiquidGlassOnExport: applyLiquidGlassOnExport,
                 paletteRevealStage: paletteRevealStage,
-                generationProgress: generationProgress
+                generationProgress: generationProgress,
+                privacyMasks: privacyMasks,
+                privacyStrokes: privacyStrokes,
+                privacyPixelatedImage: privacyPixelatedImage
             )
             .frame(width: canvasWidth, height: canvasHeight)
             .scaleEffect(canvasRevealed ? 1 : 0.78)
             .opacity(canvasRevealed ? 1 : 0.18)
             .shadow(color: .black.opacity(canvasRevealed ? 0.12 : 0), radius: 22, y: 12)
             .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-            .gesture(compositionGesture(canvasSize: CGSize(width: canvasWidth, height: canvasHeight)))
-            .simultaneousGesture(
-                SpatialTapGesture(count: 1)
-                    .onEnded { value in
-                        handleCanvasTap(at: value.location, canvasSize: CGSize(width: canvasWidth, height: canvasHeight))
-                    }
+            .gesture(activeCanvasGesture(canvasSize: CGSize(width: canvasWidth, height: canvasHeight)))
+            .accessibilityLabel(
+                mode == .privacyMosaic && isPrivacyPainting
+                    ? "隐私马赛克预览，单指\(privacyBrushMode.rawValue)"
+                    : "\(mode.title)预览，可拖拽或双指缩放"
             )
-            .onTapGesture(count: 2) { resetComposition() }
-            .accessibilityLabel("\(mode.title)预览，可拖拽或双指缩放")
             .accessibilityAction(named: "编辑作品文字") {
                 if mode == .motionCard || mode == .bubbleStamp || mode == .journal {
                     editCopyPresented = true
@@ -380,15 +434,157 @@ struct ContentView: View {
             .accessibilityAction(named: "恢复默认构图") { resetComposition() }
             .padding(.top, 20)
 
-            Spacer(minLength: 18)
+            if mode == .privacyMosaic {
+                PrivacyMosaicControls(
+                    brushMode: $privacyBrushMode,
+                    strength: $privacyMosaicStrength,
+                    isPainting: isPrivacyPainting,
+                    isDetecting: isPrivacyDetecting,
+                    canUndo: !privacyHistory.isEmpty,
+                    detectedCount: privacyMasks.count,
+                    disabledCount: disabledPrivacyMaskCount,
+                    hasLivePhoto: selectedPhotos.contains(where: \.isLivePhoto),
+                    onTogglePainting: togglePrivacyPainting,
+                    onDetect: detectPrivacyContent,
+                    onUndo: undoPrivacyEdit
+                )
+                .padding(.horizontal, 18)
+                .padding(.top, 12)
+            }
+
+            Spacer(minLength: mode == .privacyMosaic ? 8 : 18)
         }
         .safeAreaPadding(.top)
     }
 
+    private func activeCanvasGesture(canvasSize: CGSize) -> AnyGesture<Void> {
+        if mode == .privacyMosaic && isPrivacyPainting {
+            return AnyGesture(privacyPaintGesture(canvasSize: canvasSize).map { _ in () })
+        }
+
+        if mode == .privacyMosaic {
+            return AnyGesture(compositionGesture(canvasSize: canvasSize).map { _ in () })
+        }
+
+        return AnyGesture(
+            SimultaneousGesture(
+                compositionGesture(canvasSize: canvasSize),
+                TapGesture(count: 2)
+                    .onEnded { resetComposition() }
+            )
+            .map { _ in () }
+        )
+    }
+
+    private func privacyPaintGesture(canvasSize: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                guard let point = normalizedPrivacyPoint(
+                    from: value.location,
+                    canvasSize: canvasSize
+                ) else { return }
+
+                if !privacyGestureHasSnapshot {
+                    pushPrivacySnapshot()
+                    privacyGestureHasSnapshot = true
+                }
+
+                switch privacyBrushMode {
+                case .paint:
+                    if activePrivacyStrokeID == nil {
+                        let stroke = PrivacyStroke(
+                            points: [point],
+                            normalizedWidth: privacyBrushWidth
+                        )
+                        activePrivacyStrokeID = stroke.id
+                        privacyStrokes.append(stroke)
+                    } else if let id = activePrivacyStrokeID,
+                              let index = privacyStrokes.firstIndex(where: { $0.id == id }) {
+                        appendInterpolatedPrivacyPoints(point, to: &privacyStrokes[index])
+                    }
+                case .erase:
+                    erasePrivacyStrokes(from: lastPrivacyGesturePoint, to: point)
+                }
+                lastPrivacyGesturePoint = point
+            }
+            .onEnded { _ in
+                activePrivacyStrokeID = nil
+                lastPrivacyGesturePoint = nil
+                privacyGestureHasSnapshot = false
+                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            }
+    }
+
+    private var privacyBrushWidth: CGFloat { 0.085 }
+    private var privacyEraserRadius: CGFloat { 0.072 }
+
+    private func appendInterpolatedPrivacyPoints(_ point: CGPoint, to stroke: inout PrivacyStroke) {
+        guard let previous = stroke.points.last else {
+            stroke.points.append(point)
+            return
+        }
+        let distance = hypot(point.x - previous.x, point.y - previous.y)
+        let step = max(0.008, stroke.normalizedWidth * 0.26)
+        let segments = max(1, Int(ceil(distance / step)))
+        for index in 1...segments {
+            let progress = CGFloat(index) / CGFloat(segments)
+            stroke.points.append(CGPoint(
+                x: previous.x + (point.x - previous.x) * progress,
+                y: previous.y + (point.y - previous.y) * progress
+            ))
+        }
+    }
+
+    private func erasePrivacyStrokes(from start: CGPoint?, to end: CGPoint) {
+        let start = start ?? end
+        let distance = hypot(end.x - start.x, end.y - start.y)
+        let segments = max(1, Int(ceil(distance / max(0.01, privacyEraserRadius * 0.45))))
+        for index in 0...segments {
+            let progress = CGFloat(index) / CGFloat(segments)
+            erasePrivacyStrokes(at: CGPoint(
+                x: start.x + (end.x - start.x) * progress,
+                y: start.y + (end.y - start.y) * progress
+            ))
+        }
+    }
+
+    private func erasePrivacyStrokes(at center: CGPoint) {
+        var rebuilt: [PrivacyStroke] = []
+        for stroke in privacyStrokes {
+            var segment: [CGPoint] = []
+            var segmentIndex = 0
+            func finishSegment() {
+                guard !segment.isEmpty else { return }
+                rebuilt.append(PrivacyStroke(
+                    id: segmentIndex == 0 ? stroke.id : UUID(),
+                    points: segment,
+                    normalizedWidth: stroke.normalizedWidth
+                ))
+                segmentIndex += 1
+                segment.removeAll(keepingCapacity: true)
+            }
+
+            for point in stroke.points {
+                let radius = privacyEraserRadius + stroke.normalizedWidth * 0.46
+                if hypot(point.x - center.x, point.y - center.y) <= radius {
+                    finishSegment()
+                } else {
+                    segment.append(point)
+                }
+            }
+            finishSegment()
+        }
+        privacyStrokes = rebuilt
+    }
+
     private func compositionGesture(canvasSize: CGSize) -> some Gesture {
         SimultaneousGesture(
-            DragGesture()
+            DragGesture(minimumDistance: mode == .privacyMosaic ? 0 : 10)
                 .onChanged { value in
+                    if mode == .privacyMosaic,
+                       hypot(value.translation.width, value.translation.height) < 8 {
+                        return
+                    }
                     if activeDragRole == nil {
                         activeDragRole = dragRole(
                             at: value.startLocation,
@@ -398,10 +594,13 @@ struct ContentView: View {
                     }
                     switch activeDragRole ?? .image {
                     case .image:
-                        imageOffset = CGSize(
+                        let proposedOffset = CGSize(
                             width: storedOffset.width + value.translation.width,
                             height: storedOffset.height + value.translation.height
                         )
+                        imageOffset = mode == .privacyMosaic
+                            ? clampedPrivacyOffset(proposedOffset, canvasSize: canvasSize, scale: imageScale)
+                            : proposedOffset
                     case .palette:
                         paletteOffset = min(max(storedPaletteOffset + value.translation.height, -canvasSize.height * 0.44), canvasSize.height * 0.44)
                     case .bubble:
@@ -411,6 +610,12 @@ struct ContentView: View {
                     }
                 }
                 .onEnded { value in
+                    if mode == .privacyMosaic,
+                       hypot(value.translation.width, value.translation.height) < 8 {
+                        activeDragRole = nil
+                        handleCanvasTap(at: value.location, canvasSize: canvasSize)
+                        return
+                    }
                     switch activeDragRole ?? .image {
                     case .image:
                         storedOffset = imageOffset
@@ -437,8 +642,23 @@ struct ContentView: View {
             MagnifyGesture()
                 .onChanged { value in
                     imageScale = min(max(storedScale * value.magnification, 1), 4)
+                    if mode == .privacyMosaic {
+                        imageOffset = clampedPrivacyOffset(imageOffset, canvasSize: canvasSize, scale: imageScale)
+                    }
                 }
-                .onEnded { _ in storedScale = imageScale }
+                .onEnded { _ in
+                    storedScale = imageScale
+                    if mode == .privacyMosaic { storedOffset = imageOffset }
+                }
+        )
+    }
+
+    private func clampedPrivacyOffset(_ offset: CGSize, canvasSize: CGSize, scale: CGFloat) -> CGSize {
+        let horizontalLimit = max(0, canvasSize.width * (scale - 1) / 2)
+        let verticalLimit = max(0, canvasSize.height * (scale - 1) / 2)
+        return CGSize(
+            width: min(max(offset.width, -horizontalLimit), horizontalLimit),
+            height: min(max(offset.height, -verticalLimit), verticalLimit)
         )
     }
 
@@ -471,6 +691,22 @@ struct ContentView: View {
     }
 
     private func handleCanvasTap(at point: CGPoint, canvasSize: CGSize) {
+        if mode == .privacyMosaic {
+            guard !isPrivacyPainting,
+                  let normalizedPoint = normalizedPrivacyPoint(from: point, canvasSize: canvasSize),
+                  let index = privacyMaskIndex(at: normalizedPoint, canvasSize: canvasSize) else { return }
+            pushPrivacySnapshot()
+            privacyMasks[index].isEnabled.toggle()
+            UISelectionFeedbackGenerator().selectionChanged()
+            showToast(
+                privacyMasks[index].isEnabled
+                    ? "已恢复\(privacyMasks[index].kind.title)遮挡"
+                    : "已关闭\(privacyMasks[index].kind.title)遮挡，再次点击可恢复",
+                duration: 1.8
+            )
+            return
+        }
+
         let shouldEdit: Bool
         switch mode {
         case .motionCard:
@@ -483,6 +719,53 @@ struct ContentView: View {
             shouldEdit = false
         }
         if shouldEdit { editCopyPresented = true }
+    }
+
+    private func normalizedPrivacyPoint(from point: CGPoint, canvasSize: CGSize) -> CGPoint? {
+        guard let image = images.first, image.size.width > 0, image.size.height > 0 else { return nil }
+        let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
+        let scale = max(imageScale, 0.001)
+        let untransformed = CGPoint(
+            x: (point.x - center.x - imageOffset.width) / scale + center.x,
+            y: (point.y - center.y - imageOffset.height) / scale + center.y
+        )
+        let fitted = aspectFitSize(imageSize: image.size, canvasSize: canvasSize)
+        let rect = CGRect(
+            x: (canvasSize.width - fitted.width) / 2,
+            y: (canvasSize.height - fitted.height) / 2,
+            width: fitted.width,
+            height: fitted.height
+        )
+        guard rect.contains(untransformed) else { return nil }
+        return CGPoint(
+            x: min(max((untransformed.x - rect.minX) / rect.width, 0), 1),
+            y: min(max((untransformed.y - rect.minY) / rect.height, 0), 1)
+        )
+    }
+
+    private func privacyMaskIndex(at point: CGPoint, canvasSize: CGSize) -> Int? {
+        privacyMasks.indices
+            .filter { index in
+                var hitRect = privacyMasks[index].normalizedRect
+                let minimumWidth = min(0.18, 46 / max(canvasSize.width * imageScale, 1))
+                let minimumHeight = min(0.18, 46 / max(canvasSize.height * imageScale, 1))
+                hitRect = hitRect.insetBy(
+                    dx: -max(0, (minimumWidth - hitRect.width) / 2),
+                    dy: -max(0, (minimumHeight - hitRect.height) / 2)
+                )
+                return hitRect.contains(point)
+            }
+            .min {
+                let lhs = privacyMasks[$0].normalizedRect
+                let rhs = privacyMasks[$1].normalizedRect
+                return lhs.width * lhs.height < rhs.width * rhs.height
+            }
+    }
+
+    private func aspectFitSize(imageSize: CGSize, canvasSize: CGSize) -> CGSize {
+        guard imageSize.width > 0, imageSize.height > 0 else { return canvasSize }
+        let scale = min(canvasSize.width / imageSize.width, canvasSize.height / imageSize.height)
+        return CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
     }
 
     private func toast(text: String) -> some View {
@@ -500,8 +783,104 @@ struct ContentView: View {
         .zIndex(60)
     }
 
+    private func togglePrivacyPainting() {
+        guard mode == .privacyMosaic else { return }
+        if isPrivacyPainting {
+            finishPrivacyPainting()
+            showToast("已退出隐私遮挡模式，可继续拖动或缩放照片", duration: 2.2)
+        } else {
+            isPrivacyPainting = true
+            privacyBrushMode = .paint
+            activeDragRole = nil
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            showToast("隐私遮挡模式：单指涂抹，完成后恢复构图手势", duration: 2.6)
+        }
+    }
+
+    private func finishPrivacyPainting() {
+        isPrivacyPainting = false
+        activePrivacyStrokeID = nil
+        privacyGestureHasSnapshot = false
+        lastPrivacyGesturePoint = nil
+    }
+
+    private func detectPrivacyContent() {
+        guard mode == .privacyMosaic,
+              !isPrivacyDetecting,
+              let data = selectedPhotos.first?.originalData else { return }
+        finishPrivacyPainting()
+        isPrivacyDetecting = true
+        showToast("正在本机识别人脸、车牌、二维码与敏感文字…", duration: 30)
+
+        Task {
+            let detected = await PrivacyContentDetector.detect(data)
+            isPrivacyDetecting = false
+            guard !detected.isEmpty else {
+                showToast("未发现明确的隐私内容，仍可使用手动涂抹", duration: 2.8)
+                return
+            }
+            pushPrivacySnapshot()
+            privacyMasks = detected
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            showToast(
+                "发现 \(detected.count) 处隐私内容，点击马赛克区域可取消",
+                duration: 3.6
+            )
+        }
+    }
+
+    private func pushPrivacySnapshot() {
+        privacyHistory.append(PrivacyEditSnapshot(masks: privacyMasks, strokes: privacyStrokes))
+        if privacyHistory.count > 40 {
+            privacyHistory.removeFirst(privacyHistory.count - 40)
+        }
+    }
+
+    private func undoPrivacyEdit() {
+        guard let snapshot = privacyHistory.popLast() else { return }
+        activePrivacyStrokeID = nil
+        privacyGestureHasSnapshot = false
+        lastPrivacyGesturePoint = nil
+        privacyMasks = snapshot.masks
+        privacyStrokes = snapshot.strokes
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        showToast("已撤销上一步隐私遮挡", duration: 1.5)
+    }
+
+    private func resetPrivacyEdits(for image: UIImage?) {
+        privacyMasks = []
+        privacyStrokes = []
+        privacyHistory = []
+        privacyBrushMode = .paint
+        finishPrivacyPainting()
+        privacyPixelatedImage = image.flatMap {
+            PrivacyMosaicRenderer.makePixelatedImage(from: $0, strength: privacyMosaicStrength)
+        }
+    }
+
+    private func refreshPrivacyPreview() {
+        guard let image = images.first else {
+            privacyPixelatedImage = nil
+            return
+        }
+        privacyPixelatedImage = PrivacyMosaicRenderer.makePixelatedImage(
+            from: image,
+            strength: privacyMosaicStrength
+        )
+    }
+
+    private func schedulePrivacyPreviewRefresh() {
+        privacyPreviewTask?.cancel()
+        privacyPreviewTask = Task {
+            try? await Task.sleep(for: .milliseconds(90))
+            guard !Task.isCancelled else { return }
+            refreshPrivacyPreview()
+        }
+    }
+
     private func openPicker(append: Bool = false) {
         guard !isLoading, saveState == .idle else { return }
+        finishPrivacyPainting()
         shouldAppendSelection = append && mode == .journal && !selectedPhotos.isEmpty
         pickerItems = []
         isPickerPresented = true
@@ -560,6 +939,9 @@ struct ContentView: View {
         if !appending { PhotoAssetLoader.removeTemporaryResources(for: selectedPhotos) }
         selectedPhotos = combined
         images = combined.map(\.image)
+        if !appending {
+            resetPrivacyEdits(for: images.first)
+        }
         let semantic = PhotoSemantic.combined(combined.map(\.semantic))
         if !appending {
             copyVariant = 0
@@ -587,7 +969,9 @@ struct ContentView: View {
         }
         shouldAppendSelection = false
         startRevealSequence()
-        if supportsLivePhotos,
+        if mode == .privacyMosaic, combined.contains(where: \.isLivePhoto) {
+            showToast("隐私遮挡后仅支持静态导出，动态帧不会写入成品", duration: 3.6)
+        } else if supportsLivePhotos,
            combined.contains(where: \.isLivePhoto),
            !combined.contains(where: { $0.pairedVideoURL != nil }) {
             showToast("未取得 Live 动态资源，本次将按静态作品保存", duration: 3.2)
@@ -643,6 +1027,9 @@ struct ContentView: View {
             let bounds = UIScreen.main.bounds
             return min(max(bounds.width / bounds.height, 0.43), 0.50)
         }
+        if mode == .privacyMosaic, let image = images.first, image.size.height > 0 {
+            return min(max(image.size.width / image.size.height, 0.35), 2.40)
+        }
         return ratio.value
     }
 
@@ -659,7 +1046,13 @@ struct ContentView: View {
         resetComposition(animated: false)
         isEditorVisible = true
         isLoading = false
+        if mode == .privacyMosaic {
+            refreshPrivacyPreview()
+        }
         startRevealSequence()
+        if mode == .privacyMosaic, selectedPhotos.contains(where: \.isLivePhoto) {
+            showToast("隐私遮挡后仅支持静态导出，避免动态帧泄露隐私", duration: 3.6)
+        }
     }
 
     private func resetComposition(animated: Bool = true) {
@@ -685,8 +1078,21 @@ struct ContentView: View {
 
     private func saveArtwork() {
         guard canSave, saveState == .idle else { return }
+        if mode == .privacyMosaic {
+            finishPrivacyPainting()
+            privacyExportConfirmationPresented = true
+            return
+        }
+        performSaveArtwork(removeLocation: false)
+    }
+
+    private func performSaveArtwork(removeLocation: Bool) {
+        guard canSave, saveState == .idle else { return }
         withAnimation(.easeOut(duration: 0.16)) { saveState = .saving }
-        showToast("正在渲染高清作品…", duration: 30)
+        showToast(
+            mode == .privacyMosaic ? "正在渲染隐私静态作品…" : "正在渲染高清作品…",
+            duration: 30
+        )
 
         Task {
             guard let image = renderArtwork() else {
@@ -698,7 +1104,7 @@ struct ContentView: View {
             do {
                 let metadata = selectedPhotos.first?.metadata ?? .empty
                 let originalData = selectedPhotos.first?.originalData
-                let pairedVideoURLs: [Int: URL] = supportsLivePhotos
+                let pairedVideoURLs: [Int: URL] = supportsLivePhotos && mode != .privacyMosaic
                     ? Dictionary(uniqueKeysWithValues: selectedPhotos.enumerated().compactMap { index, photo in
                         photo.pairedVideoURL.map { (index, $0) }
                     })
@@ -718,11 +1124,17 @@ struct ContentView: View {
                         }
                     )
                 } else {
-                    showToast("正在写入相册并保留拍摄信息…", duration: 30)
+                    showToast(
+                        removeLocation
+                            ? "正在写入相册并移除 GPS 位置…"
+                            : "正在写入相册并保留拍摄信息…",
+                        duration: 30
+                    )
                     try await ArtworkExporter.saveStill(
                         image,
                         metadata: metadata,
-                        originalImageData: originalData
+                        originalImageData: originalData,
+                        preserveLocation: !removeLocation
                     )
                 }
                 toastTask?.cancel()
@@ -744,14 +1156,24 @@ struct ContentView: View {
 
     private func renderArtwork(replacingImages replacements: [Int: UIImage] = [:]) -> UIImage? {
         let renderWidth: CGFloat = 360
-        let outputRatio = mode == .spectrumWallpaper
-            ? min(max(UIScreen.main.bounds.width / UIScreen.main.bounds.height, 0.43), 0.50)
-            : ratio.value
-        let renderHeight = renderWidth / outputRatio
+        let renderScale: CGFloat = 3
         var renderImages = images
         for (index, frame) in replacements where renderImages.indices.contains(index) {
             renderImages[index] = frame
         }
+        let outputRatio: CGFloat
+        if mode == .spectrumWallpaper {
+            outputRatio = min(max(UIScreen.main.bounds.width / UIScreen.main.bounds.height, 0.43), 0.50)
+        } else if mode == .privacyMosaic,
+                  let image = renderImages.first,
+                  image.size.height > 0 {
+            outputRatio = min(max(image.size.width / image.size.height, 0.35), 2.40)
+        } else {
+            outputRatio = ratio.value
+        }
+        // Keep the SwiftUI canvas edge on a physical output-pixel boundary.
+        // A fractional final row is transparent and turns black when encoded as JPEG.
+        let renderHeight = ((renderWidth / outputRatio) * renderScale).rounded(.up) / renderScale
         let renderer = ImageRenderer(
             content: ArtworkCanvas(
                 mode: mode,
@@ -777,11 +1199,14 @@ struct ContentView: View {
                 applyLiquidGlassOnExport: applyLiquidGlassOnExport,
                 isExporting: true,
                 paletteRevealStage: 4,
-                generationProgress: 1
+                generationProgress: 1,
+                privacyMasks: privacyMasks,
+                privacyStrokes: privacyStrokes,
+                privacyPixelatedImage: privacyPixelatedImage
             )
             .frame(width: renderWidth, height: renderHeight)
         )
-        renderer.scale = 3
+        renderer.scale = renderScale
         return renderer.uiImage
     }
 
@@ -840,9 +1265,14 @@ struct ContentView: View {
         if arguments.contains("--journal") { mode = .journal }
         if arguments.contains("--stamp") { mode = .bubbleStamp }
         if arguments.contains("--wallpaper") { mode = .spectrumWallpaper }
+        if arguments.contains("--privacy") { mode = .privacyMosaic }
         ratio = mode.defaultRatio
+        let fixturePath = arguments
+            .first(where: { $0.hasPrefix("--fixture-path=") })
+            .map { String($0.dropFirst("--fixture-path=".count)) }
         let fixtureData = arguments.contains("--fixture")
-            ? Bundle.main.url(forResource: "Fixture", withExtension: "jpeg").flatMap { try? Data(contentsOf: $0) }
+            ? fixturePath.flatMap { try? Data(contentsOf: URL(fileURLWithPath: $0)) }
+                ?? Bundle.main.url(forResource: "Fixture", withExtension: "jpeg").flatMap { try? Data(contentsOf: $0) }
             : nil
         let fallbackImage = Self.debugPreviewImage()
         let data = fixtureData ?? fallbackImage.jpegData(compressionQuality: 0.94) ?? Data()
@@ -874,6 +1304,27 @@ struct ContentView: View {
             isLivePhoto: false
         )]
         images = [image]
+        resetPrivacyEdits(for: image)
+        if mode == .privacyMosaic, arguments.contains("--privacy-mask") {
+            privacyMasks = [
+                PrivacyMask(
+                    kind: .face,
+                    normalizedRect: CGRect(x: 0.32, y: 0.26, width: 0.24, height: 0.18)
+                ),
+                PrivacyMask(
+                    kind: .sensitiveText,
+                    normalizedRect: CGRect(x: 0.12, y: 0.72, width: 0.46, height: 0.08)
+                )
+            ]
+            privacyStrokes = [PrivacyStroke(
+                points: [
+                    CGPoint(x: 0.62, y: 0.62),
+                    CGPoint(x: 0.68, y: 0.66),
+                    CGPoint(x: 0.75, y: 0.63)
+                ],
+                normalizedWidth: privacyBrushWidth
+            )]
+        }
         let result = PaletteExtractor.extract(from: image)
         palette = result.colors
         palettePercentages = result.percentages
@@ -893,6 +1344,57 @@ struct ContentView: View {
             startRevealSequence()
         }
         if arguments.contains("--settings") { settingsPresented = true }
+        if mode == .privacyMosaic, arguments.contains("--privacy-paint") {
+            isPrivacyPainting = true
+            privacyBrushMode = .paint
+        }
+        if arguments.contains("--debug-render") {
+            Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                guard let rendered = renderArtwork(),
+                      let pngData = rendered.pngData(),
+                      let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+                let baseName = "debug-render-\(mode.rawValue)"
+                try? pngData.write(
+                    to: directory.appendingPathComponent(baseName).appendingPathExtension("png"),
+                    options: .atomic
+                )
+                if let jpegData = try? ArtworkExporter.debugJPEGData(
+                    rendered,
+                    metadata: primaryMetadata,
+                    originalImageData: selectedPhotos.first?.originalData,
+                    preserveLocation: false
+                ) {
+                    try? jpegData.write(
+                        to: directory.appendingPathComponent(baseName).appendingPathExtension("jpg"),
+                        options: .atomic
+                    )
+                }
+            }
+        }
+        if mode == .privacyMosaic, arguments.contains("--privacy-render") {
+            Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                guard let rendered = renderArtwork(),
+                      let data = rendered.pngData(),
+                      let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+                try? data.write(to: directory.appendingPathComponent("privacy-render.png"), options: .atomic)
+                var debugMetadataWithLocation = primaryMetadata
+                debugMetadataWithLocation.latitude = 31.2304
+                debugMetadataWithLocation.longitude = 121.4737
+                if let jpeg = try? ArtworkExporter.debugJPEGData(
+                    rendered,
+                    metadata: debugMetadataWithLocation,
+                    originalImageData: selectedPhotos.first?.originalData,
+                    preserveLocation: false
+                ) {
+                    try? jpeg.write(
+                        to: directory.appendingPathComponent("privacy-render-no-location.jpg"),
+                        options: .atomic
+                    )
+                }
+            }
+        }
     }
 
     private static func debugPreviewImage() -> UIImage {
