@@ -35,11 +35,20 @@ struct PhotoMetadata: Equatable {
 
     var captureTimeText: String {
         guard let captureDate else { return "拍摄时间未记录" }
-        return captureDate.formatted(
-            .dateTime
-                .year().month(.twoDigits).day(.twoDigits)
-                .hour(.twoDigits(amPM: .omitted)).minute(.twoDigits)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let components = calendar.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: captureDate
         )
+        guard let year = components.year,
+              let month = components.month,
+              let day = components.day,
+              let hour = components.hour,
+              let minute = components.minute else {
+            return "拍摄时间未记录"
+        }
+        return String(format: "%04d/%02d/%02d, %02d:%02d", year, month, day, hour, minute)
     }
 
     var deviceLine: String? {
@@ -58,19 +67,71 @@ struct PhotoMetadata: Equatable {
 
     var cameraLine: String? {
         var values: [String] = []
-        if let aperture, aperture > 0 { values.append(String(format: "ƒ/%.1f", aperture)) }
+        if let aperture, aperture > 0 {
+            values.append("ƒ/\(Self.compactDecimal(aperture))")
+        }
         if let exposureTime, exposureTime > 0 {
             if exposureTime < 1 {
                 values.append("1/\(max(1, Int((1 / exposureTime).rounded())))s")
             } else {
-                values.append(String(format: "%.1fs", exposureTime))
+                values.append("\(Self.compactDecimal(exposureTime))s")
             }
         }
         if let iso, iso > 0 { values.append("ISO \(iso)") }
-        if let focalLength, focalLength > 0 { values.append(String(format: "%.0fmm", focalLength)) }
-        guard !values.isEmpty else { return nil }
-        let lens = lensModel.map { "\($0) · " } ?? ""
-        return "\(lens)\(values.joined(separator: " · "))"
+        if let focalLength, focalLength > 0 {
+            values.append("\(Self.compactDecimal(focalLength))mm")
+        }
+
+        let lens = Self.cleanedLensModel(
+            lensModel,
+            removingAperture: aperture.map { $0 > 0 } == true,
+            removingFocalLength: focalLength.map { $0 > 0 } == true
+        )
+        let components = [lens].compactMap { $0 } + values
+        guard !components.isEmpty else { return nil }
+        return components.joined(separator: " · ")
+    }
+
+    private static func compactDecimal(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 3
+        formatter.usesGroupingSeparator = false
+        return formatter.string(from: NSNumber(value: value)) ?? String(value)
+    }
+
+    private static func cleanedLensModel(
+        _ lensModel: String?,
+        removingAperture: Bool,
+        removingFocalLength: Bool
+    ) -> String? {
+        guard var value = lensModel?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else { return nil }
+
+        if removingFocalLength {
+            value = value.replacingOccurrences(
+                of: #"(?i)\b\d+(?:\.\d+)?\s*mm\b"#,
+                with: "",
+                options: .regularExpression
+            )
+        }
+        if removingAperture {
+            value = value.replacingOccurrences(
+                of: #"(?i)(?:ƒ|f)\s*/?\s*\d+(?:\.\d+)?"#,
+                with: "",
+                options: .regularExpression
+            )
+        }
+
+        value = value
+            .replacingOccurrences(of: #"\(\s*\)"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(
+                CharacterSet(charactersIn: "·,;/()-")
+            ))
+        return value.isEmpty ? nil : value
     }
 
     static func read(from data: Data) -> PhotoMetadata {
