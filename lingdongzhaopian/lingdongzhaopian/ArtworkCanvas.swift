@@ -135,7 +135,12 @@ struct ArtworkCanvas: View {
     }
 
     private func colorPalette(size: CGSize) -> some View {
-        ZStack {
+        let visiblePaletteOffset = PalettePanelGeometry.clampedOffset(
+            paletteOffset,
+            in: size,
+            layout: paletteLayout
+        )
+        return ZStack {
             primaryPhoto(size: size, cornerRadius: 0)
                 .overlay(.black.opacity(0.05))
 
@@ -145,17 +150,18 @@ struct ArtworkCanvas: View {
                 palettePanel(size: size)
                     .scaleEffect(paletteRevealStage >= 1 ? 1 : 0.86, anchor: paletteLayout == .bottom ? .bottom : .top)
                     .opacity(paletteRevealStage >= 1 ? 1 : 0)
-                    .offset(y: paletteOffset)
+                    .offset(y: visiblePaletteOffset)
 
                 if paletteLayout != .bottom { Spacer() }
             }
-            .padding(.vertical, 15)
+            .padding(.vertical, PalettePanelGeometry.verticalInset)
         }
     }
 
     @ViewBuilder
     private func palettePanel(size: CGSize) -> some View {
         let isCompact = paletteLayout == .compact
+        let panelSize = PalettePanelGeometry.size(in: size, layout: paletteLayout)
         let panel = Group {
             if isCompact {
                 HStack(spacing: 4) {
@@ -177,8 +183,8 @@ struct ArtworkCanvas: View {
             }
         }
         .frame(
-            width: size.width * 0.90,
-            height: isCompact ? size.height * 0.19 : size.height * 0.38
+            width: panelSize.width,
+            height: panelSize.height
         )
 
         if isExporting && !preservePaletteBackground {

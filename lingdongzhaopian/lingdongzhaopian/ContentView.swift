@@ -33,6 +33,7 @@ struct ContentView: View {
     @AppStorage("gentleBackground") private var gentleBackground = true
     @AppStorage("privacyMosaicStrength") private var privacyMosaicStrength = 0.62
     @AppStorage("showAppTitle") private var showAppTitle = true
+    @AppStorage("didShowLivePhotoPlaybackHintBuild1060") private var didShowLivePhotoPlaybackHint = false
 
     @State private var mode: CreationMode = .motionCard
     @State private var pickerSelections: [PhotoPickerSelection] = []
@@ -91,8 +92,10 @@ struct ContentView: View {
     @State private var revealTask: Task<Void, Never>?
     @State private var toastTask: Task<Void, Never>?
     @State private var livePlaybackTask: Task<Void, Never>?
+    @State private var livePhotoHintTask: Task<Void, Never>?
     @State private var livePreviewFrames: [Int: UIImage] = [:]
     @State private var isLivePhotoPlaying = false
+    @State private var isLivePhotoHintPresented = false
 
     private var pickerLimit: Int {
         if mode == .journal, shouldAppendSelection {
@@ -117,6 +120,30 @@ struct ContentView: View {
     }
     private var showsLivePlaybackControl: Bool {
         mode != .privacyMosaic && selectedPhotos.contains(where: \.isLivePhoto)
+    }
+    private var canPresentLivePhotoHint: Bool {
+        isEditorVisible && showsLivePlaybackControl && !liveSourceVideoURLs.isEmpty
+    }
+    private var livePhotoHintBaseColor: RGBColor {
+        palette.first ?? RGBColor.fallback[0]
+    }
+    private var livePhotoHintTint: Color {
+        livePhotoHintBaseColor.adjusted(
+            brightness: livePhotoHintBaseColor.relativeLuminance < 0.26 ? 0.16 : -0.04,
+            saturation: -0.04
+        ).color
+    }
+    private var livePhotoHintForeground: Color {
+        let estimatedBackground = livePhotoHintBaseColor.adjusted(
+            brightness: 0.18,
+            saturation: 0.08
+        )
+        let black = RGBColor(red: 0.035, green: 0.035, blue: 0.035)
+        let white = RGBColor(red: 0.965, green: 0.965, blue: 0.965)
+        return black.contrastRatio(with: estimatedBackground)
+            >= white.contrastRatio(with: estimatedBackground)
+            ? black.color.opacity(0.84)
+            : white.color.opacity(0.96)
     }
     private var displayedImages: [UIImage] {
         var result = images
@@ -172,6 +199,7 @@ struct ContentView: View {
         }
         .onChange(of: mode) { _, newMode in
             stopLivePhotoPlayback()
+            dismissLivePhotoHint()
             ratio = newMode.defaultRatio
             if newMode == .privacyMosaic {
                 refreshPrivacyPreview()
@@ -184,6 +212,11 @@ struct ContentView: View {
         }
         .onChange(of: privacyMosaicStrength) { _, _ in
             schedulePrivacyPreviewRefresh()
+        }
+        .onChange(of: paletteLayoutRaw) { _, _ in
+            paletteOffset = 0
+            storedPaletteOffset = 0
+            activeDragRole = nil
         }
         .onChange(of: showMoodCopy) { _, _ in
             guard let photo = selectedPhotos.first else { return }
@@ -253,8 +286,16 @@ struct ContentView: View {
             await loadDebugPreviewIfNeeded()
 #endif
         }
+        .task(id: canPresentLivePhotoHint) {
+            if canPresentLivePhotoHint {
+                presentLivePhotoHintIfNeeded()
+            } else {
+                dismissLivePhotoHint()
+            }
+        }
         .onDisappear {
             stopLivePhotoPlayback()
+            dismissLivePhotoHint(animated: false)
         }
     }
 
@@ -391,6 +432,7 @@ struct ContentView: View {
                     symbol: "gearshape",
                     isEnabled: !controlsAreDimmed
                 ) {
+                    dismissLivePhotoHint()
                     settingsPresented = true
                 }
             }
@@ -401,16 +443,35 @@ struct ContentView: View {
             .padding(.top, 10)
 
             if showsLivePlaybackControl {
-                HStack {
+                HStack(spacing: 8) {
                     LivePhotoPlaybackButton(
                         isAvailable: !liveSourceVideoURLs.isEmpty,
                         isPlaying: isLivePhotoPlaying,
                         action: playLivePhotoOnce
                     )
-                    Spacer()
+
+                    if isLivePhotoHintPresented {
+                        LivePhotoPlaybackHint(
+                            tint: livePhotoHintTint,
+                            foreground: livePhotoHintForeground,
+                            action: playLivePhotoOnce
+                        )
+                        .transition(
+                            .asymmetric(
+                                insertion: .scale(scale: 0.68, anchor: .leading)
+                                    .combined(with: .opacity)
+                                    .combined(with: .move(edge: .leading)),
+                                removal: .scale(scale: 0.76, anchor: .leading)
+                                    .combined(with: .opacity)
+                            )
+                        )
+                    }
+
+                    Spacer(minLength: 0)
                 }
                 .frame(width: canvasWidth)
                 .padding(.top, 12)
+                .zIndex(20)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
 
@@ -623,11 +684,21 @@ struct ContentView: View {
                         return
                     }
                     if activeDragRole == nil {
-                        activeDragRole = dragRole(
+                        let role = dragRole(
                             at: value.startLocation,
                             translation: value.translation,
                             canvasSize: canvasSize
                         )
+                        activeDragRole = role
+                        if case .palette = role {
+                            let normalizedOffset = PalettePanelGeometry.clampedOffset(
+                                paletteOffset,
+                                in: canvasSize,
+                                layout: paletteLayout
+                            )
+                            paletteOffset = normalizedOffset
+                            storedPaletteOffset = normalizedOffset
+                        }
                     }
                     switch activeDragRole ?? .image {
                     case .image:
@@ -639,7 +710,11 @@ struct ContentView: View {
                             ? clampedPrivacyOffset(proposedOffset, canvasSize: canvasSize, scale: imageScale)
                             : proposedOffset
                     case .palette:
-                        paletteOffset = min(max(storedPaletteOffset + value.translation.height, -canvasSize.height * 0.44), canvasSize.height * 0.44)
+                        paletteOffset = PalettePanelGeometry.clampedOffset(
+                            storedPaletteOffset + value.translation.height,
+                            in: canvasSize,
+                            layout: paletteLayout
+                        )
                     case .bubble:
                         bubbleScale = min(max(storedBubbleScale - value.translation.height / 150, 0.45), 2.1)
                     case .font, .textSize:
@@ -700,11 +775,13 @@ struct ContentView: View {
     }
 
     private func dragRole(at point: CGPoint, translation: CGSize, canvasSize: CGSize) -> CanvasDragRole {
-        if mode == .colorPalette {
-            let isOnPanel = paletteLayout == .bottom
-                ? point.y > canvasSize.height * 0.55
-                : point.y < canvasSize.height * 0.46
-            if isOnPanel { return .palette }
+        if mode == .colorPalette,
+           PalettePanelGeometry.hitFrame(
+               in: canvasSize,
+               layout: paletteLayout,
+               offset: paletteOffset
+           ).contains(point) {
+            return .palette
         }
 
         if mode == .bubbleStamp,
@@ -918,6 +995,7 @@ struct ContentView: View {
     private func openPicker(append: Bool = false) {
         guard !isLoading, saveState == .idle else { return }
         stopLivePhotoPlayback()
+        dismissLivePhotoHint()
         finishPrivacyPainting()
         shouldAppendSelection = append && mode == .journal && !selectedPhotos.isEmpty
         pickerSelections = []
@@ -927,6 +1005,7 @@ struct ContentView: View {
     private func removeLastJournalPhoto() {
         guard mode == .journal, selectedPhotos.count > 1 else { return }
         stopLivePhotoPlayback()
+        dismissLivePhotoHint()
         let removed = selectedPhotos.last.map { [$0] } ?? []
         withAnimation(.snappy) {
             selectedPhotos.removeLast()
@@ -939,6 +1018,7 @@ struct ContentView: View {
     private func loadSelectedPhotos() async {
         guard !isLoading else { return }
         stopLivePhotoPlayback()
+        dismissLivePhotoHint()
 
         let appending = shouldAppendSelection && mode == .journal && !selectedPhotos.isEmpty
         withAnimation(.easeOut(duration: 0.18)) {
@@ -1016,6 +1096,7 @@ struct ContentView: View {
         }
         shouldAppendSelection = false
         startRevealSequence()
+        presentLivePhotoHintIfNeeded()
         if mode == .privacyMosaic, combined.contains(where: \.isLivePhoto) {
             showToast("隐私遮挡后仅支持静态导出，动态帧不会写入成品", duration: 3.6)
         } else if supportsLivePhotos,
@@ -1097,6 +1178,7 @@ struct ContentView: View {
             refreshPrivacyPreview()
         }
         startRevealSequence()
+        presentLivePhotoHintIfNeeded()
         if mode == .privacyMosaic, selectedPhotos.contains(where: \.isLivePhoto) {
             showToast("隐私遮挡后仅支持静态导出，避免动态帧泄露隐私", duration: 3.6)
         }
@@ -1136,6 +1218,7 @@ struct ContentView: View {
     private func performSaveArtwork(removeLocation: Bool) {
         guard canSave, saveState == .idle else { return }
         stopLivePhotoPlayback()
+        dismissLivePhotoHint()
         withAnimation(.easeOut(duration: 0.16)) { saveState = .saving }
         showToast(
             mode == .privacyMosaic ? "正在渲染隐私静态作品…" : "正在渲染高清作品…",
@@ -1206,7 +1289,69 @@ struct ContentView: View {
         }
     }
 
+    private var livePhotoHintAnimation: Animation {
+        reduceMotion
+            ? .easeOut(duration: 0.16)
+            : .spring(response: 0.40, dampingFraction: 0.78)
+    }
+
+    private func presentLivePhotoHintIfNeeded() {
+        guard !didShowLivePhotoPlaybackHint,
+              !isLivePhotoHintPresented,
+              livePhotoHintTask == nil,
+              showsLivePlaybackControl,
+              !liveSourceVideoURLs.isEmpty else { return }
+
+        livePhotoHintTask = Task {
+            do {
+                try await Task.sleep(for: .milliseconds(reduceMotion ? 120 : 420))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled,
+                  showsLivePlaybackControl,
+                  !liveSourceVideoURLs.isEmpty else {
+                livePhotoHintTask = nil
+                return
+            }
+
+            didShowLivePhotoPlaybackHint = true
+            withAnimation(livePhotoHintAnimation) {
+                isLivePhotoHintPresented = true
+            }
+            UIAccessibility.post(
+                notification: .announcement,
+                argument: "点击即可预览实况照片"
+            )
+
+            do {
+                try await Task.sleep(for: .seconds(5))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            livePhotoHintTask = nil
+            withAnimation(livePhotoHintAnimation) {
+                isLivePhotoHintPresented = false
+            }
+        }
+    }
+
+    private func dismissLivePhotoHint(animated: Bool = true) {
+        livePhotoHintTask?.cancel()
+        livePhotoHintTask = nil
+        guard isLivePhotoHintPresented else { return }
+        if animated {
+            withAnimation(livePhotoHintAnimation) {
+                isLivePhotoHintPresented = false
+            }
+        } else {
+            isLivePhotoHintPresented = false
+        }
+    }
+
     private func playLivePhotoOnce() {
+        dismissLivePhotoHint()
         guard showsLivePlaybackControl, !isLivePhotoPlaying else { return }
         let sourceURLs = liveSourceVideoURLs
         guard !sourceURLs.isEmpty else {
@@ -1351,6 +1496,10 @@ struct ContentView: View {
     private func loadDebugPreviewIfNeeded() async {
         guard ProcessInfo.processInfo.arguments.contains("--demo"), images.isEmpty else { return }
         let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--reset-live-hint") {
+            dismissLivePhotoHint(animated: false)
+            didShowLivePhotoPlaybackHint = false
+        }
         if arguments.contains("--palette") { mode = .colorPalette }
         if arguments.contains("--journal") { mode = .journal }
         if arguments.contains("--stamp") { mode = .bubbleStamp }
@@ -1437,6 +1586,7 @@ struct ContentView: View {
         } else if arguments.contains("--animate") {
             startRevealSequence()
         }
+        presentLivePhotoHintIfNeeded()
         if arguments.contains("--settings") { settingsPresented = true }
         if mode == .privacyMosaic, arguments.contains("--privacy-paint") {
             isPrivacyPainting = true

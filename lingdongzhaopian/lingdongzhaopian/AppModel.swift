@@ -101,6 +101,60 @@ enum PaletteLayoutMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum PalettePanelGeometry {
+    static let widthScale: CGFloat = 0.90
+    static let compactHeightScale: CGFloat = 0.19
+    static let regularHeightScale: CGFloat = 0.38
+    static let verticalInset: CGFloat = 15
+    static let hitSlop: CGFloat = 8
+
+    static func size(in canvasSize: CGSize, layout: PaletteLayoutMode) -> CGSize {
+        CGSize(
+            width: canvasSize.width * widthScale,
+            height: canvasSize.height * (layout == .compact ? compactHeightScale : regularHeightScale)
+        )
+    }
+
+    static func clampedOffset(
+        _ proposedOffset: CGFloat,
+        in canvasSize: CGSize,
+        layout: PaletteLayoutMode
+    ) -> CGFloat {
+        let panelHeight = size(in: canvasSize, layout: layout).height
+        let minimumY = verticalInset
+        let maximumY = max(minimumY, canvasSize.height - verticalInset - panelHeight)
+        let baseY = layout == .bottom ? maximumY : minimumY
+        return min(max(proposedOffset, minimumY - baseY), maximumY - baseY)
+    }
+
+    static func frame(
+        in canvasSize: CGSize,
+        layout: PaletteLayoutMode,
+        offset: CGFloat
+    ) -> CGRect {
+        let panelSize = size(in: canvasSize, layout: layout)
+        let maximumY = max(verticalInset, canvasSize.height - verticalInset - panelSize.height)
+        let baseY = layout == .bottom ? maximumY : verticalInset
+        let visibleOffset = clampedOffset(offset, in: canvasSize, layout: layout)
+        return CGRect(
+            x: (canvasSize.width - panelSize.width) / 2,
+            y: baseY + visibleOffset,
+            width: panelSize.width,
+            height: panelSize.height
+        )
+    }
+
+    static func hitFrame(
+        in canvasSize: CGSize,
+        layout: PaletteLayoutMode,
+        offset: CGFloat
+    ) -> CGRect {
+        frame(in: canvasSize, layout: layout, offset: offset)
+            .insetBy(dx: -hitSlop, dy: -hitSlop)
+            .intersection(CGRect(origin: .zero, size: canvasSize))
+    }
+}
+
 enum ArtworkFontStyle: String, CaseIterable, Identifiable {
     case rounded = "圆体"
     case song = "宋体"

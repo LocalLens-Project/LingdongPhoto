@@ -122,6 +122,70 @@ struct LivePhotoPlaybackButton: View {
     }
 }
 
+struct LivePhotoPlaybackHint: View {
+    let tint: Color
+    let foreground: Color
+    let action: () -> Void
+
+    var body: some View {
+        let shape = LivePhotoHintShape()
+        Button(action: action) {
+            Text("点击即可预览实况照片")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(foreground)
+                .lineLimit(1)
+                .padding(.leading, 18)
+                .padding(.trailing, 14)
+                .frame(height: 44)
+                .contentShape(shape)
+        }
+        .buttonStyle(LivePhotoHintButtonStyle())
+        .background {
+            shape.fill(tint.opacity(0.18))
+        }
+        .liquidGlass(in: shape, interactive: true, variant: .clear)
+        .accessibilityLabel("点击即可预览实况照片")
+        .accessibilityHint("播放一次并关闭提示")
+    }
+}
+
+private struct LivePhotoHintShape: InsettableShape {
+    private var insetAmount: CGFloat = 0
+
+    func path(in rect: CGRect) -> Path {
+        let pointerWidth = max(5, 9 - insetAmount)
+        let bodyRect = CGRect(
+            x: rect.minX + pointerWidth + insetAmount,
+            y: rect.minY + insetAmount,
+            width: max(0, rect.width - pointerWidth - insetAmount * 2),
+            height: max(0, rect.height - insetAmount * 2)
+        )
+        let cornerRadius = min(18, bodyRect.height / 2)
+        var path = Path(roundedRect: bodyRect, cornerRadius: cornerRadius)
+        let pointerHalfHeight = max(3, 6 - insetAmount * 0.5)
+        path.move(to: CGPoint(x: bodyRect.minX + 1, y: bodyRect.midY - pointerHalfHeight))
+        path.addLine(to: CGPoint(x: rect.minX + insetAmount, y: bodyRect.midY))
+        path.addLine(to: CGPoint(x: bodyRect.minX + 1, y: bodyRect.midY + pointerHalfHeight))
+        path.closeSubpath()
+        return path
+    }
+
+    func inset(by amount: CGFloat) -> LivePhotoHintShape {
+        var copy = self
+        copy.insetAmount += amount
+        return copy
+    }
+}
+
+private struct LivePhotoHintButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.78 : 1)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1, anchor: .leading)
+            .animation(.spring(response: 0.22, dampingFraction: 0.72), value: configuration.isPressed)
+    }
+}
+
 struct LiquidPressButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
