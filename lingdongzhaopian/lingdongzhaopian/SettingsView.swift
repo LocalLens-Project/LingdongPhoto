@@ -19,6 +19,7 @@ struct SettingsView: View {
     @AppStorage("showMoodCopy") private var showMoodCopy = false
     @AppStorage("paletteLayout") private var paletteLayoutRaw = PaletteLayoutMode.floating.rawValue
     @AppStorage("applyLiquidGlassOnExport") private var applyLiquidGlassOnExport = true
+    @AppStorage("showAppTitle") private var showAppTitle = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,6 +34,7 @@ struct SettingsView: View {
                 LazyVStack(alignment: .leading, spacing: 28) {
                     modeSection
                     freeSection
+                    interfaceOptions
                     paletteOptions
                     motionTips
                     stampTips
@@ -182,6 +184,17 @@ struct SettingsView: View {
                         .labelsHidden()
                 }
             }
+        }
+    }
+
+    private var interfaceOptions: some View {
+        settingsSection("界面选项") {
+            toggleRow(
+                symbol: "textformat",
+                title: "显示应用标题",
+                subtitle: "控制编辑界面左上角是否显示“灵动照片”，不影响导出作品。",
+                value: $showAppTitle
+            )
         }
     }
 

@@ -32,6 +32,7 @@ struct ContentView: View {
     @AppStorage("showBubbles") private var showBubbles = true
     @AppStorage("gentleBackground") private var gentleBackground = true
     @AppStorage("privacyMosaicStrength") private var privacyMosaicStrength = 0.62
+    @AppStorage("showAppTitle") private var showAppTitle = true
 
     @State private var mode: CreationMode = .motionCard
     @State private var pickerSelections: [PhotoPickerSelection] = []
@@ -216,7 +217,8 @@ struct ContentView: View {
                 copyWasEdited: $copyWasEdited,
                 onRegenerate: regenerateCopy
             )
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.large])
+                .presentationContentInteraction(.scrolls)
                 .presentationCornerRadius(34)
         }
         .alert(errorTitle, isPresented: $saveErrorPresented) {
@@ -356,6 +358,8 @@ struct ContentView: View {
             HStack(spacing: 10) {
                 Text("灵动照片")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .opacity(showAppTitle ? 1 : 0)
+                    .accessibilityHidden(!showAppTitle)
 
                 Spacer()
 
@@ -392,6 +396,7 @@ struct ContentView: View {
             }
             .animation(.easeInOut(duration: 0.22), value: controlsAreDimmed)
             .animation(.easeInOut(duration: 0.20), value: canSave)
+            .animation(.easeInOut(duration: 0.18), value: showAppTitle)
             .padding(.horizontal, 16)
             .padding(.top, 10)
 
@@ -488,11 +493,21 @@ struct ContentView: View {
             return AnyGesture(compositionGesture(canvasSize: canvasSize).map { _ in () })
         }
 
+        let canvasTapGesture = SpatialTapGesture(count: 2)
+            .exclusively(before: SpatialTapGesture())
+            .onEnded { value in
+                switch value {
+                case .first:
+                    resetComposition()
+                case let .second(tap):
+                    handleCanvasTap(at: tap.location, canvasSize: canvasSize)
+                }
+            }
+
         return AnyGesture(
             SimultaneousGesture(
                 compositionGesture(canvasSize: canvasSize),
-                TapGesture(count: 2)
-                    .onEnded { resetComposition() }
+                canvasTapGesture
             )
             .map { _ in () }
         )
@@ -1319,8 +1334,8 @@ struct ContentView: View {
         )
     }
 
-    private func regenerateCopy() {
-        guard !selectedPhotos.isEmpty else { return }
+    private func regenerateCopy() -> ArtworkCopy {
+        guard !selectedPhotos.isEmpty else { return artworkCopy }
         copyVariant += 1
         artworkCopy = defaultCopy(
             metadata: primaryMetadata,
@@ -1329,6 +1344,7 @@ struct ContentView: View {
         )
         copyWasEdited = false
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        return artworkCopy
     }
 
 #if DEBUG
@@ -1563,7 +1579,23 @@ private struct ArtworkCopyEditor: View {
     let semantic: PhotoSemantic
     @Binding var copy: ArtworkCopy
     @Binding var copyWasEdited: Bool
-    let onRegenerate: () -> Void
+    let onRegenerate: () -> ArtworkCopy
+    @State private var draft: ArtworkCopy
+
+    init(
+        mode: CreationMode,
+        semantic: PhotoSemantic,
+        copy: Binding<ArtworkCopy>,
+        copyWasEdited: Binding<Bool>,
+        onRegenerate: @escaping () -> ArtworkCopy
+    ) {
+        self.mode = mode
+        self.semantic = semantic
+        _copy = copy
+        _copyWasEdited = copyWasEdited
+        self.onRegenerate = onRegenerate
+        _draft = State(initialValue: copy.wrappedValue)
+    }
 
     var body: some View {
         NavigationStack {
@@ -1577,7 +1609,9 @@ private struct ArtworkCopyEditor: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
-                    Button(action: onRegenerate) {
+                    Button {
+                        draft = onRegenerate()
+                    } label: {
                         Label("换一组智能文案与 Emoji", systemImage: "sparkles")
                     }
                     Text("由 Apple Vision 在本机识别画面，不会上传照片。")
@@ -1617,21 +1651,30 @@ private struct ArtworkCopyEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") { dismiss() }
+                    Button("完成") {
+                        commitDraft()
+                        dismiss()
+                    }
                         .fontWeight(.semibold)
                 }
             }
         }
+        .onDisappear(perform: commitDraft)
     }
 
     private func tracked(_ keyPath: WritableKeyPath<ArtworkCopy, String>) -> Binding<String> {
         Binding(
-            get: { copy[keyPath: keyPath] },
+            get: { draft[keyPath: keyPath] },
             set: { newValue in
-                copy[keyPath: keyPath] = newValue
-                copyWasEdited = true
+                draft[keyPath: keyPath] = newValue
             }
         )
+    }
+
+    private func commitDraft() {
+        guard draft != copy else { return }
+        copy = draft
+        copyWasEdited = true
     }
 }
 
