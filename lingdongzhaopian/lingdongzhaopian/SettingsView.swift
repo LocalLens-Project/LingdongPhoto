@@ -20,6 +20,7 @@ struct SettingsView: View {
     @AppStorage("paletteLayout") private var paletteLayoutRaw = PaletteLayoutMode.floating.rawValue
     @AppStorage("applyLiquidGlassOnExport") private var applyLiquidGlassOnExport = true
     @AppStorage("showAppTitle") private var showAppTitle = true
+    @AppStorage("showPalettePercentages") private var showPalettePercentages = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -165,6 +166,13 @@ struct SettingsView: View {
                 toggleRow(symbol: "livephoto", title: "支持 Live 图", value: $supportsLivePhotos)
                 sectionDivider
                 toggleRow(symbol: "number.square", title: "显示颜色值", value: $showHexValues)
+                sectionDivider
+                toggleRow(
+                    symbol: "percent",
+                    title: "显示颜色占比",
+                    subtitle: "关闭后，琉璃色盘将不再显示各颜色所占百分比。",
+                    value: $showPalettePercentages
+                )
                 sectionDivider
                 toggleRow(
                     symbol: "leaf",

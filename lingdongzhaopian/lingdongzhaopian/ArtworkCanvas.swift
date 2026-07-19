@@ -11,6 +11,7 @@ struct ArtworkCanvas: View {
     let palettePercentages: [Double]
     let ratio: ArtworkRatio
     let showHexValues: Bool
+    let showPalettePercentages: Bool
     let showDeviceInfo: Bool
     let showBubbles: Bool
     let gentleBackground: Bool
@@ -223,13 +224,15 @@ struct ArtworkCanvas: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.65)
             }
-            Text(String(format: "%.1f%%", percentages[index]))
-                .font(.system(
-                    size: max(5, size.width * (compact ? 0.014 : 0.020)),
-                    weight: .semibold,
-                    design: .rounded
-                ))
-                .foregroundStyle(.white.opacity(0.76))
+            if showPalettePercentages {
+                Text(String(format: "%.1f%%", percentages[index]))
+                    .font(.system(
+                        size: max(5, size.width * (compact ? 0.014 : 0.020)),
+                        weight: .semibold,
+                        design: .rounded
+                    ))
+                    .foregroundStyle(.white.opacity(0.76))
+            }
         }
         .frame(maxWidth: .infinity)
         .scaleEffect(paletteRevealStage >= requiredStage ? 1 : 0.18)

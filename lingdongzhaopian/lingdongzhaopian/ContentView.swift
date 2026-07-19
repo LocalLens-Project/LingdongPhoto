@@ -28,12 +28,16 @@ struct ContentView: View {
     @AppStorage("paletteLayout") private var paletteLayoutRaw = PaletteLayoutMode.floating.rawValue
     @AppStorage("applyLiquidGlassOnExport") private var applyLiquidGlassOnExport = true
     @AppStorage("showHexValues") private var showHexValues = true
+    @AppStorage("showPalettePercentages") private var showPalettePercentages = true
     @AppStorage("showDeviceInfo") private var showDeviceInfo = true
     @AppStorage("showBubbles") private var showBubbles = true
     @AppStorage("gentleBackground") private var gentleBackground = true
     @AppStorage("privacyMosaicStrength") private var privacyMosaicStrength = 0.62
     @AppStorage("showAppTitle") private var showAppTitle = true
-    @AppStorage("didShowLivePhotoPlaybackHintBuild1060") private var didShowLivePhotoPlaybackHint = false
+    // This key is intentionally independent of the build number. Do not rename it
+    // for future releases, otherwise users would see the one-time hint again.
+    @AppStorage("didShowLivePhotoPlaybackHint") private var didShowLivePhotoPlaybackHint = false
+    @AppStorage("didShowLivePhotoPlaybackHintBuild1060") private var didShowLivePhotoPlaybackHintBuild1060 = false
 
     @State private var mode: CreationMode = .motionCard
     @State private var pickerSelections: [PhotoPickerSelection] = []
@@ -124,6 +128,9 @@ struct ContentView: View {
     private var canPresentLivePhotoHint: Bool {
         isEditorVisible && showsLivePlaybackControl && !liveSourceVideoURLs.isEmpty
     }
+    private var hasShownLivePhotoPlaybackHint: Bool {
+        didShowLivePhotoPlaybackHint || didShowLivePhotoPlaybackHintBuild1060
+    }
     private var livePhotoHintBaseColor: RGBColor {
         palette.first ?? RGBColor.fallback[0]
     }
@@ -170,7 +177,11 @@ struct ContentView: View {
                     toast(text: toastMessage)
                 }
 
-                ShakeDetector { resetComposition() }
+                ShakeDetector(
+                    isEnabled: !editCopyPresented && !settingsPresented && !isPickerPresented
+                ) {
+                    resetComposition()
+                }
                     .frame(width: 0, height: 0)
 
                 if !didAcknowledgeFreeNotice {
@@ -281,6 +292,9 @@ struct ContentView: View {
             Text("隐私马赛克仅导出静态图片。像素遮挡会写入成品，Live Photo 动态片段不会导出。")
         }
         .task {
+            if didShowLivePhotoPlaybackHintBuild1060 {
+                didShowLivePhotoPlaybackHint = true
+            }
             PhotoAssetLoader.cleanupStaleTemporaryResources()
 #if DEBUG
             await loadDebugPreviewIfNeeded()
@@ -482,6 +496,7 @@ struct ContentView: View {
                 palettePercentages: palettePercentages,
                 ratio: ratio,
                 showHexValues: showHexValues,
+                showPalettePercentages: showPalettePercentages,
                 showDeviceInfo: showDeviceInfo,
                 showBubbles: showBubbles,
                 gentleBackground: gentleBackground,
@@ -1296,7 +1311,7 @@ struct ContentView: View {
     }
 
     private func presentLivePhotoHintIfNeeded() {
-        guard !didShowLivePhotoPlaybackHint,
+        guard !hasShownLivePhotoPlaybackHint,
               !isLivePhotoHintPresented,
               livePhotoHintTask == nil,
               showsLivePlaybackControl,
@@ -1316,6 +1331,7 @@ struct ContentView: View {
             }
 
             didShowLivePhotoPlaybackHint = true
+            didShowLivePhotoPlaybackHintBuild1060 = true
             withAnimation(livePhotoHintAnimation) {
                 isLivePhotoHintPresented = true
             }
@@ -1416,6 +1432,7 @@ struct ContentView: View {
                 palettePercentages: palettePercentages,
                 ratio: ratio,
                 showHexValues: showHexValues,
+                showPalettePercentages: showPalettePercentages,
                 showDeviceInfo: showDeviceInfo,
                 showBubbles: showBubbles,
                 gentleBackground: gentleBackground,
@@ -1499,6 +1516,7 @@ struct ContentView: View {
         if arguments.contains("--reset-live-hint") {
             dismissLivePhotoHint(animated: false)
             didShowLivePhotoPlaybackHint = false
+            didShowLivePhotoPlaybackHintBuild1060 = false
         }
         if arguments.contains("--palette") { mode = .colorPalette }
         if arguments.contains("--journal") { mode = .journal }
@@ -1724,6 +1742,13 @@ struct ContentView_Previews: PreviewProvider {
 }
 
 private struct ArtworkCopyEditor: View {
+    private enum Field: Hashable {
+        case title
+        case subtitle
+        case emojis
+        case journalCaption
+    }
+
     @Environment(\.dismiss) private var dismiss
     let mode: CreationMode
     let semantic: PhotoSemantic
@@ -1731,6 +1756,7 @@ private struct ArtworkCopyEditor: View {
     @Binding var copyWasEdited: Bool
     let onRegenerate: () -> ArtworkCopy
     @State private var draft: ArtworkCopy
+    @FocusState private var focusedField: Field?
 
     init(
         mode: CreationMode,
@@ -1772,22 +1798,30 @@ private struct ArtworkCopyEditor: View {
                     Section("标题") {
                         TextField("输入标题", text: tracked(\.title), axis: .vertical)
                             .lineLimit(1...3)
+                            .focused($focusedField, equals: .title)
+                            .submitLabel(.done)
                     }
                 }
                 if mode == .bubbleStamp {
                     Section("英文副标题") {
                         TextField("输入副标题", text: tracked(\.subtitle), axis: .vertical)
                             .lineLimit(1...3)
+                            .focused($focusedField, equals: .subtitle)
+                            .submitLabel(.done)
                     }
                 }
                 if mode == .journal {
                     Section("Emoji") {
                         TextField("输入 Emoji", text: tracked(\.emojis), axis: .vertical)
                             .lineLimit(1...4)
+                            .focused($focusedField, equals: .emojis)
+                            .submitLabel(.done)
                     }
                     Section("手帐文案") {
                         TextField("输入文案", text: tracked(\.journalCaption), axis: .vertical)
                             .lineLimit(1...4)
+                            .focused($focusedField, equals: .journalCaption)
+                            .submitLabel(.done)
                     }
                 }
 
@@ -1797,11 +1831,13 @@ private struct ArtworkCopyEditor: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("编辑作品文字")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("完成") {
+                        focusedField = nil
                         commitDraft()
                         dismiss()
                     }
@@ -1829,21 +1865,24 @@ private struct ArtworkCopyEditor: View {
 }
 
 private struct ShakeDetector: UIViewControllerRepresentable {
+    let isEnabled: Bool
     let onShake: () -> Void
 
     func makeUIViewController(context: Context) -> Controller {
-        Controller(onShake: onShake)
+        Controller(isEnabled: isEnabled, onShake: onShake)
     }
 
     func updateUIViewController(_ uiViewController: Controller, context: Context) {
         uiViewController.onShake = onShake
-        uiViewController.becomeFirstResponder()
+        uiViewController.setEnabled(isEnabled)
     }
 
     final class Controller: UIViewController {
+        private var isEnabled: Bool
         var onShake: () -> Void
 
-        init(onShake: @escaping () -> Void) {
+        init(isEnabled: Bool, onShake: @escaping () -> Void) {
+            self.isEnabled = isEnabled
             self.onShake = onShake
             super.init(nibName: nil, bundle: nil)
         }
@@ -1855,11 +1894,22 @@ private struct ShakeDetector: UIViewControllerRepresentable {
 
         override func viewDidAppear(_ animated: Bool) {
             super.viewDidAppear(animated)
-            becomeFirstResponder()
+            if isEnabled { becomeFirstResponder() }
+        }
+
+        func setEnabled(_ enabled: Bool) {
+            guard enabled != isEnabled else { return }
+            isEnabled = enabled
+            if enabled {
+                guard viewIfLoaded?.window != nil else { return }
+                becomeFirstResponder()
+            } else if isFirstResponder {
+                resignFirstResponder()
+            }
         }
 
         override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
-            guard motion == .motionShake else { return }
+            guard isEnabled, motion == .motionShake else { return }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             onShake()
         }
