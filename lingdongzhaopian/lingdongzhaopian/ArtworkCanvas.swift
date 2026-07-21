@@ -20,6 +20,7 @@ struct ArtworkCanvas: View {
     var metadata: PhotoMetadata = .empty
     var copy: ArtworkCopy = ArtworkCopy()
     var fontStyle: ArtworkFontStyle = .rounded
+    var templateStyle: ArtworkTemplateStyle = .classic
     var textScale: CGFloat = 1
     var bubbleScale: CGFloat = 1
     var paletteOffset: CGFloat = 0
@@ -33,6 +34,9 @@ struct ArtworkCanvas: View {
     var privacyMasks: [PrivacyMask] = []
     var privacyStrokes: [PrivacyStroke] = []
     var privacyPixelatedImage: UIImage?
+    var journalLayout: JournalLayoutMode = .automatic
+    var journalTransforms: [JournalPhotoTransform] = []
+    var selectedJournalIndex: Int?
 
     private var colors: [RGBColor] {
         palette.isEmpty ? RGBColor.fallback : palette
@@ -107,12 +111,52 @@ struct ArtworkCanvas: View {
     }
 
     private func motionCard(size: CGSize) -> some View {
-        let background = lightestColor.adjusted(brightness: 0.10, saturation: -0.08)
-        let foreground = readableForeground(
-            preferred: darkestColor.adjusted(brightness: -0.04, saturation: 0.04),
-            background: background
+        let theme = MotionCardColorTheme.resolve(
+            palette: colors.map {
+                MotionCardColor(
+                    red: Double($0.red),
+                    green: Double($0.green),
+                    blue: Double($0.blue)
+                )
+            },
+            percentages: palettePercentages
         )
-        return VStack(spacing: 0) {
+        let background = RGBColor(
+            red: CGFloat(theme.background.red),
+            green: CGFloat(theme.background.green),
+            blue: CGFloat(theme.background.blue)
+        )
+        let foreground = RGBColor(
+            red: CGFloat(theme.foreground.red),
+            green: CGFloat(theme.foreground.green),
+            blue: CGFloat(theme.foreground.blue)
+        )
+        if templateStyle == .immersive {
+            return AnyView(
+                ZStack(alignment: .bottom) {
+                    primaryPhoto(size: size, cornerRadius: 0)
+                    LinearGradient(
+                        colors: [.clear, .black.opacity(0.08), .black.opacity(0.74)],
+                        startPoint: .center,
+                        endPoint: .bottom
+                    )
+                    VStack(spacing: 4) {
+                        Text(copy.title)
+                            .font(fontStyle.font(size: max(10, size.width * 0.040) * textScale, weight: .semibold))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                        Text(metadata.captureTimeText)
+                            .font(.system(size: max(7, size.width * 0.020), weight: .medium))
+                    }
+                    .foregroundStyle(.white.opacity(0.96))
+                    .shadow(color: .black.opacity(0.34), radius: 9, y: 3)
+                    .padding(.horizontal, size.width * 0.10)
+                    .padding(.bottom, size.height * 0.075)
+                }
+            )
+        }
+        let headerFraction: CGFloat = templateStyle == .airy ? 0.34 : 0.43
+        return AnyView(VStack(spacing: 0) {
             ZStack {
                 background.color
 
@@ -126,13 +170,14 @@ struct ArtworkCanvas: View {
                 }
                 .foregroundStyle(foreground.color)
             }
-            .frame(height: size.height * 0.43)
+            .frame(height: size.height * headerFraction)
 
             primaryPhoto(
-                size: CGSize(width: size.width, height: size.height * 0.57),
+                size: CGSize(width: size.width, height: size.height * (1 - headerFraction)),
                 cornerRadius: 0
             )
         }
+        )
     }
 
     private func colorPalette(size: CGSize) -> some View {
@@ -167,7 +212,12 @@ struct ArtworkCanvas: View {
             if isCompact {
                 HStack(spacing: 4) {
                     ForEach(Array(colors.prefix(6).enumerated()), id: \.offset) { index, color in
-                        paletteSwatch(index: index, color: color, size: size, compact: true)
+                        paletteSwatch(
+                            index: index,
+                            color: color,
+                            referenceWidth: panelSize.width,
+                            compact: true
+                        )
                     }
                 }
                 .padding(.horizontal, 10)
@@ -176,7 +226,12 @@ struct ArtworkCanvas: View {
                 let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
                 LazyVGrid(columns: columns, spacing: 11) {
                     ForEach(Array(colors.prefix(6).enumerated()), id: \.offset) { index, color in
-                        paletteSwatch(index: index, color: color, size: size, compact: false)
+                        paletteSwatch(
+                            index: index,
+                            color: color,
+                            referenceWidth: panelSize.width,
+                            compact: false
+                        )
                     }
                 }
                 .padding(.horizontal, 13)
@@ -205,9 +260,14 @@ struct ArtworkCanvas: View {
         }
     }
 
-    private func paletteSwatch(index: Int, color: RGBColor, size: CGSize, compact: Bool) -> some View {
+    private func paletteSwatch(
+        index: Int,
+        color: RGBColor,
+        referenceWidth: CGFloat,
+        compact: Bool
+    ) -> some View {
         let requiredStage = index < 3 ? 2 : 3
-        let diameter = size.width * (compact ? 0.090 : 0.14)
+        let diameter = referenceWidth * (compact ? 0.090 : 0.14)
         return VStack(spacing: compact ? 2 : 4) {
             Circle()
                 .fill(color.color)
@@ -216,7 +276,7 @@ struct ArtworkCanvas: View {
             if showHexValues || useLiteraryColorNames {
                 Text(useLiteraryColorNames ? color.literaryName : color.hex)
                     .font(.system(
-                        size: max(5, size.width * (compact ? 0.015 : 0.022)),
+                        size: max(5, referenceWidth * (compact ? 0.015 : 0.022)),
                         weight: useLiteraryColorNames ? .semibold : .regular,
                         design: useLiteraryColorNames ? .rounded : .monospaced
                     ))
@@ -227,7 +287,7 @@ struct ArtworkCanvas: View {
             if showPalettePercentages {
                 Text(String(format: "%.1f%%", percentages[index]))
                     .font(.system(
-                        size: max(5, size.width * (compact ? 0.014 : 0.020)),
+                        size: max(5, referenceWidth * (compact ? 0.014 : 0.020)),
                         weight: .semibold,
                         design: .rounded
                     ))
@@ -268,15 +328,67 @@ struct ArtworkCanvas: View {
         }
     }
 
-    private func bubbleStamp(size: CGSize) -> some View {
-        let background = darkestColor.adjusted(brightness: -0.06, saturation: 0.12)
+    private func bubbleStamp(size: CGSize) -> AnyView {
+        if templateStyle == .immersive {
+            return AnyView(
+                ZStack(alignment: .bottom) {
+                    primaryPhoto(size: size, cornerRadius: 0)
+                    LinearGradient(
+                        colors: [.clear, .black.opacity(0.06), .black.opacity(0.76)],
+                        startPoint: .center,
+                        endPoint: .bottom
+                    )
+
+                    HStack(spacing: 12) {
+                        if showBubbles {
+                            Circle()
+                                .fill(.white.opacity(0.90))
+                                .frame(
+                                    width: size.width * 0.10 * bubbleScale,
+                                    height: size.width * 0.10 * bubbleScale
+                                )
+                                .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
+                        }
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(copy.title)
+                                .font(fontStyle.font(size: max(9, size.width * 0.030) * textScale, weight: .bold))
+                                .lineLimit(2)
+                            Text(copy.subtitle)
+                                .font(fontStyle.font(size: max(6, size.width * 0.017) * textScale))
+                                .fontWeight(.semibold)
+                                .opacity(0.78)
+                            if showDeviceInfo, let deviceLine = metadata.deviceLine {
+                                Text(deviceLine)
+                                    .font(.system(size: max(5, size.width * 0.014)))
+                                    .opacity(0.52)
+                            }
+                        }
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.36), radius: 7, y: 2)
+
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, size.width * 0.10)
+                    .padding(.bottom, size.height * 0.065)
+                }
+            )
+        }
+
+        let usesLightBackground = templateStyle == .airy
+        let background = usesLightBackground
+            ? lightestColor.adjusted(brightness: 0.15, saturation: -0.18)
+            : darkestColor.adjusted(brightness: -0.06, saturation: 0.12)
         let foregroundRGB = readableForeground(
-            preferred: lightestColor.adjusted(brightness: 0.18, saturation: -0.04),
+            preferred: usesLightBackground
+                ? darkestColor.adjusted(brightness: -0.08, saturation: 0.04)
+                : lightestColor.adjusted(brightness: 0.18, saturation: -0.04),
             background: background
         )
         let foreground = foregroundRGB.color
-        let photoSide = size.width - 32
-        return ZStack {
+        let horizontalInset: CGFloat = templateStyle == .airy ? 52 : 32
+        let photoSide = min(size.width - horizontalInset, size.height * (size.width > size.height ? 0.60 : 0.76))
+        return AnyView(ZStack {
             background.color
 
             VStack(spacing: 0) {
@@ -284,7 +396,7 @@ struct ArtworkCanvas: View {
                     size: CGSize(width: photoSide, height: photoSide),
                     cornerRadius: 0
                 )
-                .padding(.top, 16)
+                .padding(.top, templateStyle == .airy ? 26 : 16)
 
                 HStack(spacing: 12) {
                     ZStack {
@@ -323,10 +435,10 @@ struct ArtworkCanvas: View {
 
                     Spacer()
                 }
-                .padding(.horizontal, size.width * 0.13)
+                .padding(.horizontal, size.width * (templateStyle == .airy ? 0.16 : 0.13))
                 .frame(maxHeight: .infinity)
             }
-        }
+        })
     }
 
     private func spectrumWallpaper(size: CGSize) -> some View {
@@ -415,69 +527,40 @@ struct ArtworkCanvas: View {
     @ViewBuilder
     private func journalPhotoGrid(size: CGSize) -> some View {
         let selected = Array(images.prefix(5))
-        if selected.count <= 1 {
-            primaryPhoto(size: size, cornerRadius: 3)
-        } else if selected.count == 2 {
-            VStack(spacing: 5) {
-                journalCell(selected[0], size: CGSize(width: size.width, height: (size.height - 5) / 2))
-                journalCell(selected[1], size: CGSize(width: size.width, height: (size.height - 5) / 2))
-            }
-            .frame(width: size.width, height: size.height)
-            .clipped()
-        } else if selected.count == 3 {
-            HStack(spacing: 5) {
-                journalCell(selected[0], size: CGSize(width: size.width * 0.58, height: size.height))
-                VStack(spacing: 5) {
-                    journalCell(selected[1], size: CGSize(width: size.width * 0.42 - 5, height: (size.height - 5) / 2))
-                    journalCell(selected[2], size: CGSize(width: size.width * 0.42 - 5, height: (size.height - 5) / 2))
-                }
-            }
-            .frame(width: size.width, height: size.height)
-            .clipped()
-        } else if selected.count == 4 {
-            VStack(spacing: 5) {
-                ForEach(0..<2, id: \.self) { row in
-                    HStack(spacing: 5) {
-                        ForEach(0..<2, id: \.self) { column in
-                            journalCell(
-                                selected[row * 2 + column],
-                                size: CGSize(width: (size.width - 5) / 2, height: (size.height - 5) / 2)
-                            )
+        let frames = JournalGridGeometry.frames(count: selected.count, in: size, layout: journalLayout)
+        ZStack(alignment: .topLeading) {
+            ForEach(Array(selected.enumerated()), id: \.offset) { index, image in
+                let frame = frames[index]
+                journalCell(image, index: index, size: frame.size)
+                    .frame(width: frame.width, height: frame.height)
+                    .overlay {
+                        if !isExporting, selectedJournalIndex == index {
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .stroke(.white, lineWidth: 2)
+                                .shadow(color: .black.opacity(0.28), radius: 4)
+                                .padding(1)
                         }
                     }
-                }
+                    .position(x: frame.midX, y: frame.midY)
             }
-            .frame(width: size.width, height: size.height)
-            .clipped()
-        } else {
-            VStack(spacing: 5) {
-                HStack(spacing: 5) {
-                    ForEach(0..<2, id: \.self) { index in
-                        journalCell(
-                            selected[index],
-                            size: CGSize(width: (size.width - 5) / 2, height: size.height * 0.56)
-                        )
-                    }
-                }
-                HStack(spacing: 5) {
-                    ForEach(2..<5, id: \.self) { index in
-                        journalCell(
-                            selected[index],
-                            size: CGSize(width: (size.width - 10) / 3, height: size.height * 0.44 - 5)
-                        )
-                    }
-                }
-            }
-            .frame(width: size.width, height: size.height)
-            .clipped()
         }
+        .frame(width: size.width, height: size.height)
+        .clipped()
     }
 
-    private func journalCell(_ image: UIImage, size: CGSize) -> some View {
-        Image(uiImage: image)
+    private func journalCell(_ image: UIImage, index: Int, size: CGSize) -> some View {
+        let transform = journalTransforms.indices.contains(index)
+            ? journalTransforms[index]
+            : JournalPhotoTransform()
+        return Image(uiImage: image)
             .resizable()
             .scaledToFill()
             .frame(width: size.width, height: size.height)
+            .scaleEffect(transform.scale)
+            .offset(
+                x: transform.normalizedOffset.width * size.width,
+                y: transform.normalizedOffset.height * size.height
+            )
             .clipped()
     }
 }

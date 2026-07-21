@@ -254,7 +254,12 @@ enum PhotoAssetLoader {
     }
 
     static func load(_ selection: PhotoPickerSelection, includeLiveResource: Bool) async throws -> SelectedPhoto {
-        let provider = selection.itemProvider
+        if let sharedItem = selection.sharedItem {
+            return try await loadSharedItem(sharedItem)
+        }
+        guard let provider = selection.itemProvider else {
+            throw PhotoImportError.unreadableImage
+        }
         let isLivePhoto = provider.canLoadObject(ofClass: PHLivePhoto.self)
         let resourceInfo: LivePhotoResourceInfo
         if isLivePhoto {
@@ -294,6 +299,95 @@ enum PhotoAssetLoader {
             pairedVideoURL: resourceInfo.pairedVideoURL,
             isLivePhoto: isLivePhoto
         )
+    }
+
+    private static func loadSharedItem(
+        _ item: SharedPhotoHandoff.Item
+    ) async throws -> SelectedPhoto {
+        guard let decodedImage = UIImage(data: item.imageData) else {
+            if let url = item.pairedVideoURL {
+                try? FileManager.default.removeItem(at: url)
+            }
+            throw PhotoImportError.unreadableImage
+        }
+        let image = DisplayImageNormalizer.standardDynamicRange(decodedImage)
+        async let semanticAnalysis = PhotoContentAnalyzer.analyze(item.imageData)
+        var metadata = PhotoMetadata.read(from: item.imageData)
+        if let coordinate = metadataCoordinate(metadata) {
+            metadata.placeName = await reverseGeocode(coordinate)
+        }
+        var pairedVideoURL = item.pairedVideoURL.flatMap {
+            FileManager.default.fileExists(atPath: $0.path) ? $0 : nil
+        }
+        if item.isLivePhoto, pairedVideoURL == nil {
+            pairedVideoURL = try await recoverSharedLivePhotoVideo(
+                assetLocalIdentifier: item.assetLocalIdentifier
+            )
+        }
+        if item.isLivePhoto, pairedVideoURL == nil {
+            throw PhotoImportError.missingLivePhotoVideo
+        }
+        return SelectedPhoto(
+            image: image,
+            originalData: item.imageData,
+            metadata: metadata,
+            semantic: await semanticAnalysis,
+            pairedVideoURL: pairedVideoURL,
+            isLivePhoto: item.isLivePhoto
+        )
+    }
+
+    private static func recoverSharedLivePhotoVideo(
+        assetLocalIdentifier: String?
+    ) async throws -> URL? {
+        guard let assetLocalIdentifier,
+              await photoLibraryReadStatus() else { return nil }
+        guard let asset = PHAsset.fetchAssets(
+            withLocalIdentifiers: [assetLocalIdentifier],
+            options: nil
+        ).firstObject else { return nil }
+        let resources = PHAssetResource.assetResources(for: asset)
+        guard let videoResource = resources.first(where: { $0.type == .fullSizePairedVideo })
+                ?? resources.first(where: { $0.type == .pairedVideo }) else {
+            return nil
+        }
+
+        let extensionName = URL(fileURLWithPath: videoResource.originalFilename).pathExtension
+        let destinationURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lingdong-live-recovered-\(UUID().uuidString)")
+            .appendingPathExtension(extensionName.isEmpty ? "mov" : extensionName)
+        let requestOptions = PHAssetResourceRequestOptions()
+        requestOptions.isNetworkAccessAllowed = true
+        do {
+            try await write(videoResource, to: destinationURL, options: requestOptions)
+            guard fileSize(at: destinationURL) > 0 else {
+                throw PhotoImportError.missingLivePhotoVideo
+            }
+            return destinationURL
+        } catch {
+            try? FileManager.default.removeItem(at: destinationURL)
+            throw error
+        }
+    }
+
+    private static func photoLibraryReadStatus() async -> Bool {
+        let current = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        let status: PHAuthorizationStatus
+        if current == .notDetermined {
+            status = await withCheckedContinuation { continuation in
+                PHPhotoLibrary.requestAuthorization(for: .readWrite) { value in
+                    continuation.resume(returning: value)
+                }
+            }
+        } else {
+            status = current
+        }
+        return status == .authorized || status == .limited
+    }
+
+    private static func fileSize(at url: URL) -> Int64 {
+        let values = try? url.resourceValues(forKeys: [.fileSizeKey])
+        return Int64(values?.fileSize ?? 0)
     }
 
     private static func loadLivePhoto(from provider: NSItemProvider) async throws -> PHLivePhoto? {

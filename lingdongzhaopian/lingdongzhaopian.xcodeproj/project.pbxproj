@@ -6,16 +6,43 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A1000000000000000000000B /* LingdongShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* LingdongShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A1000000000000000000000C /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D /* AppIntents.framework */; };
+		A1000000000000000000000F /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D /* AppIntents.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1000000000000000000000A /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1000000000000000000000B /* LingdongShareExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		4B2A61EC3008AA4A00FD02F8 /* lingdongzhaopian.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = lingdongzhaopian.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B2A62003008AA4A00FD02F8 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		4B2A62023008AA4A00FD02F8 /* Signing.local.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.local.example.xcconfig; sourceTree = "<group>"; };
+		A10000000000000000000001 /* LingdongShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LingdongShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000000000000000000000D /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4B2A61EE3008AA4A00FD02F8 /* lingdongzhaopian */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = lingdongzhaopian;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000002 /* LingdongShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LingdongShareExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -25,6 +52,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1000000000000000000000C /* AppIntents.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000F /* AppIntents.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -35,7 +71,9 @@
 			isa = PBXGroup;
 			children = (
 				4B2A61EE3008AA4A00FD02F8 /* lingdongzhaopian */,
+				A10000000000000000000002 /* LingdongShareExtension */,
 				4B2A62013008AA4A00FD02F8 /* Config */,
+				A1000000000000000000000E /* Frameworks */,
 				4B2A61ED3008AA4A00FD02F8 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -44,6 +82,7 @@
 			isa = PBXGroup;
 			children = (
 				4B2A61EC3008AA4A00FD02F8 /* lingdongzhaopian.app */,
+				A10000000000000000000001 /* LingdongShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -57,6 +96,14 @@
 			path = Config;
 			sourceTree = "<group>";
 		};
+		A1000000000000000000000E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000000D /* AppIntents.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -67,6 +114,7 @@
 				4B2A61E83008AA4A00FD02F8 /* Sources */,
 				4B2A61E93008AA4A00FD02F8 /* Frameworks */,
 				4B2A61EA3008AA4A00FD02F8 /* Resources */,
+				A1000000000000000000000A /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
@@ -82,6 +130,28 @@
 			productReference = 4B2A61EC3008AA4A00FD02F8 /* lingdongzhaopian.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A10000000000000000000006 /* LingdongShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000007 /* Build configuration list for PBXNativeTarget "LingdongShareExtension" */;
+			buildPhases = (
+				A10000000000000000000004 /* Sources */,
+				A10000000000000000000003 /* Frameworks */,
+				A10000000000000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000002 /* LingdongShareExtension */,
+			);
+			name = LingdongShareExtension;
+			packageProductDependencies = (
+			);
+			productName = LingdongShareExtension;
+			productReference = A10000000000000000000001 /* LingdongShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -93,6 +163,9 @@
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					4B2A61EB3008AA4A00FD02F8 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					A10000000000000000000006 = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
@@ -112,6 +185,7 @@
 			projectRoot = "";
 			targets = (
 				4B2A61EB3008AA4A00FD02F8 /* lingdongzhaopian */,
+				A10000000000000000000006 /* LingdongShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -124,10 +198,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000005 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		4B2A61E83008AA4A00FD02F8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000000000000000000004 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -262,9 +350,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CURRENT_PROJECT_VERSION = 1065;
+				CODE_SIGN_ENTITLEMENTS = Config/App.entitlements;
+				CURRENT_PROJECT_VERSION = 1100;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将生成的灵动照片作品保存到您的相册。";
@@ -300,9 +390,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CURRENT_PROJECT_VERSION = 1065;
+				CODE_SIGN_ENTITLEMENTS = Config/App.entitlements;
+				CURRENT_PROJECT_VERSION = 1100;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于将生成的灵动照片作品保存到您的相册。";
@@ -332,6 +424,70 @@
 			};
 			name = Release;
 		};
+		A10000000000000000000008 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4B2A62003008AA4A00FD02F8 /* Signing.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1100;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/ShareExtension-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SHARE_EXTENSION_BUNDLE_IDENTIFIER)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A10000000000000000000009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4B2A62003008AA4A00FD02F8 /* Signing.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1100;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/ShareExtension-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
+				IPHONEOS_DEPLOYMENT_TARGET = 18;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SHARE_EXTENSION_BUNDLE_IDENTIFIER)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -349,6 +505,15 @@
 			buildConfigurations = (
 				4B2A61F83008AA4C00FD02F8 /* Debug */,
 				4B2A61F93008AA4C00FD02F8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10000000000000000000007 /* Build configuration list for PBXNativeTarget "LingdongShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000008 /* Debug */,
+				A10000000000000000000009 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

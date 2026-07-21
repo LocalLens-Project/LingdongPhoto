@@ -1,6 +1,8 @@
 // Public signing defaults. Keep personal team and bundle identifiers out of Git.
 CODE_SIGN_STYLE = Automatic
 PRODUCT_BUNDLE_IDENTIFIER = com.example.lingdongphoto
+SHARE_EXTENSION_BUNDLE_IDENTIFIER = com.example.lingdongphoto.ShareExtension
+APP_GROUP_IDENTIFIER = group.com.example.lingdongphoto
 
 // Optional machine-local overrides. This file is intentionally ignored by Git.
 #include? "Signing.local.xcconfig"

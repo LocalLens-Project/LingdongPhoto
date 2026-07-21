@@ -5,10 +5,22 @@ import Foundation
 import Photos
 import PhotosUI
 import SwiftUI
+import UIKit
 
 struct PhotoPickerSelection: Identifiable {
     let id = UUID()
-    let itemProvider: NSItemProvider
+    let itemProvider: NSItemProvider?
+    let sharedItem: SharedPhotoHandoff.Item?
+
+    init(itemProvider: NSItemProvider) {
+        self.itemProvider = itemProvider
+        sharedItem = nil
+    }
+
+    init(sharedItem: SharedPhotoHandoff.Item) {
+        itemProvider = nil
+        self.sharedItem = sharedItem
+    }
 }
 
 /// Uses the out-of-process system picker and keeps the item provider returned
@@ -17,6 +29,7 @@ struct PhotoPickerSelection: Identifiable {
 struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
     @Binding var isPresented: Bool
     let selectionLimit: Int
+    let colorScheme: ColorScheme
     let onSelection: ([PhotoPickerSelection]) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -31,10 +44,13 @@ struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
 
         let picker = PHPickerViewController(configuration: configuration)
         picker.delegate = context.coordinator
+        picker.overrideUserInterfaceStyle = colorScheme.userInterfaceStyle
         return picker
     }
 
-    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {
+        uiViewController.overrideUserInterfaceStyle = colorScheme.userInterfaceStyle
+    }
 
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
         private var parent: PrivacyPreservingPhotoPicker
@@ -48,6 +64,15 @@ struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
                 results.map { PhotoPickerSelection(itemProvider: $0.itemProvider) }
             )
             parent.isPresented = false
+        }
+    }
+}
+
+private extension ColorScheme {
+    var userInterfaceStyle: UIUserInterfaceStyle {
+        switch self {
+        case .dark: .dark
+        default: .light
         }
     }
 }

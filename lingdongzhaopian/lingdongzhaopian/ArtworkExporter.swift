@@ -71,34 +71,55 @@ enum ArtworkExporter {
         originalImageData: Data?,
         preserveLocation: Bool
     ) throws -> Data {
-        try jpegData(
+        try imageData(
             image: image,
             metadata: metadata,
             originalImageData: originalImageData,
             assetIdentifier: nil,
-            preserveLocation: preserveLocation
+            format: .jpeg,
+            metadataPolicy: preserveLocation ? .preserve : .removeLocation
         )
     }
 #endif
+
+    static func encodedStillData(
+        _ image: UIImage,
+        metadata: PhotoMetadata,
+        originalImageData: Data?,
+        format: ArtworkExportFormat,
+        metadataPolicy: ArtworkMetadataPolicy
+    ) throws -> Data {
+        try imageData(
+            image: image,
+            metadata: metadata,
+            originalImageData: originalImageData,
+            assetIdentifier: nil,
+            format: format,
+            metadataPolicy: metadataPolicy
+        )
+    }
 
     static func saveStill(
         _ image: UIImage,
         metadata: PhotoMetadata,
         originalImageData: Data?,
-        preserveLocation: Bool = true
+        format: ArtworkExportFormat = .jpeg,
+        metadataPolicy: ArtworkMetadataPolicy = .preserve
     ) async throws {
-        let data = try jpegData(
+        let data = try imageData(
             image: image,
             metadata: metadata,
             originalImageData: originalImageData,
             assetIdentifier: nil,
-            preserveLocation: preserveLocation
+            format: format,
+            metadataPolicy: metadataPolicy
         )
         try await saveToPhotoLibrary(
             photoData: data,
             pairedVideoURL: nil,
             metadata: metadata,
-            preserveLocation: preserveLocation
+            format: format,
+            metadataPolicy: metadataPolicy
         )
     }
 
@@ -107,6 +128,7 @@ enum ArtworkExporter {
         sourceVideoURLs: [Int: URL],
         metadata: PhotoMetadata,
         originalImageData: Data?,
+        metadataPolicy: ArtworkMetadataPolicy = .preserve,
         renderFrame: @escaping @MainActor ([Int: UIImage]) -> UIImage?,
         progress: @escaping @MainActor (Double) -> Void
     ) async throws {
@@ -114,12 +136,13 @@ enum ArtworkExporter {
             throw ArtworkExportError.missingVideo
         }
         let identifier = UUID().uuidString
-        let stillData = try jpegData(
+        let stillData = try imageData(
             image: renderedStill,
             metadata: metadata,
             originalImageData: originalImageData,
             assetIdentifier: identifier,
-            preserveLocation: true
+            format: .jpeg,
+            metadataPolicy: metadataPolicy
         )
         let pairedURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("lingdong-export-\(identifier)")
@@ -140,22 +163,24 @@ enum ArtworkExporter {
             photoData: stillData,
             pairedVideoURL: pairedURL,
             metadata: metadata,
-            preserveLocation: true
+            format: .jpeg,
+            metadataPolicy: metadataPolicy
         )
     }
 
-    private static func jpegData(
+    private static func imageData(
         image: UIImage,
         metadata: PhotoMetadata,
         originalImageData: Data?,
         assetIdentifier: String?,
-        preserveLocation: Bool
+        format: ArtworkExportFormat,
+        metadataPolicy: ArtworkMetadataPolicy
     ) throws -> Data {
         guard let cgImage = image.cgImage,
               let destinationData = CFDataCreateMutable(nil, 0),
               let destination = CGImageDestinationCreateWithData(
                 destinationData,
-                UTType.jpeg.identifier as CFString,
+                format.type.identifier as CFString,
                 1,
                 nil
               ) else {
@@ -163,27 +188,37 @@ enum ArtworkExporter {
         }
 
         var properties: [CFString: Any] = [:]
-        if let originalImageData,
+        if metadataPolicy.preservesMetadata,
+           let originalImageData,
            let source = CGImageSourceCreateWithData(originalImageData as CFData, nil),
            let originalProperties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] {
             properties = originalProperties
         }
-        if !preserveLocation {
+        if !metadataPolicy.preservesLocation {
             properties.removeValue(forKey: kCGImagePropertyGPSDictionary)
         }
         properties[kCGImagePropertyPixelWidth] = cgImage.width
         properties[kCGImagePropertyPixelHeight] = cgImage.height
         properties[kCGImagePropertyOrientation] = 1
         properties[kCGImageDestinationLossyCompressionQuality] = 0.94
-        merge(
-            metadata: metadata,
-            pixelWidth: cgImage.width,
-            pixelHeight: cgImage.height,
-            preserveLocation: preserveLocation,
-            into: &properties
-        )
+        if metadataPolicy.preservesMetadata {
+            merge(
+                metadata: metadata,
+                pixelWidth: cgImage.width,
+                pixelHeight: cgImage.height,
+                preserveLocation: metadataPolicy.preservesLocation,
+                into: &properties
+            )
+        } else {
+            properties.removeValue(forKey: kCGImagePropertyTIFFDictionary)
+            properties.removeValue(forKey: kCGImagePropertyExifDictionary)
+            properties.removeValue(forKey: kCGImagePropertyGPSDictionary)
+            properties.removeValue(forKey: kCGImagePropertyIPTCDictionary)
+        }
 
-        var makerApple = properties[kCGImagePropertyMakerAppleDictionary] as? [String: Any] ?? [:]
+        var makerApple = metadataPolicy.preservesMetadata
+            ? properties[kCGImagePropertyMakerAppleDictionary] as? [String: Any] ?? [:]
+            : [:]
         if let assetIdentifier {
             makerApple["17"] = assetIdentifier
         } else {
@@ -549,7 +584,8 @@ enum ArtworkExporter {
         photoData: Data,
         pairedVideoURL: URL?,
         metadata: PhotoMetadata,
-        preserveLocation: Bool
+        format: ArtworkExportFormat,
+        metadataPolicy: ArtworkMetadataPolicy
     ) async throws {
         let authorization = await addAuthorization()
         guard authorization == .authorized || authorization == .limited else {
@@ -559,16 +595,16 @@ enum ArtworkExporter {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             PHPhotoLibrary.shared().performChanges {
                 let request = PHAssetCreationRequest.forAsset()
-                request.creationDate = metadata.captureDate ?? .now
-                if preserveLocation,
+                request.creationDate = metadataPolicy.preservesMetadata ? metadata.captureDate ?? .now : .now
+                if metadataPolicy.preservesLocation,
                    let latitude = metadata.latitude,
                    let longitude = metadata.longitude {
                     request.location = CLLocation(latitude: latitude, longitude: longitude)
                 }
 
                 let photoOptions = PHAssetResourceCreationOptions()
-                photoOptions.originalFilename = "灵动照片-\(Int(Date.now.timeIntervalSince1970)).jpg"
-                photoOptions.uniformTypeIdentifier = UTType.jpeg.identifier
+                photoOptions.originalFilename = "灵动照片-\(Int(Date.now.timeIntervalSince1970)).\(format.fileExtension)"
+                photoOptions.uniformTypeIdentifier = format.type.identifier
                 request.addResource(with: .photo, data: photoData, options: photoOptions)
 
                 if let pairedVideoURL {

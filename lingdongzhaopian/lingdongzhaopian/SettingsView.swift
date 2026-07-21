@@ -12,6 +12,8 @@ struct SettingsView: View {
     @Binding var showDeviceInfo: Bool
     @Binding var showBubbles: Bool
     @Binding var gentleBackground: Bool
+    @Binding var templateStyle: ArtworkTemplateStyle
+    @Binding var journalLayout: JournalLayoutMode
 
     @AppStorage("supportsLivePhotos") private var supportsLivePhotos = true
     @AppStorage("useLiteraryColorNames") private var useLiteraryColorNames = false
@@ -209,6 +211,10 @@ struct SettingsView: View {
     private var motionTips: some View {
         settingsSection("灵动卡片操作技巧") {
             VStack(spacing: 0) {
+                templateRow
+                sectionDivider
+                ratioRow
+                sectionDivider
                 tipRow(symbol: "arrow.up.and.down.and.arrow.left.and.right", text: "拖拽图片调整构图，双指捏合缩放")
                 sectionDivider
                 tipRow(symbol: "keyboard", text: "点击文字即可直接编辑")
@@ -232,6 +238,10 @@ struct SettingsView: View {
     private var stampTips: some View {
         settingsSection("气泡印章操作技巧") {
             VStack(spacing: 0) {
+                templateRow
+                sectionDivider
+                ratioRow
+                sectionDivider
                 tipRow(symbol: "arrow.up.and.down.and.arrow.left.and.right", text: "拖拽图片调整构图，双指捏合缩放")
                 sectionDivider
                 tipRow(symbol: "keyboard", text: "点击标题即可编辑（拍摄参数不可编辑）")
@@ -252,7 +262,18 @@ struct SettingsView: View {
     private var journalOptions: some View {
         settingsSection("一键手帐选项") {
             VStack(spacing: 0) {
-                tipRow(symbol: "info.circle", text: "使用顶部加号继续添加，减号移除末张；点击 Emoji 或文案可直接编辑")
+                tipRow(symbol: "info.circle", text: "使用顶部加号继续添加，选中缩略图后可替换、重排或删除；点击 Emoji 或文案可直接编辑")
+                sectionDivider
+                SettingRow(symbol: "square.grid.2x2", title: "拼图模板") {
+                    Picker("拼图模板", selection: $journalLayout) {
+                        ForEach(JournalLayoutMode.allCases) { layout in
+                            Text(layout.rawValue).tag(layout)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .tint(.blue)
+                }
                 sectionDivider
                 ratioRow
                 sectionDivider
@@ -299,8 +320,21 @@ struct SettingsView: View {
                 }
             }
             .labelsHidden()
-            .pickerStyle(.segmented)
-            .frame(width: 132)
+            .pickerStyle(.menu)
+            .tint(.blue)
+        }
+    }
+
+    private var templateRow: some View {
+        SettingRow(symbol: templateStyle.symbol, title: "作品模板") {
+            Picker("作品模板", selection: $templateStyle) {
+                ForEach(ArtworkTemplateStyle.allCases) { style in
+                    Label(style.rawValue, systemImage: style.symbol).tag(style)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .tint(.blue)
         }
     }
 

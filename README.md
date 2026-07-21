@@ -1,6 +1,6 @@
 # 灵动照片
 
-一款使用 SwiftUI 编写的本地照片创作工具：从照片中提取感知色彩、识别画面内容、读取真实拍摄信息，并生成带有液态玻璃质感的卡片、色盘、手帐、印章和壁纸，也可以在本机为照片添加像素化隐私遮挡。
+一款使用 SwiftUI 编写的本地照片创作工具：从照片中提取感知色彩、识别画面内容、读取真实拍摄信息，并生成带有液态玻璃质感的卡片、色盘、手帐、印章和壁纸，也可以在本机为照片添加像素化隐私遮挡。除了在应用内选图，还可以从系统照片的操作列表或快捷指令进入本机处理流程。
 
 > **TestFlight 公共测试：** [立即安装并体验“灵动照片”](https://testflight.apple.com/join/p3gtANmj)
 
@@ -23,7 +23,7 @@
 
 最初只是想看看，这类看起来精致的照片小工具究竟有多复杂，于是参考公开可见的产品交互，用 SwiftUI 从零做了一次学习性质的复刻。没有使用或反编译任何第三方应用的源代码、素材与私有资源。
 
-写着写着，项目已经不再只是“照着做一个界面”：它加入了 OKLab 感知色彩、加权 K-Means、色彩占比、Apple Vision 本机识图、分类文案库、真实 EXIF、Live Photo 动态导出、多图手帐、隐私马赛克和可编辑交互。
+写着写着，项目已经不再只是“照着做一个界面”：它加入了 OKLab 感知色彩、加权 K-Means、色彩占比、Apple Vision 本机识图、分类文案库、真实 EXIF、Live Photo 动态导出、多图手帐、隐私马赛克、照片操作扩展、App Shortcuts、导出中心和可编辑交互。
 
 至于价格，市面上确实有功能相近的小工具采用 **¥12/月** 或 **¥168 买断**。定价当然是每位开发者的自由，只是对这种体量的工具，我更愿意把实现过程公开，让感兴趣的人能看懂、修改和继续完善。
 
@@ -39,15 +39,26 @@
 
 - 根据画面内容与色彩自动生成标题
 - 显示真实拍摄时间或照片位置信息
+- 根据主体色及其画面占比生成协调的同色系文字区
+- 自动选择深色或浅色文字，标题与小字的目标对比度不低于 7:1
+- 经典、留白、沉浸三种作品模板
 - 支持拖拽构图、双指缩放
 - 点击文字直接编辑
 - 滑动切换字体与调整文字大小
 - 晃动设备恢复初始构图
 
+### 更多画幅与模板
+
+- 支持原图、1:1、3:4、4:5、9:16 与 16:9 六种画幅
+- “原图”会跟随照片的实际比例
+- 灵动卡片和气泡印章可切换经典、留白、沉浸模板
+- 一键手帐可切换自动拼贴、杂志主图、纵向胶卷模板
+- 琉璃色盘在长画幅中保持稳定宽度，只沿长边增加可用空间
+
 ### 琉璃色盘
 
 - 从整张照片提取六种代表色
-- 显示 HEX 色值或文学颜色名
+- 显示 HEX 色值，或使用包含 76 个参考色的文学颜色目录按 OKLab 感知距离命名
 - 显示每种颜色在整张照片中的百分比，占比合计为 100%
 - 经典浮动、紧凑横排、底部悬浮三种布局
 - 支持拖动色盘位置
@@ -57,6 +68,8 @@
 
 - 一次选择 1～5 张照片
 - 根据照片数量自动切换拼图布局
+- 支持自动拼贴、杂志主图与纵向胶卷三种布局
+- 可单独选择、替换、删除、拖拽排序每张照片，并分别调整缩放与位置
 - 系统识图后生成对应文案与 Emoji
 - 支持“换一组”，同一类别可组合超过千组内容
 - 文案与 Emoji 可手动编辑
@@ -87,6 +100,21 @@
 > [!IMPORTANT]
 > 智能识别仅作为辅助，可能出现遗漏或误判。涉及身份证件、账号、地址等高敏感内容时，请在导出前逐项检查，并使用手动涂抹补充遮挡。
 
+### 导出中心
+
+- 可保存到系统相册、导出到“文件”或打开系统分享面板
+- 支持 JPEG、PNG 与 HEIC
+- 支持 1080P、2K 与原图级输出；原图级最高限制为 6000 像素宽
+- 可完整保留元数据、只移除 GPS，或执行隐私净化并移除 GPS、设备、镜头和原始拍摄时间
+- Live Photo 保存到系统相册时可保留动态资源；文件与系统分享导出静态成品
+
+### 系统照片操作与快捷指令
+
+- 在系统照片的纵向操作列表中选择“用灵动照片打开”，可在液态玻璃扩展界面选择六种创作模式并继续到主应用
+- 扩展会显示实况或静态标记，界面背景、面板和按钮自动跟随系统深色或浅色模式
+- 主应用与扩展通过 App Group 传递最多 5 张照片、所选模式和 Live Photo 配对视频
+- 提供“提取照片色彩”“净化照片元数据”“生成色谱壁纸”三个 App Shortcut，均可在不打开主应用的情况下完成本机处理
+
 ## 本机智能文案
 
 项目使用 Apple Vision 在设备上分析照片，并根据人像、亲友、猫狗、鸟类、昆虫、花园、森林、山水、海滩、天空、日落、城市、建筑、街道、夜景、美食、咖啡、旅行、运动、文字截图等 34 类语义生成内容。
@@ -108,19 +136,24 @@
 
 相比直接在 RGB 空间取平均值，OKLab 更接近人眼对颜色差异的感知。
 
+文学颜色名同样在 OKLab 空间中寻找最近参考色。当前目录包含 76 个名称，覆盖不同明度、色相和饱和度，并保留适合阅读与创作的离散命名方式。
+
 ## 液态玻璃
 
 - iOS 26 使用系统原生 Liquid Glass API
 - iOS 18 自动切换为兼容磨砂材质
 - 按钮支持按压缩放、回弹和触觉反馈
 - 设置页、编辑弹窗、色盘面板和导出作品使用统一玻璃语言
+- 设置面板、导出中心、系统选图器和照片操作扩展会跟随系统深色或浅色模式；主编辑界面继续保留既有视觉设计
 - “减少动态效果”开启后会跳过非必要动画
 
 ## 照片与 Live Photo
 
-- 使用 PhotosPicker 读取用户主动选择的照片
+- 主应用使用系统 PhotosPicker 读取用户主动选择的照片；普通选图流程不需要遍历整个照片库
 - 从原始数据读取真实 EXIF、TIFF 与 GPS 字段
 - 支持读取 Live Photo 配对视频资源
+- 从系统照片操作扩展导入时，静态帧、动态片段和所选模式会通过 App Group 原样交接给主应用
+- 从照片操作扩展导入 Live Photo 时，会在已获授权的照片范围内精确匹配所选原片并恢复配对视频
 - 选择 Live Photo 后，除“隐私马赛克”外均会保留动态资源
 - 点击照片区域左上角的实况图标可播放一次，播放结束后自动停在静态画面
 - 动态导出会逐帧合成作品，并写入匹配的资源标识
@@ -136,6 +169,7 @@
 - 不包含广告或第三方分析 SDK
 - 不收集用户照片、创作内容或设备标识
 - Vision 识别、色彩计算和渲染在本机执行
+- 主应用与照片操作扩展通过同一 App Group 的临时目录交接用户主动选择的内容
 - 仅在用户操作保存时写入系统相册
 - 若照片带有 GPS，应用可能调用 Apple 的系统地理编码服务将坐标转换为地名；项目作者没有服务器，也不会接收这些坐标
 
@@ -178,18 +212,29 @@
       lingdongzhaopian/Config/Signing.local.xcconfig
    ```
 
-4. 在 `Signing.local.xcconfig` 中填写自己的 `DEVELOPMENT_TEAM` 和唯一的 `PRODUCT_BUNDLE_IDENTIFIER`。
+4. 在 `Signing.local.xcconfig` 中填写以下值：
 
-5. 选择一台 iOS 18+ 模拟器或真机并运行；Archive 也会自动使用这份本地签名配置。
+   ```xcconfig
+   DEVELOPMENT_TEAM = YOUR_TEAM_ID
+   PRODUCT_BUNDLE_IDENTIFIER = com.example.yourapp
+   SHARE_EXTENSION_BUNDLE_IDENTIFIER = com.example.yourapp.ShareExtension
+   APP_GROUP_IDENTIFIER = group.com.example.yourapp
+   ```
+
+5. 在开发者账户中创建对应 App Group，并为主应用与 `LingdongShareExtension` 两个 Target 启用同一个 App Group。扩展标识必须与主应用标识不同。
+
+6. 选择一台 iOS 18+ 模拟器或真机并运行；Archive 也会自动使用这份本地签名配置，并将照片操作扩展嵌入主应用。
 
 ## 相册权限
 
 应用需要以下权限说明：
 
-- 读取照片：获取用户选择的图片、Live Photo 动态资源和拍摄元数据
+- 应用内选图：由系统 PhotosPicker 提供用户主动选择的内容，不需要授予整个照片库的读取权限
+- 从系统照片操作扩展导入静态照片：通常可直接读取系统提供的静态文件
+- 从系统照片操作扩展导入 Live Photo：需要照片读取授权来匹配所选原片并恢复配对视频；“有限访问”适用于已包含在授权范围内的原片，完全访问可处理整个照片库中的所选原片
 - 添加照片：把生成的静态作品或 Live Photo 保存到系统相册
 
-应用不会在未选择照片时遍历或上传整个相册。
+照片读取授权仅用于恢复用户主动选择的 Live Photo 动态资源，照片不会上传。
 
 ## 项目结构
 
@@ -204,8 +249,17 @@
 ├── 隐私马赛克.png
 └── lingdongzhaopian/
     ├── Config/
+    │   ├── App-Info.plist
+    │   ├── App.entitlements
+    │   ├── ShareExtension-Info.plist
+    │   ├── ShareExtension.entitlements
     │   ├── Signing.xcconfig
     │   └── Signing.local.example.xcconfig
+    ├── LingdongShareExtension/
+    │   └── ShareViewController.swift
+    ├── Validation/
+    │   ├── LiteraryColorCatalogValidation.swift
+    │   └── MotionCardColorThemeValidation.swift
     ├── lingdongzhaopian.xcodeproj
     └── lingdongzhaopian/
         ├── AppModel.swift
@@ -213,13 +267,19 @@
         ├── ArtworkExporter.swift
         ├── ContentView.swift
         ├── DisplayImageNormalizer.swift
+        ├── ExportCenter.swift
+        ├── JournalEditorControls.swift
+        ├── LiteraryColorCatalog.swift
         ├── LiquidGlass.swift
         ├── LivePhotoPreview.swift
+        ├── MotionCardColorTheme.swift
         ├── PhotoAsset.swift
         ├── PhotoContentAnalyzer.swift
         ├── PhotoPickerBridge.swift
+        ├── PhotoShortcuts.swift
         ├── PrivacyMosaic.swift
         ├── SettingsView.swift
+        ├── ShareHandoff.swift
         └── lingdongzhaopianApp.swift
 ```
 

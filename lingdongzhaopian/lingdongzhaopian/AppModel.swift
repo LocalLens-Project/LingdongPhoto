@@ -86,11 +86,161 @@ enum CreationMode: String, CaseIterable, Identifiable {
 }
 
 enum ArtworkRatio: String, CaseIterable, Identifiable {
+    case original = "原图"
+    case oneOne = "1:1"
     case threeFour = "3:4"
+    case fourFive = "4:5"
     case nineSixteen = "9:16"
+    case sixteenNine = "16:9"
 
     var id: String { rawValue }
-    var value: CGFloat { self == .threeFour ? 3.0 / 4.0 : 9.0 / 16.0 }
+
+    var value: CGFloat {
+        switch self {
+        case .original, .threeFour: 3.0 / 4.0
+        case .oneOne: 1
+        case .fourFive: 4.0 / 5.0
+        case .nineSixteen: 9.0 / 16.0
+        case .sixteenNine: 16.0 / 9.0
+        }
+    }
+
+    func value(for image: UIImage?) -> CGFloat {
+        guard self == .original,
+              let image,
+              image.size.width > 0,
+              image.size.height > 0 else { return value }
+        return min(max(image.size.width / image.size.height, 0.35), 2.40)
+    }
+}
+
+enum ArtworkTemplateStyle: String, CaseIterable, Identifiable {
+    case classic = "经典"
+    case airy = "留白"
+    case immersive = "沉浸"
+
+    var id: String { rawValue }
+
+    var symbol: String {
+        switch self {
+        case .classic: "rectangle.split.1x2"
+        case .airy: "rectangle.inset.filled"
+        case .immersive: "photo.fill"
+        }
+    }
+}
+
+enum JournalLayoutMode: String, CaseIterable, Identifiable {
+    case automatic = "自动拼贴"
+    case magazine = "杂志主图"
+    case filmstrip = "纵向胶卷"
+
+    var id: String { rawValue }
+}
+
+struct JournalPhotoTransform: Equatable {
+    var scale: CGFloat = 1
+    /// Stored relative to the destination cell so it survives preview/export size changes.
+    var normalizedOffset: CGSize = .zero
+}
+
+enum JournalGridGeometry {
+    static let spacing: CGFloat = 5
+
+    static func containerFrame(in canvasSize: CGSize) -> CGRect {
+        CGRect(
+            x: canvasSize.width * 0.25,
+            y: canvasSize.height * 0.2475,
+            width: canvasSize.width * 0.50,
+            height: canvasSize.height * 0.505
+        )
+    }
+
+    static func frames(
+        count: Int,
+        in size: CGSize,
+        layout: JournalLayoutMode
+    ) -> [CGRect] {
+        guard count > 0 else { return [] }
+        let count = min(count, 5)
+        switch layout {
+        case .automatic:
+            return automaticFrames(count: count, size: size)
+        case .magazine:
+            return magazineFrames(count: count, size: size)
+        case .filmstrip:
+            return filmstripFrames(count: count, size: size)
+        }
+    }
+
+    private static func automaticFrames(count: Int, size: CGSize) -> [CGRect] {
+        switch count {
+        case 1:
+            return [CGRect(origin: .zero, size: size)]
+        case 2:
+            let height = (size.height - spacing) / 2
+            return (0..<2).map { CGRect(x: 0, y: CGFloat($0) * (height + spacing), width: size.width, height: height) }
+        case 3:
+            let rightWidth = size.width * 0.42 - spacing
+            let rightHeight = (size.height - spacing) / 2
+            return [
+                CGRect(x: 0, y: 0, width: size.width * 0.58, height: size.height),
+                CGRect(x: size.width * 0.58 + spacing, y: 0, width: rightWidth, height: rightHeight),
+                CGRect(x: size.width * 0.58 + spacing, y: rightHeight + spacing, width: rightWidth, height: rightHeight)
+            ]
+        case 4:
+            let width = (size.width - spacing) / 2
+            let height = (size.height - spacing) / 2
+            return (0..<4).map { index in
+                CGRect(
+                    x: CGFloat(index % 2) * (width + spacing),
+                    y: CGFloat(index / 2) * (height + spacing),
+                    width: width,
+                    height: height
+                )
+            }
+        default:
+            let topHeight = size.height * 0.56
+            let bottomHeight = size.height - topHeight - spacing
+            let topWidth = (size.width - spacing) / 2
+            let bottomWidth = (size.width - spacing * 2) / 3
+            return (0..<5).map { index in
+                if index < 2 {
+                    CGRect(x: CGFloat(index) * (topWidth + spacing), y: 0, width: topWidth, height: topHeight)
+                } else {
+                    CGRect(
+                        x: CGFloat(index - 2) * (bottomWidth + spacing),
+                        y: topHeight + spacing,
+                        width: bottomWidth,
+                        height: bottomHeight
+                    )
+                }
+            }
+        }
+    }
+
+    private static func magazineFrames(count: Int, size: CGSize) -> [CGRect] {
+        guard count > 1 else { return [CGRect(origin: .zero, size: size)] }
+        let heroHeight = size.height * 0.62
+        let remaining = count - 1
+        let rowHeight = size.height - heroHeight - spacing
+        let rowWidth = (size.width - spacing * CGFloat(remaining - 1)) / CGFloat(remaining)
+        return [CGRect(x: 0, y: 0, width: size.width, height: heroHeight)] + (0..<remaining).map { index in
+            CGRect(
+                x: CGFloat(index) * (rowWidth + spacing),
+                y: heroHeight + spacing,
+                width: rowWidth,
+                height: rowHeight
+            )
+        }
+    }
+
+    private static func filmstripFrames(count: Int, size: CGSize) -> [CGRect] {
+        let height = (size.height - spacing * CGFloat(count - 1)) / CGFloat(count)
+        return (0..<count).map { index in
+            CGRect(x: 0, y: CGFloat(index) * (height + spacing), width: size.width, height: height)
+        }
+    }
 }
 
 enum PaletteLayoutMode: String, CaseIterable, Identifiable {
@@ -109,9 +259,19 @@ enum PalettePanelGeometry {
     static let hitSlop: CGFloat = 8
 
     static func size(in canvasSize: CGSize, layout: PaletteLayoutMode) -> CGSize {
-        CGSize(
-            width: canvasSize.width * widthScale,
-            height: canvasSize.height * (layout == .compact ? compactHeightScale : regularHeightScale)
+        // Portrait artwork keeps a stable panel width while only the long edge grows.
+        // Landscape/original-wide artwork caps the panel by its short edge so the
+        // palette never stretches into an oversized horizontal strip.
+        let widthReference = canvasSize.width <= canvasSize.height
+            ? canvasSize.width
+            : min(canvasSize.width, canvasSize.height * 1.35)
+        let panelWidth = widthReference * widthScale
+        let proposedHeight = canvasSize.height * (layout == .compact ? compactHeightScale : regularHeightScale)
+        let minimumHeight = panelWidth * (layout == .compact ? 0.20 : 0.50)
+        let maximumHeight = panelWidth * (layout == .compact ? 0.34 : 0.82)
+        return CGSize(
+            width: panelWidth,
+            height: min(max(proposedHeight, minimumHeight), maximumHeight)
         )
     }
 
@@ -241,42 +401,11 @@ struct RGBColor: Hashable {
     }
 
     var literaryName: String {
-        let lab = OKLab(rgb: self)
-        let chroma = hypot(lab.a, lab.b)
-        let hue = (atan2(lab.b, lab.a) * 180 / .pi + 360).truncatingRemainder(dividingBy: 360)
-
-        if lab.lightness < 0.23 { return chroma < 0.035 ? "玄夜" : "墨黛" }
-        if lab.lightness > 0.94 { return chroma < 0.025 ? "月白" : "云絮" }
-        if chroma < 0.025 {
-            if lab.lightness < 0.48 { return "远山黛" }
-            if lab.lightness < 0.75 { return "烟雨灰" }
-            return "素绡"
-        }
-
-        switch hue {
-        case 0..<18, 348..<360:
-            return lab.lightness > 0.72 ? "桃夭" : "胭脂"
-        case 18..<42:
-            return lab.lightness > 0.76 ? "杏子" : "赭石"
-        case 42..<68:
-            return lab.lightness > 0.82 ? "缃叶" : "秋香"
-        case 68..<102:
-            return lab.lightness > 0.80 ? "鹅黄" : "苍黄"
-        case 102..<145:
-            return lab.lightness > 0.76 ? "柳芽" : "竹青"
-        case 145..<178:
-            return lab.lightness > 0.72 ? "豆绿" : "松花"
-        case 178..<205:
-            return lab.lightness > 0.76 ? "水碧" : "青瓷"
-        case 205..<235:
-            return lab.lightness > 0.75 ? "天水碧" : "黛蓝"
-        case 235..<270:
-            return lab.lightness > 0.70 ? "晴山" : "群青"
-        case 270..<305:
-            return lab.lightness > 0.72 ? "雪青" : "紫苑"
-        default:
-            return lab.lightness > 0.72 ? "藕荷" : "绛紫"
-        }
+        LiteraryColorCatalog.name(
+            red: Double(red),
+            green: Double(green),
+            blue: Double(blue)
+        )
     }
 
     func adjusted(brightness: CGFloat = 0, saturation: CGFloat = 0) -> RGBColor {

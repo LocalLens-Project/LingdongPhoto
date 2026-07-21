@@ -3,6 +3,7 @@
 
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 private enum SaveVisualState {
     case idle
@@ -18,8 +19,16 @@ private enum CanvasDragRole {
     case textSize
 }
 
+private enum PhotoSelectionOperation: Equatable {
+    case replaceAll
+    case append
+    case replace(index: Int)
+}
+
 struct ContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var systemColorScheme
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("didAcknowledgeFreeNotice") private var didAcknowledgeFreeNotice = false
     @AppStorage("supportsLivePhotos") private var supportsLivePhotos = true
     @AppStorage("useLiteraryColorNames") private var useLiteraryColorNames = false
@@ -34,6 +43,12 @@ struct ContentView: View {
     @AppStorage("gentleBackground") private var gentleBackground = true
     @AppStorage("privacyMosaicStrength") private var privacyMosaicStrength = 0.62
     @AppStorage("showAppTitle") private var showAppTitle = true
+    @AppStorage("artworkTemplateStyle") private var templateStyleRaw = ArtworkTemplateStyle.classic.rawValue
+    @AppStorage("journalLayout") private var journalLayoutRaw = JournalLayoutMode.automatic.rawValue
+    @AppStorage("exportFormat") private var exportFormatRaw = ArtworkExportFormat.jpeg.rawValue
+    @AppStorage("exportResolution") private var exportResolutionRaw = ArtworkExportResolution.standard.rawValue
+    @AppStorage("exportMetadataPolicy") private var exportMetadataPolicyRaw = ArtworkMetadataPolicy.removeLocation.rawValue
+    @AppStorage("exportDestination") private var exportDestinationRaw = ArtworkExportDestination.photoLibrary.rawValue
     // This key is intentionally independent of the build number. Do not rename it
     // for future releases, otherwise users would see the one-time hint again.
     @AppStorage("didShowLivePhotoPlaybackHint") private var didShowLivePhotoPlaybackHint = false
@@ -62,8 +77,12 @@ struct ContentView: View {
     @State private var saveErrorMessage = ""
     @State private var saveErrorPresented = false
     @State private var editCopyPresented = false
-    @State private var shouldAppendSelection = false
+    @State private var photoSelectionOperation: PhotoSelectionOperation = .replaceAll
     @State private var importStatus = ""
+    @State private var isImportingSharedPhoto = false
+    @State private var exportCenterPresented = false
+    @State private var sharedExportFile: ExportedArtworkFile?
+    @State private var documentExportFile: ExportedArtworkFile?
 
     @State private var imageScale: CGFloat = 1
     @State private var storedScale: CGFloat = 1
@@ -79,6 +98,9 @@ struct ContentView: View {
     @State private var copyVariant = 0
     @State private var copyWasEdited = false
     @State private var activeDragRole: CanvasDragRole?
+    @State private var journalTransforms: [JournalPhotoTransform] = []
+    @State private var selectedJournalIndex: Int?
+    @State private var storedJournalTransform = JournalPhotoTransform()
 
     @State private var privacyMasks: [PrivacyMask] = []
     @State private var privacyStrokes: [PrivacyStroke] = []
@@ -90,7 +112,6 @@ struct ContentView: View {
     @State private var activePrivacyStrokeID: UUID?
     @State private var privacyGestureHasSnapshot = false
     @State private var lastPrivacyGesturePoint: CGPoint?
-    @State private var privacyExportConfirmationPresented = false
     @State private var privacyPreviewTask: Task<Void, Never>?
 
     @State private var revealTask: Task<Void, Never>?
@@ -102,14 +123,37 @@ struct ContentView: View {
     @State private var isLivePhotoHintPresented = false
 
     private var pickerLimit: Int {
-        if mode == .journal, shouldAppendSelection {
+        if mode == .journal, photoSelectionOperation == .append {
             return max(1, 5 - selectedPhotos.count)
         }
+        if case .replace = photoSelectionOperation { return 1 }
         return mode == .journal ? 5 : 1
     }
     private var controlsAreDimmed: Bool { saveState == .saving }
     private var paletteLayout: PaletteLayoutMode {
         PaletteLayoutMode(rawValue: paletteLayoutRaw) ?? .floating
+    }
+    private var templateStyle: ArtworkTemplateStyle {
+        ArtworkTemplateStyle(rawValue: templateStyleRaw) ?? .classic
+    }
+    private var journalLayout: JournalLayoutMode {
+        JournalLayoutMode(rawValue: journalLayoutRaw) ?? .automatic
+    }
+    private var exportFormat: ArtworkExportFormat {
+        get { ArtworkExportFormat(rawValue: exportFormatRaw) ?? .jpeg }
+        nonmutating set { exportFormatRaw = newValue.rawValue }
+    }
+    private var exportResolution: ArtworkExportResolution {
+        get { ArtworkExportResolution(rawValue: exportResolutionRaw) ?? .standard }
+        nonmutating set { exportResolutionRaw = newValue.rawValue }
+    }
+    private var exportMetadataPolicy: ArtworkMetadataPolicy {
+        get { ArtworkMetadataPolicy(rawValue: exportMetadataPolicyRaw) ?? .removeLocation }
+        nonmutating set { exportMetadataPolicyRaw = newValue.rawValue }
+    }
+    private var exportDestination: ArtworkExportDestination {
+        get { ArtworkExportDestination(rawValue: exportDestinationRaw) ?? .photoLibrary }
+        nonmutating set { exportDestinationRaw = newValue.rawValue }
     }
     private var primaryMetadata: PhotoMetadata { selectedPhotos.first?.metadata ?? .empty }
     private var combinedSemantic: PhotoSemantic {
@@ -193,15 +237,20 @@ struct ContentView: View {
                 }
             }
         }
-        .preferredColorScheme(.light)
+        // Keep the established editor appearance light without overriding the
+        // window's actual system appearance. Selected sheets can then opt back
+        // into the user's system setting independently.
+        .environment(\.colorScheme, .light)
         .statusBarHidden(true)
         .sheet(isPresented: $isPickerPresented) {
             PrivacyPreservingPhotoPicker(
                 isPresented: $isPickerPresented,
-                selectionLimit: pickerLimit
+                selectionLimit: pickerLimit,
+                colorScheme: systemColorScheme
             ) { selections in
                 pickerSelections = selections
             }
+            .environment(\.colorScheme, systemColorScheme)
             .ignoresSafeArea()
         }
         .onChange(of: isPickerPresented) { _, isPresented in
@@ -246,8 +295,17 @@ struct ContentView: View {
                 showHexValues: $showHexValues,
                 showDeviceInfo: $showDeviceInfo,
                 showBubbles: $showBubbles,
-                gentleBackground: $gentleBackground
+                gentleBackground: $gentleBackground,
+                templateStyle: Binding(
+                    get: { templateStyle },
+                    set: { templateStyleRaw = $0.rawValue }
+                ),
+                journalLayout: Binding(
+                    get: { journalLayout },
+                    set: { journalLayoutRaw = $0.rawValue }
+                )
             )
+            .environment(\.colorScheme, systemColorScheme)
             .presentationDetents([.fraction(0.94)])
             .presentationDragIndicator(.hidden)
             .presentationCornerRadius(38)
@@ -261,44 +319,54 @@ struct ContentView: View {
                 copyWasEdited: $copyWasEdited,
                 onRegenerate: regenerateCopy
             )
+                .preferredColorScheme(.light)
                 .presentationDetents([.large])
                 .presentationContentInteraction(.scrolls)
                 .presentationCornerRadius(34)
+        }
+        .sheet(isPresented: $exportCenterPresented) {
+            ExportCenterView(
+                format: Binding(get: { exportFormat }, set: { exportFormat = $0 }),
+                resolution: Binding(get: { exportResolution }, set: { exportResolution = $0 }),
+                metadataPolicy: Binding(get: { exportMetadataPolicy }, set: { exportMetadataPolicy = $0 }),
+                destination: Binding(get: { exportDestination }, set: { exportDestination = $0 }),
+                sourcePixelWidth: images.first?.cgImage.map { CGFloat($0.width) } ?? 1080,
+                supportsLiveExport: supportsLivePhotos && mode != .privacyMosaic && !liveSourceVideoURLs.isEmpty,
+                onExport: performConfiguredExport
+            )
+            .environment(\.colorScheme, systemColorScheme)
+            .presentationDetents([.fraction(0.94)])
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(38)
+            .presentationBackground(.ultraThinMaterial)
+        }
+        .sheet(item: $sharedExportFile) { item in
+            SystemShareSheet(url: item.url)
+                .preferredColorScheme(.light)
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $documentExportFile) { item in
+            FileExportPicker(url: item.url)
+                .preferredColorScheme(.light)
         }
         .alert(errorTitle, isPresented: $saveErrorPresented) {
             Button("好", role: .cancel) {}
         } message: {
             Text(saveErrorMessage)
         }
-        .confirmationDialog(
-            "隐私导出",
-            isPresented: $privacyExportConfirmationPresented,
-            titleVisibility: .visible
-        ) {
-            if primaryMetadata.hasLocation {
-                Button("保存并移除 GPS 位置") {
-                    performSaveArtwork(removeLocation: true)
-                }
-                Button("保留位置并保存") {
-                    performSaveArtwork(removeLocation: false)
-                }
-            } else {
-                Button("保存静态图片") {
-                    performSaveArtwork(removeLocation: false)
-                }
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("隐私马赛克仅导出静态图片。像素遮挡会写入成品，Live Photo 动态片段不会导出。")
-        }
         .task {
             if didShowLivePhotoPlaybackHintBuild1060 {
                 didShowLivePhotoPlaybackHint = true
             }
             PhotoAssetLoader.cleanupStaleTemporaryResources()
+            importSharedPhotoIfAvailable()
 #if DEBUG
             await loadDebugPreviewIfNeeded()
 #endif
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            importSharedPhotoIfAvailable()
         }
         .task(id: canPresentLivePhotoHint) {
             if canPresentLivePhotoHint {
@@ -310,6 +378,49 @@ struct ContentView: View {
         .onDisappear {
             stopLivePhotoPlayback()
             dismissLivePhotoHint(animated: false)
+        }
+        .onOpenURL(perform: handleSharedPhotoURL)
+    }
+
+    private func handleSharedPhotoURL(_ url: URL) {
+        guard url.scheme == SharedPhotoHandoff.urlScheme,
+              url.host == "import" else { return }
+        let modeValue = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .first(where: { $0.name == "mode" })?
+            .value
+        importSharedPhotoIfAvailable(preferredModeRawValue: modeValue)
+    }
+
+    private func importSharedPhotoIfAvailable(
+        preferredModeRawValue: String? = nil,
+        reportMissing: Bool = false
+    ) {
+        // App launch can deliver the same handoff through `.task`, scene
+        // activation and `onOpenURL` almost simultaneously. Only one callback
+        // should consume the App Group inbox and begin an import.
+        guard !isImportingSharedPhoto else { return }
+        guard let sharedImport = SharedPhotoHandoff.receiveImport() else {
+            if reportMissing {
+                presentSaveError("共享照片已失效，请从系统照片中重新分享。", title: "无法导入共享照片")
+            }
+            return
+        }
+        if let modeValue = preferredModeRawValue ?? sharedImport.modeRawValue,
+           let sharedMode = CreationMode(rawValue: modeValue) {
+            mode = sharedMode
+            ratio = sharedMode.defaultRatio
+        }
+        var sharedSelections: [PhotoPickerSelection] = []
+        for item in sharedImport.items {
+            sharedSelections.append(PhotoPickerSelection(sharedItem: item))
+        }
+        pickerSelections = sharedSelections
+        photoSelectionOperation = .replaceAll
+        isImportingSharedPhoto = true
+        Task {
+            await loadSelectedPhotos()
+            isImportingSharedPhoto = false
         }
     }
 
@@ -404,8 +515,13 @@ struct ContentView: View {
             canvasWidth = min(size.width - 96, UIScreen.main.bounds.width * 0.686)
         } else if mode == .privacyMosaic {
             canvasWidth = min(availableWidth, max(280, size.height - 340) * ratioValue)
+        } else if mode == .journal {
+            // Reserve room for the liquid-glass thumbnail editor on compact phones.
+            let editorReserve: CGFloat = size.height < 760 ? 285 : 230
+            canvasWidth = min(availableWidth, max(280, size.height - editorReserve) * ratioValue)
         } else {
-            canvasWidth = availableWidth
+            // Extra-tall ratios must remain fully reachable on compact iPhones.
+            canvasWidth = min(availableWidth, max(320, size.height - 130) * ratioValue)
         }
         let canvasHeight = canvasWidth / ratioValue
 
@@ -505,6 +621,7 @@ struct ContentView: View {
                 metadata: primaryMetadata,
                 copy: artworkCopy,
                 fontStyle: fontStyle,
+                templateStyle: templateStyle,
                 textScale: textScale,
                 bubbleScale: bubbleScale,
                 paletteOffset: paletteOffset,
@@ -516,7 +633,10 @@ struct ContentView: View {
                 generationProgress: generationProgress,
                 privacyMasks: privacyMasks,
                 privacyStrokes: privacyStrokes,
-                privacyPixelatedImage: privacyPixelatedImage
+                privacyPixelatedImage: privacyPixelatedImage,
+                journalLayout: journalLayout,
+                journalTransforms: journalTransforms,
+                selectedJournalIndex: selectedJournalIndex
             )
             .frame(width: canvasWidth, height: canvasHeight)
             .scaleEffect(canvasRevealed ? 1 : 0.78)
@@ -553,6 +673,23 @@ struct ContentView: View {
                 )
                 .padding(.horizontal, 18)
                 .padding(.top, 12)
+            }
+
+            if mode == .journal {
+                JournalEditorControls(
+                    images: images,
+                    selectedIndex: $selectedJournalIndex,
+                    layout: Binding(
+                        get: { journalLayout },
+                        set: { journalLayoutRaw = $0.rawValue }
+                    ),
+                    onReplace: { openPicker(replacing: $0) },
+                    onDelete: removeJournalPhoto,
+                    onMove: moveJournalPhoto,
+                    onReset: resetJournalComposition
+                )
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
             }
 
             Spacer(minLength: mode == .privacyMosaic ? 8 : 18)
@@ -717,13 +854,28 @@ struct ContentView: View {
                     }
                     switch activeDragRole ?? .image {
                     case .image:
-                        let proposedOffset = CGSize(
-                            width: storedOffset.width + value.translation.width,
-                            height: storedOffset.height + value.translation.height
-                        )
-                        imageOffset = mode == .privacyMosaic
-                            ? clampedPrivacyOffset(proposedOffset, canvasSize: canvasSize, scale: imageScale)
-                            : proposedOffset
+                        if mode == .journal,
+                           let index = selectedJournalIndex,
+                           journalTransforms.indices.contains(index),
+                           let cellFrame = journalCellFrame(at: index, canvasSize: canvasSize) {
+                            let proposed = CGSize(
+                                width: storedJournalTransform.normalizedOffset.width + value.translation.width / max(cellFrame.width, 1),
+                                height: storedJournalTransform.normalizedOffset.height + value.translation.height / max(cellFrame.height, 1)
+                            )
+                            let limit = max(0.08, (journalTransforms[index].scale - 1) * 0.52 + 0.08)
+                            journalTransforms[index].normalizedOffset = CGSize(
+                                width: min(max(proposed.width, -limit), limit),
+                                height: min(max(proposed.height, -limit), limit)
+                            )
+                        } else {
+                            let proposedOffset = CGSize(
+                                width: storedOffset.width + value.translation.width,
+                                height: storedOffset.height + value.translation.height
+                            )
+                            imageOffset = mode == .privacyMosaic
+                                ? clampedPrivacyOffset(proposedOffset, canvasSize: canvasSize, scale: imageScale)
+                                : proposedOffset
+                        }
                     case .palette:
                         paletteOffset = PalettePanelGeometry.clampedOffset(
                             storedPaletteOffset + value.translation.height,
@@ -745,7 +897,13 @@ struct ContentView: View {
                     }
                     switch activeDragRole ?? .image {
                     case .image:
-                        storedOffset = imageOffset
+                        if mode == .journal,
+                           let index = selectedJournalIndex,
+                           journalTransforms.indices.contains(index) {
+                            storedJournalTransform = journalTransforms[index]
+                        } else {
+                            storedOffset = imageOffset
+                        }
                     case .palette:
                         storedPaletteOffset = paletteOffset
                     case .bubble:
@@ -768,14 +926,29 @@ struct ContentView: View {
                 },
             MagnifyGesture()
                 .onChanged { value in
-                    imageScale = min(max(storedScale * value.magnification, 1), 4)
-                    if mode == .privacyMosaic {
-                        imageOffset = clampedPrivacyOffset(imageOffset, canvasSize: canvasSize, scale: imageScale)
+                    if mode == .journal,
+                       let index = selectedJournalIndex,
+                       journalTransforms.indices.contains(index) {
+                        journalTransforms[index].scale = min(
+                            max(storedJournalTransform.scale * value.magnification, 1),
+                            4
+                        )
+                    } else {
+                        imageScale = min(max(storedScale * value.magnification, 1), 4)
+                        if mode == .privacyMosaic {
+                            imageOffset = clampedPrivacyOffset(imageOffset, canvasSize: canvasSize, scale: imageScale)
+                        }
                     }
                 }
                 .onEnded { _ in
-                    storedScale = imageScale
-                    if mode == .privacyMosaic { storedOffset = imageOffset }
+                    if mode == .journal,
+                       let index = selectedJournalIndex,
+                       journalTransforms.indices.contains(index) {
+                        storedJournalTransform = journalTransforms[index]
+                    } else {
+                        storedScale = imageScale
+                        if mode == .privacyMosaic { storedOffset = imageOffset }
+                    }
                 }
         )
     }
@@ -804,6 +977,21 @@ struct ContentView: View {
            point.y > canvasSize.width * 0.91,
            abs(translation.height) > abs(translation.width) {
             return .bubble
+        }
+
+        if mode == .journal,
+           let index = journalIndex(at: point, canvasSize: canvasSize) {
+            if selectedJournalIndex != index {
+                selectedJournalIndex = index
+                while journalTransforms.count < images.count {
+                    journalTransforms.append(JournalPhotoTransform())
+                }
+                storedJournalTransform = journalTransforms.indices.contains(index)
+                    ? journalTransforms[index]
+                    : JournalPhotoTransform()
+                UISelectionFeedbackGenerator().selectionChanged()
+            }
+            return .image
         }
 
         guard abs(translation.width) > abs(translation.height) else { return .image }
@@ -836,6 +1024,17 @@ struct ContentView: View {
             return
         }
 
+        if mode == .journal,
+           let index = journalIndex(at: point, canvasSize: canvasSize) {
+            selectedJournalIndex = index
+            while journalTransforms.count < images.count {
+                journalTransforms.append(JournalPhotoTransform())
+            }
+            storedJournalTransform = journalTransforms[index]
+            UISelectionFeedbackGenerator().selectionChanged()
+            return
+        }
+
         let shouldEdit: Bool
         switch mode {
         case .motionCard:
@@ -848,6 +1047,28 @@ struct ContentView: View {
             shouldEdit = false
         }
         if shouldEdit { editCopyPresented = true }
+    }
+
+    private func journalIndex(at point: CGPoint, canvasSize: CGSize) -> Int? {
+        let container = JournalGridGeometry.containerFrame(in: canvasSize)
+        guard container.contains(point) else { return nil }
+        let localPoint = CGPoint(x: point.x - container.minX, y: point.y - container.minY)
+        return JournalGridGeometry.frames(
+            count: images.count,
+            in: container.size,
+            layout: journalLayout
+        ).firstIndex(where: { $0.contains(localPoint) })
+    }
+
+    private func journalCellFrame(at index: Int, canvasSize: CGSize) -> CGRect? {
+        let container = JournalGridGeometry.containerFrame(in: canvasSize)
+        let frames = JournalGridGeometry.frames(
+            count: images.count,
+            in: container.size,
+            layout: journalLayout
+        )
+        guard frames.indices.contains(index) else { return nil }
+        return frames[index].offsetBy(dx: container.minX, dy: container.minY)
     }
 
     private func normalizedPrivacyPoint(from point: CGPoint, canvasSize: CGSize) -> CGPoint? {
@@ -1007,27 +1228,118 @@ struct ContentView: View {
         }
     }
 
-    private func openPicker(append: Bool = false) {
+    private func openPicker(append: Bool = false, replacing index: Int? = nil) {
         guard !isLoading, saveState == .idle else { return }
         stopLivePhotoPlayback()
         dismissLivePhotoHint()
         finishPrivacyPainting()
-        shouldAppendSelection = append && mode == .journal && !selectedPhotos.isEmpty
+        if let index, mode == .journal, selectedPhotos.indices.contains(index) {
+            photoSelectionOperation = .replace(index: index)
+        } else if append && mode == .journal && !selectedPhotos.isEmpty {
+            photoSelectionOperation = .append
+        } else {
+            photoSelectionOperation = .replaceAll
+        }
         pickerSelections = []
         isPickerPresented = true
     }
 
     private func removeLastJournalPhoto() {
-        guard mode == .journal, selectedPhotos.count > 1 else { return }
+        guard !selectedPhotos.isEmpty else { return }
+        removeJournalPhoto(at: selectedJournalIndex ?? selectedPhotos.index(before: selectedPhotos.endIndex))
+    }
+
+    private func removeJournalPhoto(at index: Int) {
+        guard mode == .journal,
+              selectedPhotos.count > 1,
+              selectedPhotos.indices.contains(index) else { return }
         stopLivePhotoPlayback()
         dismissLivePhotoHint()
-        let removed = selectedPhotos.last.map { [$0] } ?? []
+        let removed = [selectedPhotos[index]]
         withAnimation(.snappy) {
-            selectedPhotos.removeLast()
-            images.removeLast()
+            selectedPhotos.remove(at: index)
+            images.remove(at: index)
+            if journalTransforms.indices.contains(index) { journalTransforms.remove(at: index) }
+            selectedJournalIndex = min(index, selectedPhotos.count - 1)
         }
         PhotoAssetLoader.removeTemporaryResources(for: removed)
+        refreshCombinedPalette()
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+    }
+
+    private func moveJournalPhoto(from source: Int, to destination: Int) {
+        guard source != destination,
+              selectedPhotos.indices.contains(source),
+              selectedPhotos.indices.contains(destination) else { return }
+        let photo = selectedPhotos.remove(at: source)
+        let image = images.remove(at: source)
+        let transform = journalTransforms.indices.contains(source)
+            ? journalTransforms.remove(at: source)
+            : JournalPhotoTransform()
+        selectedPhotos.insert(photo, at: destination)
+        images.insert(image, at: destination)
+        journalTransforms.insert(transform, at: destination)
+        selectedJournalIndex = destination
+        refreshCombinedPalette()
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+    }
+
+    private func resetJournalComposition(at index: Int) {
+        guard journalTransforms.indices.contains(index) else { return }
+        withAnimation(.snappy) { journalTransforms[index] = JournalPhotoTransform() }
+        storedJournalTransform = JournalPhotoTransform()
+    }
+
+    private func refreshCombinedPalette() {
+        guard !images.isEmpty else { return }
+        let result = combinedPaletteResult(from: images)
+        withAnimation(.easeInOut(duration: 0.24)) {
+            palette = result.colors
+            palettePercentages = result.percentages
+        }
+    }
+
+    private func combinedPaletteResult(from sourceImages: [UIImage]) -> PaletteResult {
+        guard let first = sourceImages.first else {
+            return PaletteResult(colors: RGBColor.fallback, percentages: [Double](repeating: 100.0 / 6.0, count: 6))
+        }
+        guard sourceImages.count > 1 else { return PaletteExtractor.extract(from: first) }
+
+        let canvasSize = CGSize(width: 480, height: 480)
+        let columns = sourceImages.count <= 2 ? sourceImages.count : 2
+        let rows = Int(ceil(Double(sourceImages.count) / Double(columns)))
+        let cellSize = CGSize(
+            width: canvasSize.width / CGFloat(columns),
+            height: canvasSize.height / CGFloat(rows)
+        )
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let montage = UIGraphicsImageRenderer(size: canvasSize, format: format).image { context in
+            UIColor.black.setFill()
+            context.fill(CGRect(origin: .zero, size: canvasSize))
+            for (index, image) in sourceImages.prefix(5).enumerated() {
+                let cell = CGRect(
+                    x: CGFloat(index % columns) * cellSize.width,
+                    y: CGFloat(index / columns) * cellSize.height,
+                    width: cellSize.width,
+                    height: cellSize.height
+                )
+                let scale = max(cell.width / image.size.width, cell.height / image.size.height)
+                let drawSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+                let drawRect = CGRect(
+                    x: cell.midX - drawSize.width / 2,
+                    y: cell.midY - drawSize.height / 2,
+                    width: drawSize.width,
+                    height: drawSize.height
+                )
+                context.cgContext.saveGState()
+                context.cgContext.clip(to: cell)
+                image.draw(in: drawRect)
+                context.cgContext.restoreGState()
+            }
+        }
+        return PaletteExtractor.extract(from: montage)
     }
 
     private func loadSelectedPhotos() async {
@@ -1035,9 +1347,10 @@ struct ContentView: View {
         stopLivePhotoPlayback()
         dismissLivePhotoHint()
 
-        let appending = shouldAppendSelection && mode == .journal && !selectedPhotos.isEmpty
+        let operation = photoSelectionOperation
+        let incremental = mode == .journal && operation != .replaceAll && !selectedPhotos.isEmpty
         withAnimation(.easeOut(duration: 0.18)) {
-            if !appending { isEditorVisible = false }
+            if !incremental { isEditorVisible = false }
             isLoading = true
             canSave = false
             canvasRevealed = false
@@ -1063,8 +1376,8 @@ struct ContentView: View {
         guard !imported.isEmpty else {
             isLoading = false
             importStatus = ""
-            shouldAppendSelection = false
-            if appending { isEditorVisible = true; canSave = true; canvasRevealed = true }
+            photoSelectionOperation = .replaceAll
+            if incremental { isEditorVisible = true; canSave = true; canvasRevealed = true }
             presentSaveError(
                 firstImportError?.localizedDescription
                     ?? "未能读取所选照片，请确认照片已下载到本机后重试。",
@@ -1073,19 +1386,42 @@ struct ContentView: View {
             return
         }
 
-        let combined = appending
-            ? Array((selectedPhotos + imported).prefix(5))
-            : Array(imported.prefix(mode == .journal ? 5 : 1))
+        var combined: [SelectedPhoto]
+        switch operation {
+        case .replaceAll:
+            combined = Array(imported.prefix(mode == .journal ? 5 : 1))
+            PhotoAssetLoader.removeTemporaryResources(for: selectedPhotos)
+            journalTransforms = Array(repeating: JournalPhotoTransform(), count: combined.count)
+            selectedJournalIndex = mode == .journal ? 0 : nil
+        case .append:
+            let previousCount = selectedPhotos.count
+            combined = Array((selectedPhotos + imported).prefix(5))
+            journalTransforms += Array(
+                repeating: JournalPhotoTransform(),
+                count: max(0, combined.count - journalTransforms.count)
+            )
+            selectedJournalIndex = min(previousCount, combined.count - 1)
+        case .replace(let index):
+            combined = selectedPhotos
+            if combined.indices.contains(index), let replacement = imported.first {
+                PhotoAssetLoader.removeTemporaryResources(for: [combined[index]])
+                combined[index] = replacement
+                while journalTransforms.count < combined.count {
+                    journalTransforms.append(JournalPhotoTransform())
+                }
+                journalTransforms[index] = JournalPhotoTransform()
+                selectedJournalIndex = index
+            }
+        }
         importStatus = "正在分析整张照片的感知色彩…"
-        let paletteResult = PaletteExtractor.extract(from: combined[0].image)
-        if !appending { PhotoAssetLoader.removeTemporaryResources(for: selectedPhotos) }
+        let paletteResult = combinedPaletteResult(from: combined.map(\.image))
         selectedPhotos = combined
         images = combined.map(\.image)
-        if !appending {
+        if operation == .replaceAll {
             resetPrivacyEdits(for: images.first)
         }
         let semantic = PhotoSemantic.combined(combined.map(\.semantic))
-        if !appending {
+        if operation == .replaceAll {
             copyVariant = 0
             copyWasEdited = false
             artworkCopy = defaultCopy(
@@ -1100,7 +1436,7 @@ struct ContentView: View {
                 semantic: semantic
             )
         }
-        resetComposition(animated: false)
+        if operation == .replaceAll { resetComposition(animated: false) }
 
         withAnimation(.easeInOut(duration: 0.36)) {
             palette = paletteResult.colors
@@ -1109,7 +1445,7 @@ struct ContentView: View {
             isEditorVisible = true
             importStatus = ""
         }
-        shouldAppendSelection = false
+        photoSelectionOperation = .replaceAll
         startRevealSequence()
         presentLivePhotoHintIfNeeded()
         if mode == .privacyMosaic, combined.contains(where: \.isLivePhoto) {
@@ -1173,7 +1509,7 @@ struct ContentView: View {
         if mode == .privacyMosaic, let image = images.first, image.size.height > 0 {
             return min(max(image.size.width / image.size.height, 0.35), 2.40)
         }
-        return ratio.value
+        return ratio.value(for: images.first)
     }
 
     private func finishSettings() {
@@ -1211,6 +1547,9 @@ struct ContentView: View {
             storedBubbleScale = 1
             textScale = 1
             fontStyle = .rounded
+            journalTransforms = Array(repeating: JournalPhotoTransform(), count: images.count)
+            storedJournalTransform = JournalPhotoTransform()
+            selectedJournalIndex = mode == .journal && !images.isEmpty ? 0 : nil
             activeDragRole = nil
         }
         if animated {
@@ -1224,13 +1563,28 @@ struct ContentView: View {
         guard canSave, saveState == .idle else { return }
         if mode == .privacyMosaic {
             finishPrivacyPainting()
-            privacyExportConfirmationPresented = true
-            return
+            if exportMetadataPolicy == .preserve {
+                exportMetadataPolicy = .removeLocation
+            }
         }
-        performSaveArtwork(removeLocation: false)
+        exportCenterPresented = true
     }
 
-    private func performSaveArtwork(removeLocation: Bool) {
+    private func performConfiguredExport() {
+        performSaveArtwork(
+            format: exportFormat,
+            resolution: exportResolution,
+            metadataPolicy: exportMetadataPolicy,
+            destination: exportDestination
+        )
+    }
+
+    private func performSaveArtwork(
+        format: ArtworkExportFormat,
+        resolution: ArtworkExportResolution,
+        metadataPolicy: ArtworkMetadataPolicy,
+        destination: ArtworkExportDestination
+    ) {
         guard canSave, saveState == .idle else { return }
         stopLivePhotoPlayback()
         dismissLivePhotoHint()
@@ -1241,7 +1595,9 @@ struct ContentView: View {
         )
 
         Task {
-            guard let image = renderArtwork() else {
+            let sourceWidth = images.first?.cgImage.map { CGFloat($0.width) } ?? 1080
+            let pixelWidth = resolution.pixelWidth(sourceWidth: sourceWidth)
+            guard let image = renderArtwork(pixelWidth: pixelWidth) else {
                 saveState = .idle
                 presentSaveError("作品渲染失败，请稍后重试。")
                 return
@@ -1250,11 +1606,14 @@ struct ContentView: View {
             do {
                 let metadata = selectedPhotos.first?.metadata ?? .empty
                 let originalData = selectedPhotos.first?.originalData
-                let pairedVideoURLs: [Int: URL] = supportsLivePhotos && mode != .privacyMosaic
+                let pairedVideoURLs: [Int: URL] = supportsLivePhotos
+                    && mode != .privacyMosaic
+                    && destination == .photoLibrary
                     ? liveSourceVideoURLs
                     : [:]
                 let hasMissingLiveResource = supportsLivePhotos
                     && mode != .privacyMosaic
+                    && destination == .photoLibrary
                     && selectedPhotos.contains { $0.isLivePhoto && $0.pairedVideoURL == nil }
                 if hasMissingLiveResource {
                     throw ArtworkExportError.missingVideo
@@ -1266,26 +1625,44 @@ struct ContentView: View {
                         sourceVideoURLs: pairedVideoURLs,
                         metadata: metadata,
                         originalImageData: originalData,
+                        metadataPolicy: metadataPolicy,
                         renderFrame: { frames in
-                            renderArtwork(replacingImages: frames)
+                            renderArtwork(replacingImages: frames, pixelWidth: pixelWidth)
                         },
                         progress: { progress in
                             toastMessage = "正在生成 Live Photo… \(Int((progress * 100).rounded()))%"
                         }
                     )
-                } else {
+                } else if destination == .photoLibrary {
                     showToast(
-                        removeLocation
-                            ? "正在写入相册并移除 GPS 位置…"
-                            : "正在写入相册并保留拍摄信息…",
+                        metadataPolicy == .preserve
+                            ? "正在写入相册并保留拍摄信息…"
+                            : "正在写入相册并清理敏感元数据…",
                         duration: 30
                     )
                     try await ArtworkExporter.saveStill(
                         image,
                         metadata: metadata,
                         originalImageData: originalData,
-                        preserveLocation: !removeLocation
+                        format: format,
+                        metadataPolicy: metadataPolicy
                     )
+                } else {
+                    showToast("正在编码 \(format.rawValue) 静态作品…", duration: 30)
+                    let data = try ArtworkExporter.encodedStillData(
+                        image,
+                        metadata: metadata,
+                        originalImageData: originalData,
+                        format: format,
+                        metadataPolicy: metadataPolicy
+                    )
+                    let url = try ExportTemporaryFile.make(data: data, format: format)
+                    let item = ExportedArtworkFile(url: url)
+                    if destination == .files {
+                        documentExportFile = item
+                    } else {
+                        sharedExportFile = item
+                    }
                 }
                 toastTask?.cancel()
                 withAnimation(.easeOut(duration: 0.2)) { toastMessage = nil }
@@ -1404,9 +1781,12 @@ struct ContentView: View {
         isLivePhotoPlaying = false
     }
 
-    private func renderArtwork(replacingImages replacements: [Int: UIImage] = [:]) -> UIImage? {
+    private func renderArtwork(
+        replacingImages replacements: [Int: UIImage] = [:],
+        pixelWidth: CGFloat = 1080
+    ) -> UIImage? {
         let renderWidth: CGFloat = 360
-        let renderScale: CGFloat = 3
+        let renderScale = min(max(pixelWidth / renderWidth, 1), 16.67)
         var renderImages = images
         for (index, frame) in replacements where renderImages.indices.contains(index) {
             renderImages[index] = frame
@@ -1419,7 +1799,7 @@ struct ContentView: View {
                   image.size.height > 0 {
             outputRatio = min(max(image.size.width / image.size.height, 0.35), 2.40)
         } else {
-            outputRatio = ratio.value
+            outputRatio = ratio.value(for: renderImages.first)
         }
         // Keep the SwiftUI canvas edge on a physical output-pixel boundary.
         // A fractional final row is transparent and turns black when encoded as JPEG.
@@ -1438,10 +1818,11 @@ struct ContentView: View {
                 gentleBackground: gentleBackground,
                 imageScale: imageScale,
                 imageOffset: imageOffset,
-                metadata: primaryMetadata,
-                copy: artworkCopy,
-                fontStyle: fontStyle,
-                textScale: textScale,
+                    metadata: primaryMetadata,
+                    copy: artworkCopy,
+                    fontStyle: fontStyle,
+                    templateStyle: templateStyle,
+                    textScale: textScale,
                 bubbleScale: bubbleScale,
                 paletteOffset: paletteOffset,
                 paletteLayout: paletteLayout,
@@ -1451,9 +1832,12 @@ struct ContentView: View {
                 isExporting: true,
                 paletteRevealStage: 4,
                 generationProgress: 1,
-                privacyMasks: privacyMasks,
-                privacyStrokes: privacyStrokes,
-                privacyPixelatedImage: privacyPixelatedImage
+                    privacyMasks: privacyMasks,
+                    privacyStrokes: privacyStrokes,
+                    privacyPixelatedImage: privacyPixelatedImage,
+                    journalLayout: journalLayout,
+                    journalTransforms: journalTransforms,
+                    selectedJournalIndex: nil
             )
             .frame(width: renderWidth, height: renderHeight)
         )
@@ -1524,6 +1908,14 @@ struct ContentView: View {
         if arguments.contains("--wallpaper") { mode = .spectrumWallpaper }
         if arguments.contains("--privacy") { mode = .privacyMosaic }
         ratio = mode.defaultRatio
+        if arguments.contains("--ratio-square") { ratio = .oneOne }
+        if arguments.contains("--ratio-four-five") { ratio = .fourFive }
+        if arguments.contains("--ratio-nine-sixteen") { ratio = .nineSixteen }
+        if arguments.contains("--ratio-sixteen-nine") { ratio = .sixteenNine }
+        if arguments.contains("--template-airy") { templateStyleRaw = ArtworkTemplateStyle.airy.rawValue }
+        if arguments.contains("--template-immersive") { templateStyleRaw = ArtworkTemplateStyle.immersive.rawValue }
+        if arguments.contains("--journal-magazine") { journalLayoutRaw = JournalLayoutMode.magazine.rawValue }
+        if arguments.contains("--journal-filmstrip") { journalLayoutRaw = JournalLayoutMode.filmstrip.rawValue }
         let fixturePath = arguments
             .first(where: { $0.hasPrefix("--fixture-path=") })
             .map { String($0.dropFirst("--fixture-path=".count)) }
@@ -1536,7 +1928,9 @@ struct ContentView: View {
             ? fixturePath.flatMap { try? Data(contentsOf: URL(fileURLWithPath: $0)) }
                 ?? Bundle.main.url(forResource: "Fixture", withExtension: "jpeg").flatMap { try? Data(contentsOf: $0) }
             : nil
-        let fallbackImage = Self.debugPreviewImage()
+        let fallbackImage = arguments.contains("--literary-colors")
+            ? Self.debugLiteraryColorPreviewImage()
+            : Self.debugPreviewImage()
         let data = fixtureData ?? fallbackImage.jpegData(compressionQuality: 0.94) ?? Data()
         let image = UIImage(data: data) ?? fallbackImage
         let fallbackMetadata = PhotoMetadata(
@@ -1556,15 +1950,24 @@ struct ContentView: View {
         let debugMetadata = fixtureData.map(PhotoMetadata.read(from:)) ?? fallbackMetadata
         let semantic = fixtureData == nil ? PhotoSemantic.generic : await PhotoContentAnalyzer.analyze(data)
         print("VISION_RESULT: \(semantic.summary) | \(semantic.classificationLabels.joined(separator: ", "))")
-        selectedPhotos = [SelectedPhoto(
-            image: image,
-            originalData: data,
-            metadata: debugMetadata,
-            semantic: semantic,
-            pairedVideoURL: liveFixtureURL,
-            isLivePhoto: liveFixtureURL != nil
-        )]
-        images = [image]
+        let debugImages = mode == .journal && fixtureData == nil
+            ? (0..<5).map { Self.debugPreviewImage(variant: $0) }
+            : [image]
+        selectedPhotos = debugImages.map { debugImage in
+            SelectedPhoto(
+                image: debugImage,
+                originalData: fixtureData == nil
+                    ? (debugImage.jpegData(compressionQuality: 0.94) ?? data)
+                    : data,
+                metadata: debugMetadata,
+                semantic: semantic,
+                pairedVideoURL: liveFixtureURL,
+                isLivePhoto: liveFixtureURL != nil
+            )
+        }
+        images = selectedPhotos.map(\.image)
+        journalTransforms = Array(repeating: JournalPhotoTransform(), count: images.count)
+        selectedJournalIndex = mode == .journal ? 0 : nil
         resetPrivacyEdits(for: image)
         if mode == .privacyMosaic, arguments.contains("--privacy-mask") {
             privacyMasks = [
@@ -1586,7 +1989,20 @@ struct ContentView: View {
                 normalizedWidth: privacyBrushWidth
             )]
         }
-        let result = PaletteExtractor.extract(from: image)
+        let result: PaletteResult
+        if arguments.contains("--literary-colors") {
+            result = PaletteResult(
+                colors: Self.debugLiteraryPalette,
+                percentages: Array(
+                    repeating: 100 / Double(Self.debugLiteraryPalette.count),
+                    count: Self.debugLiteraryPalette.count
+                )
+            )
+        } else if mode == .journal {
+            result = combinedPaletteResult(from: images)
+        } else {
+            result = PaletteExtractor.extract(from: image)
+        }
         palette = result.colors
         palettePercentages = result.percentages
         artworkCopy = defaultCopy(metadata: debugMetadata, palette: result.colors, semantic: semantic)
@@ -1596,6 +2012,20 @@ struct ContentView: View {
         generationProgress = 1
         canSave = true
         didAcknowledgeFreeNotice = true
+        // Mode changes reset the ratio through the normal settings observer.
+        // Reapply debug-only overrides after asynchronous fixture analysis so
+        // screenshot and export verification exercise the requested canvas.
+        if arguments.contains("--ratio-square") { ratio = .oneOne }
+        if arguments.contains("--ratio-four-five") { ratio = .fourFive }
+        if arguments.contains("--ratio-nine-sixteen") { ratio = .nineSixteen }
+        if arguments.contains("--ratio-sixteen-nine") { ratio = .sixteenNine }
+        Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            if arguments.contains("--ratio-square") { ratio = .oneOne }
+            if arguments.contains("--ratio-four-five") { ratio = .fourFive }
+            if arguments.contains("--ratio-nine-sixteen") { ratio = .nineSixteen }
+            if arguments.contains("--ratio-sixteen-nine") { ratio = .sixteenNine }
+        }
         if arguments.contains("--animate-later") {
             Task {
                 try? await Task.sleep(for: .seconds(3))
@@ -1606,6 +2036,7 @@ struct ContentView: View {
         }
         presentLivePhotoHintIfNeeded()
         if arguments.contains("--settings") { settingsPresented = true }
+        if arguments.contains("--export-center") { exportCenterPresented = true }
         if mode == .privacyMosaic, arguments.contains("--privacy-paint") {
             isPrivacyPainting = true
             privacyBrushMode = .paint
@@ -1634,6 +2065,73 @@ struct ContentView: View {
                 }
             }
         }
+        if arguments.contains("--debug-export-suite") {
+            Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard let rendered = renderArtwork(pixelWidth: 2160),
+                      let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+
+                var verificationMetadata = primaryMetadata
+                verificationMetadata.make = "LocalLens"
+                verificationMetadata.model = "Verification Camera"
+                verificationMetadata.captureDate = Date(timeIntervalSince1970: 1_700_000_000)
+                verificationMetadata.latitude = 31.2304
+                verificationMetadata.longitude = 121.4737
+                var report: [String] = []
+
+                for format in ArtworkExportFormat.allCases {
+                    for policy in ArtworkMetadataPolicy.allCases {
+                        do {
+                            let data = try ArtworkExporter.encodedStillData(
+                                rendered,
+                                metadata: verificationMetadata,
+                                originalImageData: nil,
+                                format: format,
+                                metadataPolicy: policy
+                            )
+                            let fileName = "export-\(format.fileExtension)-\(policy.id)"
+                            let url = directory
+                                .appendingPathComponent(fileName)
+                                .appendingPathExtension(format.fileExtension)
+                            try data.write(to: url, options: .atomic)
+
+                            let source = CGImageSourceCreateWithData(data as CFData, nil)
+                            let properties = source.flatMap {
+                                CGImageSourceCopyPropertiesAtIndex($0, 0, nil) as? [CFString: Any]
+                            } ?? [:]
+                            let hasGPS = properties[kCGImagePropertyGPSDictionary] != nil
+                            let tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any]
+                            let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any]
+                            let hasCamera = tiff?[kCGImagePropertyTIFFMake] != nil
+                                || tiff?[kCGImagePropertyTIFFModel] != nil
+                            let hasCaptureDate = exif?[kCGImagePropertyExifDateTimeOriginal] != nil
+                            let metadataPass: Bool
+                            switch policy {
+                            case .preserve:
+                                metadataPass = hasGPS && hasCamera && hasCaptureDate
+                            case .removeLocation:
+                                metadataPass = !hasGPS && hasCamera && hasCaptureDate
+                            case .removeAll:
+                                metadataPass = !hasGPS && !hasCamera && !hasCaptureDate
+                            }
+                            let dimensionsPass = rendered.cgImage?.width == 2160
+                            report.append(
+                                "\(metadataPass && dimensionsPass ? "PASS" : "FAIL") \(format.rawValue) \(policy.rawValue) \(rendered.cgImage?.width ?? 0)x\(rendered.cgImage?.height ?? 0) gps=\(hasGPS) camera=\(hasCamera) date=\(hasCaptureDate)"
+                            )
+                        } catch {
+                            report.append("FAIL \(format.rawValue) \(policy.rawValue): \(error.localizedDescription)")
+                        }
+                    }
+                }
+
+                try? report.joined(separator: "\n")
+                    .write(
+                        to: directory.appendingPathComponent("export-suite.txt"),
+                        atomically: true,
+                        encoding: .utf8
+                    )
+            }
+        }
         if mode == .privacyMosaic, arguments.contains("--privacy-render") {
             Task {
                 try? await Task.sleep(for: .milliseconds(400))
@@ -1659,13 +2157,15 @@ struct ContentView: View {
         }
     }
 
-    private static func debugPreviewImage() -> UIImage {
+    private static func debugPreviewImage(variant: Int = 0) -> UIImage {
         let size = CGSize(width: 900, height: 1200)
         return UIGraphicsImageRenderer(size: size).image { renderer in
             let context = renderer.cgContext
+            let hues: [CGFloat] = [0.26, 0.06, 0.56, 0.78, 0.96]
+            let hue = hues[variant % hues.count]
             let colors = [
-                UIColor(red: 0.87, green: 0.95, blue: 0.58, alpha: 1).cgColor,
-                UIColor(red: 0.28, green: 0.55, blue: 0.28, alpha: 1).cgColor
+                UIColor(hue: hue, saturation: 0.30, brightness: 0.98, alpha: 1).cgColor,
+                UIColor(hue: hue, saturation: 0.62, brightness: 0.56, alpha: 1).cgColor
             ] as CFArray
             let gradient = CGGradient(
                 colorsSpace: CGColorSpaceCreateDeviceRGB(),
@@ -1687,13 +2187,51 @@ struct ContentView: View {
                         width: 150,
                         height: 150
                     )
-                    let tone = CGFloat((row + column) % 4) * 0.05
-                    UIColor(red: 0.20 + tone, green: 0.52 + tone, blue: 0.18, alpha: 0.94).setFill()
+                    let tone = CGFloat((row + column) % 4) * 0.045
+                    UIColor(
+                        hue: (hue + tone * 0.12).truncatingRemainder(dividingBy: 1),
+                        saturation: 0.72 - tone,
+                        brightness: 0.54 + tone,
+                        alpha: 0.94
+                    ).setFill()
                     context.fillEllipse(in: rect)
                     UIColor.white.withAlphaComponent(0.16).setStroke()
                     context.setLineWidth(8)
                     context.strokeEllipse(in: rect.insetBy(dx: 18, dy: 18))
                 }
+            }
+        }
+    }
+
+    /// A deterministic six-stripe fixture for visually verifying literary
+    /// color names without depending on Photos, image compression or Vision.
+    private static let debugLiteraryPalette: [RGBColor] = [
+        RGBColor(red: 0x31 / 255, green: 0x35 / 255, blue: 0x41 / 255),
+        RGBColor(red: 0x60 / 255, green: 0x54 / 255, blue: 0x55 / 255),
+        RGBColor(red: 0x4A / 255, green: 0x52 / 255, blue: 0x57 / 255),
+        RGBColor(red: 0xA8 / 255, green: 0xC9 / 255, blue: 0x28 / 255),
+        RGBColor(red: 0x35 / 255, green: 0x59 / 255, blue: 0x9A / 255),
+        RGBColor(red: 0xDB / 255, green: 0x6B / 255, blue: 0x73 / 255)
+    ]
+
+    private static func debugLiteraryColorPreviewImage() -> UIImage {
+        let size = CGSize(width: 900, height: 1200)
+        return UIGraphicsImageRenderer(size: size).image { renderer in
+            let stripeWidth = size.width / CGFloat(debugLiteraryPalette.count)
+            for index in debugLiteraryPalette.indices {
+                let color = debugLiteraryPalette[index]
+                renderer.cgContext.setFillColor(UIColor(
+                    red: color.red,
+                    green: color.green,
+                    blue: color.blue,
+                    alpha: 1
+                ).cgColor)
+                renderer.cgContext.fill(CGRect(
+                    x: CGFloat(index) * stripeWidth,
+                    y: 0,
+                    width: stripeWidth,
+                    height: size.height
+                ))
             }
         }
     }

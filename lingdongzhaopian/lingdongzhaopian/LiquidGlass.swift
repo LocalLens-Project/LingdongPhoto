@@ -81,7 +81,7 @@ struct LiquidCircleButton: View {
     private var accessibilityName: String {
         switch symbol {
         case "plus": "添加照片"
-        case "minus": "移除末张照片"
+        case "minus": "移除选中的照片"
         case "arrow.down": "保存照片"
         case "checkmark": "保存成功"
         case "gearshape": "设置"
