@@ -45,11 +45,22 @@ struct SettingsView: View {
                     wallpaperOptions
                     privacyOptions
 
-                    Text("灵动照片 · 完全免费")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.bottom, 28)
+                    VStack(spacing: 10) {
+                        Text("版本 1.0.0 (Build 1111)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        Text("灵动照片 · 完全免费")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        Text("浙ICP备2026035179号-6A")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .accessibilityLabel("ICP备案号：浙ICP备2026035179号-6A")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 28)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
