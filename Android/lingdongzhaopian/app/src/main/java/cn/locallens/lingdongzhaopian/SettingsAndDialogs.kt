@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AspectRatio
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -44,6 +45,7 @@ import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.LocationOff
 import androidx.compose.material.icons.outlined.MotionPhotosOn
 import androidx.compose.material.icons.outlined.OpenInFull
@@ -86,6 +88,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -105,6 +108,8 @@ fun SettingsScreen(
     onPreferences: (AppPreferences) -> Unit,
     @Suppress("UNUSED_PARAMETER") onClose: () -> Unit,
 ) {
+    val uriHandler = LocalUriHandler.current
+
     Column(Modifier.fillMaxSize().background(SettingsBackground)) {
         Box(
             Modifier.fillMaxWidth().height(66.dp).background(Color.White.copy(alpha = .82f)),
@@ -293,17 +298,74 @@ fun SettingsScreen(
             }
 
             item {
+                SettingsSection("获取更新") {
+                    Column(
+                        Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            "灵动照片不联网，也不会收集或上传任何数据，因此无法在应用内主动检查更新。请随时关注 GitHub Releases，或前往官网下载安装最新版本。",
+                            color = SecondaryText,
+                            fontSize = 13.sp,
+                            lineHeight = 19.sp,
+                        )
+                        UpdateLinkRow(
+                            icon = Icons.AutoMirrored.Outlined.OpenInNew,
+                            title = "GitHub Releases",
+                            address = "github.com/LocalLens-Project/LingdongPhoto/releases",
+                        ) {
+                            uriHandler.openUri("https://github.com/LocalLens-Project/LingdongPhoto/releases")
+                        }
+                        UpdateLinkRow(
+                            icon = Icons.Outlined.Language,
+                            title = "灵动照片官网",
+                            address = "locallens.cn/LingdongPhoto",
+                        ) {
+                            uriHandler.openUri("https://locallens.cn/LingdongPhoto")
+                        }
+                    }
+                }
+            }
+
+            item {
                 Column(
                     Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("版本 1.0.0 (Build 1)", color = SecondaryText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("版本 1.0.0 (Build 2)", color = SecondaryText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Text("灵动照片 · 完全免费", color = SecondaryText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Text("本开源项目由专注隐私的 LocalLens Project 发起", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun UpdateLinkRow(icon: ImageVector, title: String, address: String, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.Black.copy(alpha = .045f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, Modifier.size(20.dp), tint = Color.Black.copy(alpha = .78f))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                address,
+                color = SecondaryText,
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Icon(Icons.AutoMirrored.Outlined.OpenInNew, null, Modifier.size(16.dp), tint = SecondaryText)
     }
 }
 

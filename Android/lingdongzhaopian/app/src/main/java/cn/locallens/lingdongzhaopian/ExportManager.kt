@@ -5,13 +5,21 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.ColorSpace
 import android.graphics.HardwareBufferRenderer
+import android.graphics.HardwareRenderer
+import android.graphics.PixelFormat
 import android.graphics.PorterDuff
 import android.graphics.RenderNode
 import android.hardware.HardwareBuffer
+import android.media.Image
+import android.media.ImageReader
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.view.View
+import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Rect
 import androidx.exifinterface.media.ExifInterface
 import androidx.heifwriter.HeifWriter
@@ -59,17 +67,15 @@ object ExportManager {
      * exported palette glass uses the exact AGSL path shown in the editor.
      */
     private suspend fun renderArtworkWithGpu(view: View, bounds: Rect, dimensions: ExportDimensions): Bitmap {
-        val usage = HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE or HardwareBuffer.USAGE_GPU_COLOR_OUTPUT
-        check(HardwareBuffer.isSupported(dimensions.width, dimensions.height, HardwareBuffer.RGBA_8888, 1, usage)) {
-            "设备不支持所选导出尺寸的 GPU 画布"
+        val renderNode = recordArtwork(view, bounds, dimensions)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            renderWithHardwareBuffer(renderNode, dimensions)
+        } else {
+            renderWithImageReader(renderNode, dimensions)
         }
-        val buffer = HardwareBuffer.create(
-            dimensions.width,
-            dimensions.height,
-            HardwareBuffer.RGBA_8888,
-            1,
-            usage,
-        )
+    }
+
+    private fun recordArtwork(view: View, bounds: Rect, dimensions: ExportDimensions): RenderNode {
         val renderNode = RenderNode("lingdong-artwork-export").apply {
             setPosition(0, 0, dimensions.width, dimensions.height)
             setClipToBounds(true)
@@ -82,12 +88,28 @@ object ExportManager {
             canvas.translate(-bounds.left, -bounds.top)
             view.draw(canvas)
         } catch (error: Throwable) {
-            buffer.close()
-            throw error
-        } finally {
             renderNode.endRecording()
+            renderNode.discardDisplayList()
+            throw error
         }
+        renderNode.endRecording()
+        return renderNode
+    }
 
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private suspend fun renderWithHardwareBuffer(renderNode: RenderNode, dimensions: ExportDimensions): Bitmap {
+        val usage = HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE or HardwareBuffer.USAGE_GPU_COLOR_OUTPUT
+        if (!HardwareBuffer.isSupported(dimensions.width, dimensions.height, HardwareBuffer.RGBA_8888, 1, usage)) {
+            renderNode.discardDisplayList()
+            error("设备不支持所选导出尺寸的 GPU 画布")
+        }
+        val buffer = HardwareBuffer.create(
+            dimensions.width,
+            dimensions.height,
+            HardwareBuffer.RGBA_8888,
+            1,
+            usage,
+        )
         return suspendCancellableCoroutine { continuation ->
             val renderer = HardwareBufferRenderer(buffer).apply { setContentRoot(renderNode) }
             continuation.invokeOnCancellation {
@@ -130,6 +152,75 @@ object ExportManager {
                 if (continuation.isActive) continuation.resumeWithException(error)
             }
         }
+    }
+
+    /**
+     * HardwareBufferRenderer was added in API 34. Android 13 still supports AGSL, so render the
+     * recorded RenderNode through the API 29 HardwareRenderer into an ImageReader Surface. This
+     * keeps runtime shaders and RenderEffects on the GPU instead of silently degrading to a
+     * software Canvas export.
+     */
+    private suspend fun renderWithImageReader(renderNode: RenderNode, dimensions: ExportDimensions): Bitmap =
+        suspendCancellableCoroutine { continuation ->
+            val reader = try {
+                ImageReader.newInstance(dimensions.width, dimensions.height, PixelFormat.RGBA_8888, 2)
+            } catch (error: Throwable) {
+                renderNode.discardDisplayList()
+                continuation.resumeWithException(error)
+                return@suspendCancellableCoroutine
+            }
+            val renderer = HardwareRenderer()
+            var closed = false
+
+            fun closeResources() {
+                if (closed) return
+                closed = true
+                reader.setOnImageAvailableListener(null, null)
+                runCatching { renderer.stop() }
+                renderer.destroy()
+                reader.close()
+                renderNode.discardDisplayList()
+            }
+
+            continuation.invokeOnCancellation { closeResources() }
+            reader.setOnImageAvailableListener({ source ->
+                val image = source.acquireLatestImage() ?: return@setOnImageAvailableListener
+                try {
+                    val bitmap = image.toSoftwareBitmap()
+                    if (continuation.isActive) continuation.resume(bitmap) else bitmap.recycle()
+                } catch (error: Throwable) {
+                    if (continuation.isActive) continuation.resumeWithException(error)
+                } finally {
+                    image.close()
+                    closeResources()
+                }
+            }, Handler(Looper.getMainLooper()))
+
+            try {
+                renderer.setSurface(reader.surface)
+                renderer.setContentRoot(renderNode)
+                renderer.start()
+                val status = renderer.createRenderRequest().setWaitForPresent(true).syncAndDraw()
+                check(status == HardwareRenderer.SYNC_OK || status == HardwareRenderer.SYNC_REDRAW_REQUESTED) {
+                    "GPU 导出失败（状态 $status）"
+                }
+            } catch (error: Throwable) {
+                closeResources()
+                if (continuation.isActive) continuation.resumeWithException(error)
+            }
+        }
+
+    private fun Image.toSoftwareBitmap(): Bitmap {
+        check(format == PixelFormat.RGBA_8888) { "GPU 导出返回了不支持的像素格式：$format" }
+        val plane = planes.single()
+        check(plane.pixelStride == 4) { "GPU 导出返回了不支持的像素步长：${plane.pixelStride}" }
+        val rowPixels = plane.rowStride / plane.pixelStride
+        check(rowPixels >= width) { "GPU 导出行跨度无效" }
+        val padded = Bitmap.createBitmap(rowPixels, height, Bitmap.Config.ARGB_8888)
+        plane.buffer.rewind()
+        padded.copyPixelsFromBuffer(plane.buffer)
+        if (rowPixels == width) return padded
+        return Bitmap.createBitmap(padded, 0, 0, width, height).also { padded.recycle() }
     }
 
     suspend fun renderArtwork(view: View, bounds: Rect, width: Int): Bitmap = renderArtwork(

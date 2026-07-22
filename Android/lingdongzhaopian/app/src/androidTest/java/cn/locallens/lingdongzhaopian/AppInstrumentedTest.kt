@@ -363,7 +363,7 @@ class AppInstrumentedTest {
 
     @Test
     fun textEditorAndPrivacyPaintingDetectionWorkThroughUi() {
-        val fixture = createTestJpeg("privacy-ui.jpg")
+        val fixture = createPrivacyJpeg("privacy-ui.jpg")
         shareImage(fixture)
         waitForEditor()
         val motionCanvas = composeRule.onNodeWithTag("artwork-${CreationMode.MotionCard.name}")
@@ -486,6 +486,25 @@ class AppInstrumentedTest {
         bitmap.setPixels(pixels, 0, 480, 0, 0, 480, 640)
         return File(composeRule.activity.cacheDir, name).also { file ->
             FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 96, it) }
+            bitmap.recycle()
+        }
+    }
+
+    private fun createPrivacyJpeg(name: String): File {
+        val bitmap = Bitmap.createBitmap(480, 640, Bitmap.Config.ARGB_8888)
+        val matrix = MultiFormatWriter().encode("https://example.test/privacy-ui", BarcodeFormat.QR_CODE, 320, 320)
+        Canvas(bitmap).apply {
+            drawColor(Color.WHITE)
+            val paint = Paint().apply { isAntiAlias = false }
+            for (y in 0 until 320) {
+                for (x in 0 until 320) {
+                    paint.color = if (matrix[x, y]) Color.BLACK else Color.WHITE
+                    drawPoint((x + 80).toFloat(), (y + 120).toFloat(), paint)
+                }
+            }
+        }
+        return File(composeRule.activity.cacheDir, name).also { file ->
+            FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it) }
             bitmap.recycle()
         }
     }
