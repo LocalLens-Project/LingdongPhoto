@@ -14,6 +14,7 @@ struct ArtworkCanvas: View {
     let showPalettePercentages: Bool
     let showDeviceInfo: Bool
     let showBubbles: Bool
+    var cameraWatermarkImage: UIImage? = nil
     let gentleBackground: Bool
     let imageScale: CGFloat
     let imageOffset: CGSize
@@ -329,6 +330,12 @@ struct ArtworkCanvas: View {
     }
 
     private func bubbleStamp(size: CGSize) -> AnyView {
+        let isCamera = metadata.captureDevice.category == .camera
+        let deviceBubbleDiameter = size.width * (isCamera ? 0.11 : 0.10) * bubbleScale
+        let deviceMarkWidth = cameraWatermarkImage.map {
+            customWatermarkWidth(for: $0, height: deviceBubbleDiameter)
+        } ?? deviceBubbleDiameter
+
         if templateStyle == .immersive {
             return AnyView(
                 ZStack(alignment: .bottom) {
@@ -341,13 +348,13 @@ struct ArtworkCanvas: View {
 
                     HStack(spacing: 12) {
                         if showBubbles {
-                            Circle()
-                                .fill(.white.opacity(0.90))
-                                .frame(
-                                    width: size.width * 0.10 * bubbleScale,
-                                    height: size.width * 0.10 * bubbleScale
-                                )
-                                .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
+                            captureDeviceBubble(
+                                diameter: deviceBubbleDiameter,
+                                fill: .white.opacity(0.76),
+                                symbol: .black.opacity(0.66),
+                                watermark: .white.opacity(0.88)
+                            )
+                                .shadow(color: .black.opacity(0.10), radius: 6, y: 3)
                         }
 
                         VStack(alignment: .leading, spacing: 3) {
@@ -362,6 +369,23 @@ struct ArtworkCanvas: View {
                                 Text(deviceLine)
                                     .font(.system(size: max(5, size.width * 0.014)))
                                     .opacity(0.52)
+                            }
+                            if showDeviceInfo, isCamera {
+                                if let lensLine = metadata.cameraLensLine {
+                                    Text(lensLine)
+                                        .font(.system(size: max(4, size.width * 0.013)))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.62)
+                                        .allowsTightening(true)
+                                        .opacity(0.46)
+                                }
+                                if let settingsLine = metadata.captureSettingsLine {
+                                    Text(settingsLine)
+                                        .font(.system(size: max(4, size.width * 0.0125)))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.78)
+                                        .opacity(0.38)
+                                }
                             }
                         }
                         .foregroundStyle(.white)
@@ -399,15 +423,19 @@ struct ArtworkCanvas: View {
                 .padding(.top, templateStyle == .airy ? 26 : 16)
 
                 HStack(spacing: 12) {
-                    ZStack {
+                    Group {
                         if showBubbles {
-                            Circle()
-                                .fill(foreground)
+                            captureDeviceBubble(
+                                diameter: deviceBubbleDiameter,
+                                fill: foreground.opacity(0.68),
+                                symbol: background.color.opacity(0.78),
+                                watermark: foreground.opacity(0.84)
+                            )
                         } else {
                             Circle().fill(.clear)
                         }
                     }
-                    .frame(width: size.width * 0.1 * bubbleScale, height: size.width * 0.1 * bubbleScale)
+                    .frame(width: deviceMarkWidth, height: deviceBubbleDiameter)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(copy.title)
@@ -424,7 +452,23 @@ struct ArtworkCanvas: View {
                                     .font(.system(size: max(4, size.width * 0.014)))
                                     .opacity(0.42)
                             }
-                            if let cameraLine = metadata.cameraLine {
+                            if isCamera {
+                                if let lensLine = metadata.cameraLensLine {
+                                    Text(lensLine)
+                                        .font(.system(size: max(4, size.width * 0.013)))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.62)
+                                        .allowsTightening(true)
+                                        .opacity(0.38)
+                                }
+                                if let settingsLine = metadata.captureSettingsLine {
+                                    Text(settingsLine)
+                                        .font(.system(size: max(4, size.width * 0.0125)))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.78)
+                                        .opacity(0.32)
+                                }
+                            } else if let cameraLine = metadata.cameraLine {
                                 Text(cameraLine)
                                     .font(.system(size: max(4, size.width * 0.013)))
                                     .opacity(0.34)
@@ -439,6 +483,76 @@ struct ArtworkCanvas: View {
                 .frame(maxHeight: .infinity)
             }
         })
+    }
+
+    private func captureDeviceBubble(
+        diameter: CGFloat,
+        fill: Color,
+        symbol: Color,
+        watermark: Color
+    ) -> some View {
+        Group {
+            if let cameraWatermarkImage {
+                Group {
+                    if cameraWatermarkImage.renderingMode == .alwaysOriginal {
+                        Image(uiImage: cameraWatermarkImage)
+                            .resizable()
+                    } else {
+                        Image(uiImage: cameraWatermarkImage.withRenderingMode(.alwaysTemplate))
+                            .resizable()
+                            .foregroundStyle(watermark)
+                    }
+                }
+                    .scaledToFit()
+                    .frame(
+                        width: customWatermarkWidth(
+                            for: cameraWatermarkImage,
+                            height: diameter
+                        ),
+                        height: diameter * 0.86
+                    )
+                    .shadow(color: .white.opacity(0.16), radius: 0.8)
+                    .shadow(color: .black.opacity(0.42), radius: 2.2, y: 1)
+            } else {
+                ZStack {
+                    Circle().fill(fill)
+                    if showDeviceInfo {
+                        Image(systemName: metadata.captureDevice.systemImageName)
+                            .font(.system(size: diameter * 0.36, weight: .medium))
+                            .foregroundStyle(symbol)
+                    }
+                }
+                .frame(width: diameter, height: diameter)
+            }
+        }
+        .frame(
+            width: cameraWatermarkImage.map {
+                customWatermarkWidth(for: $0, height: diameter)
+            } ?? diameter,
+            height: diameter
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            cameraWatermarkImage == nil
+                ? metadata.captureDevice.displayName ?? "照片"
+                : "\(metadata.captureDevice.displayName ?? "相机")图标水印"
+        )
+    }
+
+    private func customWatermarkWidth(for image: UIImage, height: CGFloat) -> CGFloat {
+        guard image.size.height > 0 else { return height }
+        let aspectRatio = image.size.width / image.size.height
+        let multiplier: CGFloat
+        if aspectRatio >= 8 {
+            multiplier = 2.05
+        } else if aspectRatio >= 3 {
+            multiplier = 1.72
+        } else if aspectRatio >= 1.25 {
+            multiplier = 1.38
+        } else {
+            multiplier = 1
+        }
+        return height * multiplier
     }
 
     private func spectrumWallpaper(size: CGSize) -> some View {

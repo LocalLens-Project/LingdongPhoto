@@ -27,6 +27,10 @@ struct PhotoMetadata: Equatable {
 
     var hasLocation: Bool { latitude != nil && longitude != nil }
 
+    var captureDevice: CaptureDeviceDescriptor {
+        CaptureDeviceDescriptor.resolve(make: make, model: model)
+    }
+
     var displayTitle: String {
         if let placeName, !placeName.isEmpty { return placeName }
         guard let latitude, let longitude else { return "此刻 · 光影留痕" }
@@ -52,20 +56,34 @@ struct PhotoMetadata: Equatable {
     }
 
     var deviceLine: String? {
-        let device = [make, model]
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .reduce(into: [String]()) { values, value in
-                if !values.contains(where: { value.localizedCaseInsensitiveContains($0) }) {
-                    values.append(value)
-                }
-            }
-            .joined(separator: " ")
-        guard !device.isEmpty else { return nil }
-        return " 由 \(device) 记录这一瞬"
+        guard let device = captureDevice.displayName else { return nil }
+        return "由 \(device) 记录这一瞬"
+    }
+
+    var cameraLensLine: String? {
+        guard captureDevice.category == .camera else { return nil }
+        return Self.normalizedLensModel(lensModel)
+    }
+
+    var captureSettingsLine: String? {
+        let values = captureSettingValues
+        guard !values.isEmpty else { return nil }
+        return values.joined(separator: " · ")
     }
 
     var cameraLine: String? {
+        let values = captureSettingValues
+        let lens = Self.cleanedLensModel(
+            lensModel,
+            removingAperture: aperture.map { $0 > 0 } == true,
+            removingFocalLength: focalLength.map { $0 > 0 } == true
+        )
+        let components = [lens].compactMap { $0 } + values
+        guard !components.isEmpty else { return nil }
+        return components.joined(separator: " · ")
+    }
+
+    private var captureSettingValues: [String] {
         var values: [String] = []
         if let aperture, aperture > 0 {
             values.append("ƒ/\(Self.compactDecimal(aperture))")
@@ -81,15 +99,7 @@ struct PhotoMetadata: Equatable {
         if let focalLength, focalLength > 0 {
             values.append("\(Self.compactDecimal(focalLength))mm")
         }
-
-        let lens = Self.cleanedLensModel(
-            lensModel,
-            removingAperture: aperture.map { $0 > 0 } == true,
-            removingFocalLength: focalLength.map { $0 > 0 } == true
-        )
-        let components = [lens].compactMap { $0 } + values
-        guard !components.isEmpty else { return nil }
-        return components.joined(separator: " · ")
+        return values
     }
 
     private static func compactDecimal(_ value: Double) -> String {
@@ -134,6 +144,14 @@ struct PhotoMetadata: Equatable {
         return value.isEmpty ? nil : value
     }
 
+    private static func normalizedLensModel(_ lensModel: String?) -> String? {
+        guard let lensModel else { return nil }
+        let value = lensModel
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
     static func read(from data: Data) -> PhotoMetadata {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] else {
@@ -142,6 +160,8 @@ struct PhotoMetadata: Equatable {
 
         let tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any]
         let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any]
+        let exifAux = properties[kCGImagePropertyExifAuxDictionary] as? [CFString: Any]
+        let dng = properties[kCGImagePropertyDNGDictionary] as? [CFString: Any]
         let gps = properties[kCGImagePropertyGPSDictionary] as? [CFString: Any]
 
         let latitudeValue = number(gps?[kCGImagePropertyGPSLatitude])
@@ -150,11 +170,14 @@ struct PhotoMetadata: Equatable {
         let longitude = signedCoordinate(longitudeValue, reference: gps?[kCGImagePropertyGPSLongitudeRef] as? String)
         let altitudeSign = number(gps?[kCGImagePropertyGPSAltitudeRef]) == 1 ? -1.0 : 1.0
         let isoValues = exif?[kCGImagePropertyExifISOSpeedRatings] as? [NSNumber]
+        let dngModel = nonEmptyString(dng?[kCGImagePropertyDNGLocalizedCameraModel])
+            ?? nonEmptyString(dng?[kCGImagePropertyDNGUniqueCameraModel])
 
         return PhotoMetadata(
-            make: tiff?[kCGImagePropertyTIFFMake] as? String,
-            model: tiff?[kCGImagePropertyTIFFModel] as? String,
-            lensModel: exif?[kCGImagePropertyExifLensModel] as? String,
+            make: nonEmptyString(tiff?[kCGImagePropertyTIFFMake]),
+            model: nonEmptyString(tiff?[kCGImagePropertyTIFFModel]) ?? dngModel,
+            lensModel: nonEmptyString(exif?[kCGImagePropertyExifLensModel])
+                ?? nonEmptyString(exifAux?[kCGImagePropertyExifAuxLensModel]),
             aperture: number(exif?[kCGImagePropertyExifFNumber]),
             exposureTime: number(exif?[kCGImagePropertyExifExposureTime]),
             iso: isoValues?.first?.intValue,
@@ -174,6 +197,12 @@ struct PhotoMetadata: Equatable {
         if let number = value as? NSNumber { return number.doubleValue }
         if let string = value as? String { return Double(string) }
         return nil
+    }
+
+    private static func nonEmptyString(_ value: Any?) -> String? {
+        guard let value = value as? String else { return nil }
+        let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? nil : cleaned
     }
 
     private static func signedCoordinate(_ value: Double?, reference: String?) -> Double? {

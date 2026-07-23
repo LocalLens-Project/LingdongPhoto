@@ -4,16 +4,15 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    @Binding var mode: CreationMode
     @Binding var ratio: ArtworkRatio
     @Binding var showHexValues: Bool
     @Binding var showDeviceInfo: Bool
     @Binding var showBubbles: Bool
+    @Binding var useCustomCameraWatermarks: Bool
     @Binding var gentleBackground: Bool
     @Binding var templateStyle: ArtworkTemplateStyle
     @Binding var journalLayout: JournalLayoutMode
+    @ObservedObject var cameraWatermarkLibrary: CameraWatermarkLibrary
 
     @AppStorage("supportsLivePhotos") private var supportsLivePhotos = true
     @AppStorage("useLiteraryColorNames") private var useLiteraryColorNames = false
@@ -23,109 +22,59 @@ struct SettingsView: View {
     @AppStorage("applyLiquidGlassOnExport") private var applyLiquidGlassOnExport = true
     @AppStorage("showAppTitle") private var showAppTitle = true
     @AppStorage("showPalettePercentages") private var showPalettePercentages = true
+    @State private var cameraWatermarkManagerPresented = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text("设置")
-                .font(.system(size: 17, weight: .bold))
-                .frame(maxWidth: .infinity)
-                .frame(height: 66)
-                .background(.ultraThinMaterial)
-                .zIndex(5)
-
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 28) {
-                    modeSection
-                    freeSection
-                    interfaceOptions
-                    paletteOptions
-                    motionTips
-                    stampTips
-                    journalOptions
-                    wallpaperOptions
-                    privacyOptions
-
-                    VStack(spacing: 10) {
-                        Text("版本 1.0.0 (Build 1111)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-
-                        Text("灵动照片 · 完全免费")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-
-                        Text("浙ICP备2026035179号-6A")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
-                            .accessibilityLabel("ICP备案号：浙ICP备2026035179号-6A")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.bottom, 28)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-            }
-        }
-        .background(Color(uiColor: .systemGroupedBackground))
-    }
-
-    private var modeSection: some View {
-        settingsSection("模式选择") {
+        NavigationStack {
             VStack(spacing: 0) {
-                ForEach(Array(CreationMode.allCases.enumerated()), id: \.element.id) { index, item in
-                    Button {
-                        guard mode != item else { return }
-                        withAnimation(.snappy) { mode = item }
-                        Task {
-                            try? await Task.sleep(for: .milliseconds(220))
-                            dismiss()
+                Text("设置")
+                    .font(.system(size: 17, weight: .bold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 66)
+                    .background(.ultraThinMaterial)
+                    .zIndex(5)
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 28) {
+                        freeSection
+                        interfaceOptions
+                        paletteOptions
+                        motionTips
+                        stampTips
+                        journalOptions
+                        wallpaperOptions
+                        privacyOptions
+
+                        VStack(spacing: 10) {
+                            Text("版本 1.0.1 (Build 1017)")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+
+                            Text("灵动照片 · 完全免费")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+
+                            Text("浙ICP备2026035179号-6A")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .accessibilityLabel("ICP备案号：浙ICP备2026035179号-6A")
                         }
-                    } label: {
-                        HStack(spacing: 16) {
-                            Image(systemName: item.symbol)
-                                .font(.system(size: 19, weight: .medium))
-                                .frame(width: 34)
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack(spacing: 7) {
-                                    Text(item.title)
-                                        .font(.headline)
-                                    if item == .journal || item == .privacyMosaic {
-                                        Text("新")
-                                            .font(.system(size: 10, weight: .bold))
-                                            .foregroundStyle(.white)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 3)
-                                            .background(.red, in: Capsule())
-                                    }
-                                }
-                                Text(item.subtitle)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.leading)
-                                    .lineLimit(2)
-                            }
-
-                            Spacer(minLength: 10)
-
-                            if mode == item {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundStyle(.blue)
-                            }
-                        }
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 15)
-                        .contentShape(Rectangle())
+                        .frame(maxWidth: .infinity)
+                        .padding(.bottom, 28)
                     }
-                    .buttonStyle(.plain)
-
-                    if index < CreationMode.allCases.count - 1 {
-                        Divider().padding(.leading, 68)
-                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
                 }
             }
+            .background(Color(uiColor: .systemGroupedBackground))
+            .navigationDestination(isPresented: $cameraWatermarkManagerPresented) {
+                CameraWatermarkManagerView(
+                    isEnabled: $useCustomCameraWatermarks,
+                    library: cameraWatermarkLibrary
+                )
+                .toolbar(.hidden, for: .navigationBar)
+            }
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 
@@ -249,6 +198,8 @@ struct SettingsView: View {
     private var stampTips: some View {
         settingsSection("气泡印章操作技巧") {
             VStack(spacing: 0) {
+                cameraWatermarkNavigationRow
+                sectionDivider
                 templateRow
                 sectionDivider
                 ratioRow
@@ -263,11 +214,57 @@ struct SettingsView: View {
                 sectionDivider
                 tipRow(symbol: "bubbles.and.sparkles", text: "调节气泡大小：在气泡左侧空白区域上下滑动")
                 sectionDivider
-                toggleRow(symbol: "iphone", title: "显示手机和相机信息", value: $showDeviceInfo)
+                toggleRow(
+                    symbol: "iphone",
+                    title: "显示手机和相机信息",
+                    subtitle: "根据照片 EXIF 自动识别设备类别、厂商与型号",
+                    value: $showDeviceInfo
+                )
                 sectionDivider
                 toggleRow(symbol: "seal", title: "显示气泡", value: $showBubbles)
             }
         }
+    }
+
+    private var cameraWatermarkNavigationRow: some View {
+        Button {
+            cameraWatermarkManagerPresented = true
+        } label: {
+            HStack(spacing: 16) {
+                Image(systemName: "camera.aperture")
+                    .font(.system(size: 18, weight: .medium))
+                    .frame(width: 34)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("相机图标水印")
+                        .font(.headline)
+
+                    Text(
+                        cameraWatermarkLibrary.importedBrandCount == 0
+                            ? "从“文件”App 为相机品牌添加本地 PNG"
+                            : "已添加 \(cameraWatermarkLibrary.importedBrandCount) 个品牌"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(useCustomCameraWatermarks ? "已启用" : "未启用")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(useCustomCameraWatermarks ? .blue : .secondary)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.tertiary)
+            }
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 15)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("打开相机图标水印管理界面")
     }
 
     private var journalOptions: some View {
@@ -402,7 +399,7 @@ struct SettingsView: View {
     }
 }
 
-private struct SettingRow<Trailing: View>: View {
+struct SettingRow<Trailing: View>: View {
     let symbol: String
     let title: String
     var subtitle: String?

@@ -25,6 +25,11 @@ private enum PhotoSelectionOperation: Equatable {
     case replace(index: Int)
 }
 
+private enum Version101Audience: String {
+    case upgradedFrom100
+    case installed101
+}
+
 struct ContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var systemColorScheme
@@ -40,6 +45,7 @@ struct ContentView: View {
     @AppStorage("showPalettePercentages") private var showPalettePercentages = true
     @AppStorage("showDeviceInfo") private var showDeviceInfo = true
     @AppStorage("showBubbles") private var showBubbles = true
+    @AppStorage("useCustomCameraWatermarks") private var useCustomCameraWatermarks = false
     @AppStorage("gentleBackground") private var gentleBackground = true
     @AppStorage("privacyMosaicStrength") private var privacyMosaicStrength = 0.62
     @AppStorage("showAppTitle") private var showAppTitle = true
@@ -53,6 +59,9 @@ struct ContentView: View {
     // for future releases, otherwise users would see the one-time hint again.
     @AppStorage("didShowLivePhotoPlaybackHint") private var didShowLivePhotoPlaybackHint = false
     @AppStorage("didShowLivePhotoPlaybackHintBuild1060") private var didShowLivePhotoPlaybackHintBuild1060 = false
+    @AppStorage("version101Audience") private var version101AudienceRaw = ""
+    @AppStorage("didShowVersion101Update") private var didShowVersion101Update = false
+    @AppStorage("didShowModeSelectionHint101") private var didShowModeSelectionHint101 = false
 
     @State private var mode: CreationMode = .motionCard
     @State private var pickerSelections: [PhotoPickerSelection] = []
@@ -71,7 +80,7 @@ struct ContentView: View {
     @State private var canSave = false
     @State private var saveState: SaveVisualState = .idle
     @State private var settingsPresented = false
-    @State private var modeChangedInSettings = false
+    @State private var modeSelectionPresented = false
     @State private var toastMessage: String?
     @State private var errorTitle = "无法保存"
     @State private var saveErrorMessage = ""
@@ -118,9 +127,13 @@ struct ContentView: View {
     @State private var toastTask: Task<Void, Never>?
     @State private var livePlaybackTask: Task<Void, Never>?
     @State private var livePhotoHintTask: Task<Void, Never>?
+    @State private var modeSelectionHintTask: Task<Void, Never>?
     @State private var livePreviewFrames: [Int: UIImage] = [:]
     @State private var isLivePhotoPlaying = false
     @State private var isLivePhotoHintPresented = false
+    @State private var isModeSelectionHintPresented = false
+    @State private var version101UpdatePresented = false
+    @StateObject private var cameraWatermarkLibrary = CameraWatermarkLibrary()
 
     private var pickerLimit: Int {
         if mode == .journal, photoSelectionOperation == .append {
@@ -156,6 +169,10 @@ struct ContentView: View {
         nonmutating set { exportDestinationRaw = newValue.rawValue }
     }
     private var primaryMetadata: PhotoMetadata { selectedPhotos.first?.metadata ?? .empty }
+    private var activeCameraWatermark: UIImage? {
+        guard useCustomCameraWatermarks else { return nil }
+        return cameraWatermarkLibrary.image(for: primaryMetadata.captureDevice)
+    }
     private var combinedSemantic: PhotoSemantic {
         PhotoSemantic.combined(selectedPhotos.map(\.semantic))
     }
@@ -170,7 +187,24 @@ struct ContentView: View {
         mode != .privacyMosaic && selectedPhotos.contains(where: \.isLivePhoto)
     }
     private var canPresentLivePhotoHint: Bool {
-        isEditorVisible && showsLivePlaybackControl && !liveSourceVideoURLs.isEmpty
+        isEditorVisible
+            && showsLivePlaybackControl
+            && !liveSourceVideoURLs.isEmpty
+            && didShowModeSelectionHint101
+            && !isModeSelectionHintPresented
+            && modeSelectionHintTask == nil
+            && !version101UpdatePresented
+            && !modeSelectionPresented
+            && !settingsPresented
+            && !isPickerPresented
+    }
+    private var canPresentModeSelectionHint: Bool {
+        isEditorVisible
+            && !didShowModeSelectionHint101
+            && !version101UpdatePresented
+            && !modeSelectionPresented
+            && !settingsPresented
+            && !isPickerPresented
     }
     private var hasShownLivePhotoPlaybackHint: Bool {
         didShowLivePhotoPlaybackHint || didShowLivePhotoPlaybackHintBuild1060
@@ -222,7 +256,11 @@ struct ContentView: View {
                 }
 
                 ShakeDetector(
-                    isEnabled: !editCopyPresented && !settingsPresented && !isPickerPresented
+                    isEnabled: !editCopyPresented
+                        && !settingsPresented
+                        && !modeSelectionPresented
+                        && !version101UpdatePresented
+                        && !isPickerPresented
                 ) {
                     resetComposition()
                 }
@@ -242,6 +280,15 @@ struct ContentView: View {
         // into the user's system setting independently.
         .environment(\.colorScheme, .light)
         .statusBarHidden(true)
+        .sheet(isPresented: $version101UpdatePresented) {
+            Version101UpdateView(onNext: completeVersion101Update)
+                .environment(\.colorScheme, .dark)
+                .presentationDetents([.fraction(0.94)])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(38)
+                .presentationBackground(.black)
+                .interactiveDismissDisabled()
+        }
         .sheet(isPresented: $isPickerPresented) {
             PrivacyPreservingPhotoPicker(
                 isPresented: $isPickerPresented,
@@ -266,9 +313,6 @@ struct ContentView: View {
             } else {
                 finishPrivacyPainting()
             }
-            if settingsPresented {
-                modeChangedInSettings = true
-            }
         }
         .onChange(of: privacyMosaicStrength) { _, _ in
             schedulePrivacyPreviewRefresh()
@@ -288,13 +332,13 @@ struct ContentView: View {
                 semantic: combinedSemantic
             )
         }
-        .sheet(isPresented: $settingsPresented, onDismiss: finishSettings) {
+        .sheet(isPresented: $settingsPresented) {
             SettingsView(
-                mode: $mode,
                 ratio: $ratio,
                 showHexValues: $showHexValues,
                 showDeviceInfo: $showDeviceInfo,
                 showBubbles: $showBubbles,
+                useCustomCameraWatermarks: $useCustomCameraWatermarks,
                 gentleBackground: $gentleBackground,
                 templateStyle: Binding(
                     get: { templateStyle },
@@ -303,13 +347,25 @@ struct ContentView: View {
                 journalLayout: Binding(
                     get: { journalLayout },
                     set: { journalLayoutRaw = $0.rawValue }
-                )
+                ),
+                cameraWatermarkLibrary: cameraWatermarkLibrary
             )
             .environment(\.colorScheme, systemColorScheme)
             .presentationDetents([.fraction(0.94)])
             .presentationDragIndicator(.hidden)
             .presentationCornerRadius(38)
             .presentationBackground(.ultraThinMaterial)
+        }
+        .sheet(isPresented: $modeSelectionPresented) {
+            CreationModeSelectionView(
+                selectedMode: mode,
+                onSelect: selectCreationMode
+            )
+            .environment(\.colorScheme, systemColorScheme)
+            .presentationDetents([.fraction(0.72)])
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(38)
+            .presentationBackground(.clear)
         }
         .sheet(isPresented: $editCopyPresented) {
             ArtworkCopyEditor(
@@ -355,6 +411,7 @@ struct ContentView: View {
             Text(saveErrorMessage)
         }
         .task {
+            configureVersion101Experience()
             if didShowLivePhotoPlaybackHintBuild1060 {
                 didShowLivePhotoPlaybackHint = true
             }
@@ -368,8 +425,13 @@ struct ContentView: View {
             guard newPhase == .active else { return }
             importSharedPhotoIfAvailable()
         }
-        .task(id: canPresentLivePhotoHint) {
-            if canPresentLivePhotoHint {
+        .onChange(of: canPresentModeSelectionHint) { _, canPresent in
+            if canPresent {
+                presentModeSelectionHintIfNeeded()
+            }
+        }
+        .onChange(of: canPresentLivePhotoHint) { _, canPresent in
+            if canPresent {
                 presentLivePhotoHintIfNeeded()
             } else {
                 dismissLivePhotoHint()
@@ -377,6 +439,7 @@ struct ContentView: View {
         }
         .onDisappear {
             stopLivePhotoPlayback()
+            dismissModeSelectionHint(animated: false)
             dismissLivePhotoHint(animated: false)
         }
         .onOpenURL(perform: handleSharedPhotoURL)
@@ -526,13 +589,41 @@ struct ContentView: View {
         let canvasHeight = canvasWidth / ratioValue
 
         return VStack(spacing: 0) {
-            HStack(spacing: 10) {
+            HStack(spacing: 6) {
                 Text("灵动照片")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
                     .opacity(showAppTitle ? 1 : 0)
                     .accessibilityHidden(!showAppTitle)
 
                 Spacer()
+
+                LiquidCircleButton(
+                    symbol: "square.grid.2x2",
+                    isEnabled: !controlsAreDimmed,
+                    action: openModeSelection
+                )
+                .overlay(alignment: .top) {
+                    if isModeSelectionHintPresented {
+                        ModeSelectionHint(
+                            tint: livePhotoHintTint,
+                            foreground: livePhotoHintForeground,
+                            action: openModeSelection
+                        )
+                        .offset(y: 49)
+                        .transition(
+                            .asymmetric(
+                                insertion: .scale(scale: 0.72, anchor: .top)
+                                    .combined(with: .opacity)
+                                    .combined(with: .move(edge: .top)),
+                                removal: .scale(scale: 0.80, anchor: .top)
+                                    .combined(with: .opacity)
+                            )
+                        )
+                    }
+                }
+                .zIndex(50)
 
                 LiquidCircleButton(
                     symbol: "plus",
@@ -562,6 +653,7 @@ struct ContentView: View {
                     symbol: "gearshape",
                     isEnabled: !controlsAreDimmed
                 ) {
+                    dismissModeSelectionHint()
                     dismissLivePhotoHint()
                     settingsPresented = true
                 }
@@ -571,6 +663,7 @@ struct ContentView: View {
             .animation(.easeInOut(duration: 0.18), value: showAppTitle)
             .padding(.horizontal, 16)
             .padding(.top, 10)
+            .zIndex(40)
 
             if showsLivePlaybackControl {
                 HStack(spacing: 8) {
@@ -615,6 +708,7 @@ struct ContentView: View {
                 showPalettePercentages: showPalettePercentages,
                 showDeviceInfo: showDeviceInfo,
                 showBubbles: showBubbles,
+                cameraWatermarkImage: activeCameraWatermark,
                 gentleBackground: gentleBackground,
                 imageScale: imageScale,
                 imageOffset: imageOffset,
@@ -1231,6 +1325,7 @@ struct ContentView: View {
     private func openPicker(append: Bool = false, replacing index: Int? = nil) {
         guard !isLoading, saveState == .idle else { return }
         stopLivePhotoPlayback()
+        dismissModeSelectionHint()
         dismissLivePhotoHint()
         finishPrivacyPainting()
         if let index, mode == .journal, selectedPhotos.indices.contains(index) {
@@ -1512,10 +1607,23 @@ struct ContentView: View {
         return ratio.value(for: images.first)
     }
 
-    private func finishSettings() {
-        guard modeChangedInSettings else { return }
-        modeChangedInSettings = false
+    private func selectCreationMode(_ selectedMode: CreationMode) {
+        guard mode != selectedMode else {
+            modeSelectionPresented = false
+            return
+        }
 
+        modeSelectionPresented = false
+        withAnimation(.snappy) {
+            mode = selectedMode
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            finishModeChange()
+        }
+    }
+
+    private func finishModeChange() {
         // Switching creation modes changes only the presentation. The selected
         // photo, its metadata/semantic analysis, palette and Live Photo resource
         // remain the source material until the user explicitly picks a new photo.
@@ -1561,6 +1669,7 @@ struct ContentView: View {
 
     private func saveArtwork() {
         guard canSave, saveState == .idle else { return }
+        dismissModeSelectionHint()
         if mode == .privacyMosaic {
             finishPrivacyPainting()
             if exportMetadataPolicy == .preserve {
@@ -1681,14 +1790,144 @@ struct ContentView: View {
         }
     }
 
-    private var livePhotoHintAnimation: Animation {
+    private func configureVersion101Experience() {
+#if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--version101-upgrade") {
+            version101AudienceRaw = Version101Audience.upgradedFrom100.rawValue
+            didShowVersion101Update = false
+            didShowModeSelectionHint101 = false
+            didAcknowledgeFreeNotice = true
+        } else if arguments.contains("--version101-fresh") {
+            version101AudienceRaw = Version101Audience.installed101.rawValue
+            didShowVersion101Update = false
+            didShowModeSelectionHint101 = false
+            didShowLivePhotoPlaybackHint = false
+            didShowLivePhotoPlaybackHintBuild1060 = false
+            didAcknowledgeFreeNotice = true
+        }
+#endif
+
+        if version101AudienceRaw.isEmpty {
+            version101AudienceRaw = hasVersion100InstallEvidence()
+                ? Version101Audience.upgradedFrom100.rawValue
+                : Version101Audience.installed101.rawValue
+        }
+
+        guard version101AudienceRaw == Version101Audience.upgradedFrom100.rawValue,
+              !didShowVersion101Update else { return }
+        version101UpdatePresented = true
+    }
+
+    private func hasVersion100InstallEvidence() -> Bool {
+        let defaults = UserDefaults.standard
+        let legacyKeys = [
+            "didAcknowledgeFreeNotice",
+            "supportsLivePhotos",
+            "useLiteraryColorNames",
+            "preservePaletteBackground",
+            "showMoodCopy",
+            "paletteLayout",
+            "showAppTitle",
+            "didShowLivePhotoPlaybackHint",
+            "didShowLivePhotoPlaybackHintBuild1060"
+        ]
+        if legacyKeys.contains(where: { defaults.object(forKey: $0) != nil }) {
+            return true
+        }
+
+        // App data containers survive an update, while the installed app bundle
+        // is replaced. This catches a 1.0.0 installation even when the user had
+        // not changed any setting yet.
+        let fileManager = FileManager.default
+        let containerAttributes = try? fileManager.attributesOfItem(atPath: NSHomeDirectory())
+        let bundleAttributes = try? fileManager.attributesOfItem(atPath: Bundle.main.bundleURL.path)
+        guard let containerDate = containerAttributes?[.creationDate] as? Date,
+              let bundleDate = bundleAttributes?[.creationDate] as? Date else {
+            return false
+        }
+        return bundleDate.timeIntervalSince(containerDate) > 300
+    }
+
+    private func completeVersion101Update() {
+        didShowVersion101Update = true
+        version101UpdatePresented = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 80 : 460))
+            presentModeSelectionHintIfNeeded()
+        }
+    }
+
+    private func openModeSelection() {
+        dismissModeSelectionHint()
+        dismissLivePhotoHint()
+        modeSelectionPresented = true
+    }
+
+    private var guidanceHintAnimation: Animation {
         reduceMotion
             ? .easeOut(duration: 0.16)
             : .spring(response: 0.40, dampingFraction: 0.78)
     }
 
+    private func presentModeSelectionHintIfNeeded() {
+        guard canPresentModeSelectionHint,
+              !isModeSelectionHintPresented,
+              modeSelectionHintTask == nil else { return }
+
+        modeSelectionHintTask = Task {
+            do {
+                try await Task.sleep(for: .milliseconds(reduceMotion ? 100 : 360))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled, canPresentModeSelectionHint else {
+                modeSelectionHintTask = nil
+                return
+            }
+
+            didShowModeSelectionHint101 = true
+            withAnimation(guidanceHintAnimation) {
+                isModeSelectionHintPresented = true
+            }
+            UIAccessibility.post(
+                notification: .announcement,
+                argument: "模式选择已独立到主界面顶部"
+            )
+
+            do {
+                try await Task.sleep(for: .seconds(5))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            withAnimation(guidanceHintAnimation) {
+                isModeSelectionHintPresented = false
+            }
+            modeSelectionHintTask = nil
+        }
+    }
+
+    private func dismissModeSelectionHint(animated: Bool = true) {
+        modeSelectionHintTask?.cancel()
+        modeSelectionHintTask = nil
+        guard isModeSelectionHintPresented else { return }
+        if animated {
+            withAnimation(guidanceHintAnimation) {
+                isModeSelectionHintPresented = false
+            }
+        } else {
+            isModeSelectionHintPresented = false
+        }
+    }
+
+    private var livePhotoHintAnimation: Animation {
+        guidanceHintAnimation
+    }
+
     private func presentLivePhotoHintIfNeeded() {
-        guard !hasShownLivePhotoPlaybackHint,
+        guard canPresentLivePhotoHint,
+              !hasShownLivePhotoPlaybackHint,
               !isLivePhotoHintPresented,
               livePhotoHintTask == nil,
               showsLivePlaybackControl,
@@ -1815,6 +2054,7 @@ struct ContentView: View {
                 showPalettePercentages: showPalettePercentages,
                 showDeviceInfo: showDeviceInfo,
                 showBubbles: showBubbles,
+                cameraWatermarkImage: activeCameraWatermark,
                 gentleBackground: gentleBackground,
                 imageScale: imageScale,
                 imageOffset: imageOffset,
@@ -1912,10 +2152,80 @@ struct ContentView: View {
         if arguments.contains("--ratio-four-five") { ratio = .fourFive }
         if arguments.contains("--ratio-nine-sixteen") { ratio = .nineSixteen }
         if arguments.contains("--ratio-sixteen-nine") { ratio = .sixteenNine }
+        if arguments.contains("--template-classic") { templateStyleRaw = ArtworkTemplateStyle.classic.rawValue }
         if arguments.contains("--template-airy") { templateStyleRaw = ArtworkTemplateStyle.airy.rawValue }
         if arguments.contains("--template-immersive") { templateStyleRaw = ArtworkTemplateStyle.immersive.rawValue }
         if arguments.contains("--journal-magazine") { journalLayoutRaw = JournalLayoutMode.magazine.rawValue }
         if arguments.contains("--journal-filmstrip") { journalLayoutRaw = JournalLayoutMode.filmstrip.rawValue }
+        if arguments.contains("--verify-camera-watermark-brands") {
+            let cases: [(String?, String?, CameraWatermarkBrand, String)] = [
+                ("Canon", "Canon EOS R5", .canon, "Canon EOS R5"),
+                ("NIKON CORPORATION", "NIKON Z 8", .nikon, "Nikon Z 8"),
+                ("SONY", "ILCE-7RM2", .sony, "Sony α7R II"),
+                ("FUJIFILM", "X-T5", .fujifilm, "FUJIFILM X-T5"),
+                ("Panasonic", "DC-S5M2", .panasonic, "Panasonic LUMIX S5II"),
+                ("Leica Camera AG", "LEICA Q3", .leica, "Leica Q3"),
+                ("LEICA CAMERA AG", "LEICA M11-P", .leica, "Leica M11-P"),
+                ("Ernst Leitz Wetzlar", "M8 Digital Camera", .leica, "Leica M8 Digital Camera"),
+                (nil, "LEICA Q3 43", .leica, "Leica Q3 43"),
+                (nil, "M11-D", .leica, "Leica M11-D"),
+                ("Adobe", "LEICA Q3", .leica, "Leica Q3"),
+                ("Hasselblad", "X2D 100C", .hasselblad, "Hasselblad X2D 100C"),
+                ("DJI", "FC3411", .dji, "DJI Air 2S"),
+                ("Arashi Vision", "Insta360 X3", .insta360, "Insta360 X3")
+            ]
+            for (make, model, expectedBrand, expectedDisplayName) in cases {
+                let descriptor = CaptureDeviceDescriptor.resolve(make: make, model: model)
+                let brand = CameraWatermarkBrand.resolve(from: descriptor)
+                let passed = descriptor.category == .camera
+                    && brand == expectedBrand
+                    && descriptor.displayName == expectedDisplayName
+                print(
+                    "WATERMARK_BRAND_RESULT: \(passed ? "PASS" : "FAIL") | "
+                        + "\(make ?? "nil") \(model ?? "nil") | \(brand?.rawValue ?? "nil") | "
+                        + "\(descriptor.displayName ?? "nil")"
+                )
+            }
+        }
+        if let watermarkFixtureDirectory = arguments
+            .first(where: { $0.hasPrefix("--watermark-fixture-directory=") })
+            .map({ String($0.dropFirst("--watermark-fixture-directory=".count)) }) {
+            let fixtures: [(CameraWatermarkBrand, String)] = [
+                (.canon, "canon.png"),
+                (.nikon, "nikon.png"),
+                (.sony, "sony.png"),
+                (.fujifilm, "fujifilm.png"),
+                (.panasonic, "panasonic.png"),
+                (.leica, "leica.png"),
+                (.hasselblad, "hasselblad.png"),
+                (.dji, "dji.png"),
+                (.insta360, "insta.png")
+            ]
+            for (brand, fileName) in fixtures {
+                do {
+                    try cameraWatermarkLibrary.importPNG(
+                        from: URL(fileURLWithPath: watermarkFixtureDirectory)
+                            .appendingPathComponent(fileName),
+                        for: brand
+                    )
+                    if let importedImage = cameraWatermarkLibrary.image(for: brand) {
+                        print(
+                            "WATERMARK_FIXTURE_RESULT: PASS | \(brand.rawValue) | "
+                                + "\(Int(importedImage.size.width))x\(Int(importedImage.size.height))"
+                        )
+                    }
+                } catch {
+                    print(
+                        "WATERMARK_FIXTURE_RESULT: FAIL | \(brand.rawValue) | "
+                            + error.localizedDescription
+                    )
+                }
+            }
+            useCustomCameraWatermarks = true
+        }
+        if arguments.contains("--disable-camera-watermarks") {
+            useCustomCameraWatermarks = false
+        }
         let fixturePath = arguments
             .first(where: { $0.hasPrefix("--fixture-path=") })
             .map { String($0.dropFirst("--fixture-path=".count)) }
@@ -1948,6 +2258,28 @@ struct ContentView: View {
             placeName: "示例地点"
         )
         let debugMetadata = fixtureData.map(PhotoMetadata.read(from:)) ?? fallbackMetadata
+        let debugDevice = debugMetadata.captureDevice
+        print(
+            "DEVICE_BADGE_RESULT: \(debugDevice.category.rawValue) | "
+                + "\(debugDevice.displayName ?? "nil") | \(debugDevice.systemImageName)"
+        )
+        if arguments.contains("--verify-fixture-provider"),
+           let fixturePath,
+           let provider = NSItemProvider(contentsOf: URL(fileURLWithPath: fixturePath)) {
+            do {
+                let loadedPhoto = try await PhotoAssetLoader.load(
+                    PhotoPickerSelection(itemProvider: provider),
+                    includeLiveResource: false
+                )
+                let providerDevice = loadedPhoto.metadata.captureDevice
+                print(
+                    "DEVICE_PROVIDER_RESULT: \(providerDevice.category.rawValue) | "
+                        + "\(providerDevice.displayName ?? "nil") | \(providerDevice.systemImageName)"
+                )
+            } catch {
+                print("DEVICE_PROVIDER_RESULT: FAIL | \(error.localizedDescription)")
+            }
+        }
         let semantic = fixtureData == nil ? PhotoSemantic.generic : await PhotoContentAnalyzer.analyze(data)
         print("VISION_RESULT: \(semantic.summary) | \(semantic.classificationLabels.joined(separator: ", "))")
         let debugImages = mode == .journal && fixtureData == nil
@@ -2036,6 +2368,7 @@ struct ContentView: View {
         }
         presentLivePhotoHintIfNeeded()
         if arguments.contains("--settings") { settingsPresented = true }
+        if arguments.contains("--mode-picker") { modeSelectionPresented = true }
         if arguments.contains("--export-center") { exportCenterPresented = true }
         if mode == .privacyMosaic, arguments.contains("--privacy-paint") {
             isPrivacyPainting = true
@@ -2238,37 +2571,148 @@ struct ContentView: View {
 #endif
 }
 
+private struct CreationModeSelectionView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    let selectedMode: CreationMode
+    let onSelect: (CreationMode) -> Void
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("选择模式")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                    Text("保留当前照片，直接切换创作方式")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 12)
+
+                Button(action: dismiss.callAsFunction) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .frame(width: 42, height: 42)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(LiquidPressButtonStyle())
+                .liquidGlass(in: Circle(), interactive: true, variant: .clear)
+                .accessibilityLabel("关闭模式选择")
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 14)
+
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(CreationMode.allCases) { item in
+                        modeCard(item)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+            }
+            .scrollIndicators(.hidden)
+        }
+        .background {
+            ZStack {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.88)
+
+                Color(uiColor: .systemBackground)
+                    .opacity(colorScheme == .dark ? 0.12 : 0.06)
+            }
+            .ignoresSafeArea()
+        }
+    }
+
+    private func modeCard(_ item: CreationMode) -> some View {
+        let isSelected = item == selectedMode
+        return Button {
+            onSelect(item)
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: item.symbol)
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 42, height: 42)
+
+                    Spacer(minLength: 8)
+
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 19, weight: .semibold))
+                            .foregroundStyle(.primary)
+                    }
+                }
+
+                Text(item.title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+
+                Text(item.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 132, alignment: .topLeading)
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
+        .buttonStyle(LiquidPressButtonStyle())
+        .background {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(item.accent.opacity(0.13))
+            }
+        }
+        .liquidGlass(
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+            interactive: true,
+            variant: .clear
+        )
+        .overlay {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(item.accent.opacity(0.88), lineWidth: 1.4)
+            }
+        }
+        .accessibilityLabel("\(item.title)\(isSelected ? "，当前模式" : "")")
+        .accessibilityHint("保留当前照片并切换到\(item.title)")
+    }
+}
+
 private struct ModeGlyph: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let mode: CreationMode
-    @State private var assembled = false
 
     var body: some View {
         ZStack {
             Circle()
                 .fill(mode.accent.opacity(0.72))
                 .frame(width: 66, height: 66)
-                .offset(y: assembled ? -16 : 0)
+                .offset(y: -16)
             Circle()
                 .fill(.white.opacity(0.30))
                 .frame(width: 66, height: 66)
             Circle()
                 .fill(.black.opacity(0.46))
                 .frame(width: 66, height: 66)
-                .offset(y: assembled ? 16 : 0)
+                .offset(y: 16)
         }
-        .scaleEffect(assembled ? 1 : 1.7)
-        .offset(x: assembled ? 0 : 65, y: assembled ? 0 : 55)
-        .opacity(assembled ? 1 : 0.25)
         .shadow(color: .black.opacity(0.12), radius: 12, y: 7)
-        .onAppear {
-            if reduceMotion {
-                assembled = true
-            } else {
-                withAnimation(.spring(response: 0.95, dampingFraction: 0.78)) {
-                    assembled = true
-                }
-            }
+        .transaction { transaction in
+            transaction.animation = nil
         }
     }
 }

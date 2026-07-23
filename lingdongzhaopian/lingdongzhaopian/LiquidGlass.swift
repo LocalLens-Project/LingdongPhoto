@@ -85,6 +85,7 @@ struct LiquidCircleButton: View {
         case "arrow.down": "保存照片"
         case "checkmark": "保存成功"
         case "gearshape": "设置"
+        case "square.grid.2x2": "选择创作模式"
         case "arrow.uturn.backward": "撤销上一步"
         default: symbol
         }
@@ -146,6 +147,60 @@ struct LivePhotoPlaybackHint: View {
         .liquidGlass(in: shape, interactive: true, variant: .clear)
         .accessibilityLabel("点击即可预览实况照片")
         .accessibilityHint("播放一次并关闭提示")
+    }
+}
+
+struct ModeSelectionHint: View {
+    let tint: Color
+    let foreground: Color
+    let action: () -> Void
+
+    var body: some View {
+        let shape = ModeSelectionHintShape()
+        Button(action: action) {
+            Text("模式选择已独立到这里")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(foreground)
+                .lineLimit(1)
+                .padding(.top, 7)
+                .frame(width: 188, height: 52)
+                .contentShape(shape)
+        }
+        .buttonStyle(LivePhotoHintButtonStyle())
+        .background {
+            shape.fill(tint.opacity(0.18))
+        }
+        .liquidGlass(in: shape, interactive: true, variant: .clear)
+        .accessibilityLabel("模式选择已独立到这里")
+        .accessibilityHint("打开创作模式选择")
+    }
+}
+
+private struct ModeSelectionHintShape: InsettableShape {
+    private var insetAmount: CGFloat = 0
+
+    func path(in rect: CGRect) -> Path {
+        let pointerHeight = max(4, 9 - insetAmount)
+        let pointerHalfWidth = max(4, 8 - insetAmount)
+        let bodyRect = CGRect(
+            x: rect.minX + insetAmount,
+            y: rect.minY + pointerHeight + insetAmount,
+            width: max(0, rect.width - insetAmount * 2),
+            height: max(0, rect.height - pointerHeight - insetAmount * 2)
+        )
+        let cornerRadius = min(18, bodyRect.height / 2)
+        var path = Path(roundedRect: bodyRect, cornerRadius: cornerRadius)
+        path.move(to: CGPoint(x: rect.midX - pointerHalfWidth, y: bodyRect.minY + 1))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.minY + insetAmount))
+        path.addLine(to: CGPoint(x: rect.midX + pointerHalfWidth, y: bodyRect.minY + 1))
+        path.closeSubpath()
+        return path
+    }
+
+    func inset(by amount: CGFloat) -> ModeSelectionHintShape {
+        var copy = self
+        copy.insetAmount += amount
+        return copy
     }
 }
 

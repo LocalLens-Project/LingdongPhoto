@@ -255,18 +255,21 @@ enum PalettePanelGeometry {
     static let widthScale: CGFloat = 0.90
     static let compactHeightScale: CGFloat = 0.19
     static let regularHeightScale: CGFloat = 0.38
+    static let tallPortraitBaselineAspect: CGFloat = 3.0 / 4.0
     static let verticalInset: CGFloat = 15
     static let hitSlop: CGFloat = 8
 
     static func size(in canvasSize: CGSize, layout: PaletteLayoutMode) -> CGSize {
-        // Portrait artwork keeps a stable panel width while only the long edge grows.
-        // Landscape/original-wide artwork caps the panel by its short edge so the
-        // palette never stretches into an oversized horizontal strip.
+        // Tall portrait artwork keeps the same palette footprint as 3:4 so formats
+        // such as 9:16 do not let the panel dominate the longer canvas.
         let widthReference = canvasSize.width <= canvasSize.height
             ? canvasSize.width
             : min(canvasSize.width, canvasSize.height * 1.35)
         let panelWidth = widthReference * widthScale
-        let proposedHeight = canvasSize.height * (layout == .compact ? compactHeightScale : regularHeightScale)
+        let heightReference = canvasSize.width <= canvasSize.height
+            ? min(canvasSize.height, widthReference / tallPortraitBaselineAspect)
+            : canvasSize.height
+        let proposedHeight = heightReference * (layout == .compact ? compactHeightScale : regularHeightScale)
         let minimumHeight = panelWidth * (layout == .compact ? 0.20 : 0.50)
         let maximumHeight = panelWidth * (layout == .compact ? 0.34 : 0.82)
         return CGSize(
