@@ -46,7 +46,7 @@ struct SettingsView: View {
                         privacyOptions
 
                         VStack(spacing: 10) {
-                            Text("版本 1.0.1 (Build 1017)")
+                            Text("版本 1.0.1 (Build 1022)")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
 

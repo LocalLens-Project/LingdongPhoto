@@ -429,7 +429,6 @@ enum ArtworkExporter {
 
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
-        generator.dynamicRangePolicy = .forceSDR
         generator.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 60)
         generator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 60)
         var frameGenerators: [Int: (generator: AVAssetImageGenerator, duration: CMTime)] = [:]
@@ -441,7 +440,6 @@ enum ArtworkExporter {
                 let additionalDuration = try await additionalAsset.load(.duration)
                 let additionalGenerator = AVAssetImageGenerator(asset: additionalAsset)
                 additionalGenerator.appliesPreferredTrackTransform = true
-                additionalGenerator.dynamicRangePolicy = .forceSDR
                 additionalGenerator.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 60)
                 additionalGenerator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 60)
                 frameGenerators[index] = (additionalGenerator, additionalDuration)

@@ -126,6 +126,7 @@ struct ContentView: View {
     @State private var revealTask: Task<Void, Never>?
     @State private var toastTask: Task<Void, Never>?
     @State private var livePlaybackTask: Task<Void, Never>?
+    @State private var livePlaybackSessionID: UUID?
     @State private var livePhotoHintTask: Task<Void, Never>?
     @State private var modeSelectionHintTask: Task<Void, Never>?
     @State private var livePreviewFrames: [Int: UIImage] = [:]
@@ -1993,29 +1994,41 @@ struct ContentView: View {
         }
 
         stopLivePhotoPlayback()
+        let sessionID = UUID()
+        livePlaybackSessionID = sessionID
         isLivePhotoPlaying = true
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         livePlaybackTask = Task {
+            var failureDescription: String?
             do {
                 try await LivePhotoPreview.playOnce(sourceVideoURLs: sourceURLs) { frames in
+                    guard livePlaybackSessionID == sessionID else { return }
                     livePreviewFrames = frames
                 }
-            } catch is CancellationError {
-                // Cancellation is expected when switching modes, selecting a new
-                // photo, saving, or leaving the editor.
             } catch {
-                presentSaveError(error.localizedDescription, title: "无法播放实况照片")
+                if !Task.isCancelled {
+                    failureDescription = error.localizedDescription
+                }
             }
 
+            // A cancelled older task must never clear the frames or enabled
+            // state belonging to a newer playback attempt.
+            guard livePlaybackSessionID == sessionID else { return }
+            livePlaybackSessionID = nil
             livePreviewFrames = [:]
             isLivePhotoPlaying = false
             livePlaybackTask = nil
+            if let failureDescription {
+                presentSaveError(failureDescription, title: "无法播放实况照片")
+            }
         }
     }
 
     private func stopLivePhotoPlayback() {
-        livePlaybackTask?.cancel()
+        livePlaybackSessionID = nil
+        let task = livePlaybackTask
         livePlaybackTask = nil
+        task?.cancel()
         livePreviewFrames = [:]
         isLivePhotoPlaying = false
     }

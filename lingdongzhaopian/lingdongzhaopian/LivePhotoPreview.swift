@@ -19,10 +19,24 @@ enum LivePhotoPreviewError: LocalizedError {
 }
 
 enum LivePhotoPreview {
-    private struct Source {
+    private final class GeneratorBox: @unchecked Sendable {
+        nonisolated(unsafe) let generator: AVAssetImageGenerator
+
+        init(_ generator: AVAssetImageGenerator) {
+            self.generator = generator
+        }
+    }
+
+    private struct Source: @unchecked Sendable {
         let index: Int
-        let generator: AVAssetImageGenerator
+        let asset: AVURLAsset
+        let generatorBox: GeneratorBox
         let duration: CMTime
+        let nominalFrameRate: Float
+    }
+
+    private enum FrameLoadingError: Error {
+        case timedOut
     }
 
     /// Extracts the original paired video one frame at a time and feeds those
@@ -40,62 +54,151 @@ enum LivePhotoPreview {
         for (index, url) in sourceVideoURLs.sorted(by: { $0.key < $1.key }) {
             let asset = AVURLAsset(url: url)
             let duration = try await asset.load(.duration)
-            guard duration.isValid, duration.seconds > 0 else { continue }
+            let videoTrack = try await asset.loadTracks(withMediaType: .video).first
+            guard duration.isValid,
+                  duration.seconds > 0,
+                  let videoTrack else { continue }
             let generator = AVAssetImageGenerator(asset: asset)
             generator.appliesPreferredTrackTransform = true
-            generator.dynamicRangePolicy = .forceSDR
             generator.maximumSize = CGSize(width: 1_000, height: 1_000)
             generator.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 30)
             generator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 30)
-            sources.append(Source(index: index, generator: generator, duration: duration))
+            sources.append(
+                Source(
+                    index: index,
+                    asset: asset,
+                    generatorBox: GeneratorBox(generator),
+                    duration: duration,
+                    nominalFrameRate: try await videoTrack.load(.nominalFrameRate)
+                )
+            )
         }
 
         guard let primary = sources.first(where: { $0.index == primaryEntry.key }) else {
             throw LivePhotoPreviewError.missingVideo
         }
 
-        let primaryAsset = AVURLAsset(url: primaryEntry.value)
-        let nominalRate = try await primaryAsset.loadTracks(withMediaType: .video).first?
-            .load(.nominalFrameRate) ?? 15
-        let frameRate = min(max(Double(nominalRate), 12), 18)
+        let frameRate = min(max(Double(primary.nominalFrameRate), 12), 18)
         let frameInterval = 1.0 / frameRate
-        let playbackStartedAt = Date.now
-        let audioPlayer = AVPlayer(url: primaryEntry.value)
-        audioPlayer.play()
-        defer { audioPlayer.pause() }
+        var currentFrames: [Int: UIImage] = [:]
+
+        // The first request starts AVFoundation's decoder and is noticeably
+        // slower than subsequent requests on some devices. Prepare it before
+        // starting the playback clock so decoder startup never consumes most
+        // of a short Live Photo.
+        for source in sources {
+            let warmupSecond = min(frameInterval, max(0, source.duration.seconds / 4))
+            if let image = try await loadFrame(
+                from: source,
+                at: warmupSecond,
+                attempts: source.index == primary.index ? 3 : 2,
+                timeout: .seconds(2)
+            ) {
+                currentFrames[source.index] = image
+            }
+        }
+
+        guard currentFrames[primary.index] != nil else {
+            throw LivePhotoPreviewError.unreadableFrame
+        }
+        onFrame(currentFrames)
+
+        let audioPlayer = AVPlayer(playerItem: AVPlayerItem(asset: primary.asset))
+        let playbackStartedAt = ContinuousClock.now
+        audioPlayer.playImmediately(atRate: 1)
+        defer {
+            audioPlayer.pause()
+            for source in sources {
+                source.generatorBox.generator.cancelAllCGImageGeneration()
+            }
+        }
 
         while true {
             try Task.checkCancellation()
-            // Drive the requested source time from the wall clock. Image
-            // extraction can occasionally take longer than one frame interval;
-            // skipping ahead keeps a one-shot preview from running in slow
-            // motion on older devices.
-            let seconds = Date.now.timeIntervalSince(playbackStartedAt)
+            let elapsed = playbackStartedAt.duration(to: .now)
+            let seconds = Double(elapsed.components.seconds)
+                + Double(elapsed.components.attoseconds) / 1_000_000_000_000_000_000
             guard seconds < primary.duration.seconds else { break }
-            var frames: [Int: UIImage] = [:]
 
             for source in sources {
                 let lastReadableSecond = max(0, source.duration.seconds - 1.0 / 600.0)
-                let requestedTime = CMTime(
-                    seconds: min(seconds, lastReadableSecond),
-                    preferredTimescale: 600
-                )
-                if let (cgImage, _) = try? await source.generator.image(at: requestedTime) {
-                    frames[source.index] = UIImage(cgImage: cgImage)
+                if let image = try await loadFrame(
+                    from: source,
+                    at: min(seconds, lastReadableSecond),
+                    attempts: 1,
+                    timeout: .milliseconds(450)
+                ) {
+                    currentFrames[source.index] = image
                 }
             }
 
-            guard frames[primary.index] != nil else {
-                throw LivePhotoPreviewError.unreadableFrame
-            }
-            onFrame(frames)
+            // A sporadic missed frame is not a broken Live Photo. Keep the last
+            // successfully decoded frame and continue until the next request.
+            onFrame(currentFrames)
 
-            let actualElapsed = Date.now.timeIntervalSince(playbackStartedAt)
+            let actualDuration = playbackStartedAt.duration(to: .now)
+            let actualElapsed = Double(actualDuration.components.seconds)
+                + Double(actualDuration.components.attoseconds) / 1_000_000_000_000_000_000
             let nextFrameTime = (floor(seconds / frameInterval) + 1) * frameInterval
             let delay = nextFrameTime - actualElapsed
             if delay > 0 {
                 try await Task.sleep(for: .seconds(delay))
             }
+        }
+    }
+
+    private static func loadFrame(
+        from source: Source,
+        at seconds: Double,
+        attempts: Int,
+        timeout: Duration
+    ) async throws -> UIImage? {
+        let requestedTime = CMTime(
+            seconds: max(0, min(seconds, source.duration.seconds)),
+            preferredTimescale: 600
+        )
+
+        for attempt in 0..<attempts {
+            try Task.checkCancellation()
+            do {
+                return try await loadFrame(
+                    using: source.generatorBox,
+                    at: requestedTime,
+                    timeout: timeout
+                )
+            } catch {
+                try Task.checkCancellation()
+                guard attempt + 1 < attempts else { return nil }
+                try await Task.sleep(for: .milliseconds(90 * (attempt + 1)))
+            }
+        }
+        return nil
+    }
+
+    private static func loadFrame(
+        using generatorBox: GeneratorBox,
+        at requestedTime: CMTime,
+        timeout: Duration
+    ) async throws -> UIImage {
+        try await withThrowingTaskGroup(of: UIImage.self) { group in
+            group.addTask {
+                try await withTaskCancellationHandler {
+                    let (cgImage, _) = try await generatorBox.generator.image(at: requestedTime)
+                    return UIImage(cgImage: cgImage)
+                } onCancel: {
+                    generatorBox.generator.cancelAllCGImageGeneration()
+                }
+            }
+            group.addTask {
+                try await Task.sleep(for: timeout)
+                throw FrameLoadingError.timedOut
+            }
+
+            defer { group.cancelAll() }
+            guard let image = try await group.next() else {
+                throw FrameLoadingError.timedOut
+            }
+            return image
         }
     }
 }

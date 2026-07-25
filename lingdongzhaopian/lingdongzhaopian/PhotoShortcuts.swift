@@ -12,7 +12,7 @@ struct ExtractPhotoPaletteIntent: AppIntent {
     static let description = IntentDescription("在本机提取照片的六种代表色，并返回 HEX 色值。")
     static let openAppWhenRun = false
 
-    @Parameter(title: "照片", supportedContentTypes: [.image])
+    @Parameter(title: "照片")
     var photo: IntentFile
 
     func perform() async throws -> some IntentResult & ReturnsValue<[String]> & ProvidesDialog {
@@ -34,7 +34,7 @@ struct RemovePhotoMetadataIntent: AppIntent {
     static let description = IntentDescription("移除照片中的 GPS、设备、镜头与原始拍摄时间，返回一张净化后的 JPEG。")
     static let openAppWhenRun = false
 
-    @Parameter(title: "照片", supportedContentTypes: [.image])
+    @Parameter(title: "照片")
     var photo: IntentFile
 
     func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> & ProvidesDialog {
@@ -62,7 +62,7 @@ struct GenerateSpectrumWallpaperIntent: AppIntent {
     static let description = IntentDescription("根据照片主色在本机生成一张 1290 × 2796 的渐变壁纸。")
     static let openAppWhenRun = false
 
-    @Parameter(title: "照片", supportedContentTypes: [.image])
+    @Parameter(title: "照片")
     var photo: IntentFile
 
     func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> & ProvidesDialog {
