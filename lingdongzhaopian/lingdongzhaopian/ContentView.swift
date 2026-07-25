@@ -49,6 +49,7 @@ struct ContentView: View {
     @AppStorage("gentleBackground") private var gentleBackground = true
     @AppStorage("privacyMosaicStrength") private var privacyMosaicStrength = 0.62
     @AppStorage("showAppTitle") private var showAppTitle = true
+    @AppStorage("showMissingCaptureTime") private var showMissingCaptureTime = true
     @AppStorage("artworkTemplateStyle") private var templateStyleRaw = ArtworkTemplateStyle.classic.rawValue
     @AppStorage("journalLayout") private var journalLayoutRaw = JournalLayoutMode.automatic.rawValue
     @AppStorage("exportFormat") private var exportFormatRaw = ArtworkExportFormat.jpeg.rawValue
@@ -714,6 +715,7 @@ struct ContentView: View {
                 imageScale: imageScale,
                 imageOffset: imageOffset,
                 metadata: primaryMetadata,
+                showMissingCaptureTime: showMissingCaptureTime,
                 copy: artworkCopy,
                 fontStyle: fontStyle,
                 templateStyle: templateStyle,
@@ -1736,8 +1738,11 @@ struct ContentView: View {
                         metadata: metadata,
                         originalImageData: originalData,
                         metadataPolicy: metadataPolicy,
-                        renderFrame: { frames in
-                            renderArtwork(replacingImages: frames, pixelWidth: pixelWidth)
+                        renderFrame: { frames, videoPixelWidth in
+                            renderArtwork(
+                                replacingImages: frames,
+                                pixelWidth: videoPixelWidth
+                            )
                         },
                         progress: { progress in
                             toastMessage = "正在生成 Live Photo… \(Int((progress * 100).rounded()))%"
@@ -2071,11 +2076,12 @@ struct ContentView: View {
                 gentleBackground: gentleBackground,
                 imageScale: imageScale,
                 imageOffset: imageOffset,
-                    metadata: primaryMetadata,
-                    copy: artworkCopy,
-                    fontStyle: fontStyle,
-                    templateStyle: templateStyle,
-                    textScale: textScale,
+                metadata: primaryMetadata,
+                showMissingCaptureTime: showMissingCaptureTime,
+                copy: artworkCopy,
+                fontStyle: fontStyle,
+                templateStyle: templateStyle,
+                textScale: textScale,
                 bubbleScale: bubbleScale,
                 paletteOffset: paletteOffset,
                 paletteLayout: paletteLayout,

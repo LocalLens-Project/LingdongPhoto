@@ -21,6 +21,7 @@ struct SettingsView: View {
     @AppStorage("paletteLayout") private var paletteLayoutRaw = PaletteLayoutMode.floating.rawValue
     @AppStorage("applyLiquidGlassOnExport") private var applyLiquidGlassOnExport = true
     @AppStorage("showAppTitle") private var showAppTitle = true
+    @AppStorage("showMissingCaptureTime") private var showMissingCaptureTime = true
     @AppStorage("showPalettePercentages") private var showPalettePercentages = true
     @State private var cameraWatermarkManagerPresented = false
 
@@ -46,7 +47,7 @@ struct SettingsView: View {
                         privacyOptions
 
                         VStack(spacing: 10) {
-                            Text("版本 1.0.1 (Build 1022)")
+                            Text("版本 1.0.1 (Build 1024)")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
 
@@ -190,6 +191,13 @@ struct SettingsView: View {
                     title: "总是显示意境文案",
                     subtitle: "即使图片存在位置信息，也优先显示根据画面内容与色彩生成的意境文案。",
                     value: $showMoodCopy
+                )
+                sectionDivider
+                toggleRow(
+                    symbol: "calendar",
+                    title: "显示缺失拍摄时间提示",
+                    subtitle: "关闭后，照片没有日期信息时不显示“拍摄时间未记录”。",
+                    value: $showMissingCaptureTime
                 )
             }
         }

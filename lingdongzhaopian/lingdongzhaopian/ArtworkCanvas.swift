@@ -19,6 +19,7 @@ struct ArtworkCanvas: View {
     let imageScale: CGFloat
     let imageOffset: CGSize
     var metadata: PhotoMetadata = .empty
+    var showMissingCaptureTime = true
     var copy: ArtworkCopy = ArtworkCopy()
     var fontStyle: ArtworkFontStyle = .rounded
     var templateStyle: ArtworkTemplateStyle = .classic
@@ -146,8 +147,10 @@ struct ArtworkCanvas: View {
                             .font(fontStyle.font(size: max(10, size.width * 0.040) * textScale, weight: .semibold))
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
-                        Text(metadata.captureTimeText)
-                            .font(.system(size: max(7, size.width * 0.020), weight: .medium))
+                        if metadata.captureDate != nil || showMissingCaptureTime {
+                            Text(metadata.captureTimeText)
+                                .font(.system(size: max(7, size.width * 0.020), weight: .medium))
+                        }
                     }
                     .foregroundStyle(.white.opacity(0.96))
                     .shadow(color: .black.opacity(0.34), radius: 9, y: 3)
@@ -166,8 +169,10 @@ struct ArtworkCanvas: View {
                         .font(fontStyle.font(size: max(8, size.width * 0.026) * textScale, weight: .semibold))
                         .lineLimit(2)
                         .multilineTextAlignment(.center)
-                    Text(metadata.captureTimeText)
-                        .font(.system(size: max(6, size.width * 0.017), weight: .medium))
+                    if metadata.captureDate != nil || showMissingCaptureTime {
+                        Text(metadata.captureTimeText)
+                            .font(.system(size: max(6, size.width * 0.017), weight: .medium))
+                    }
                 }
                 .foregroundStyle(foreground.color)
             }

@@ -129,7 +129,7 @@ enum ArtworkExporter {
         metadata: PhotoMetadata,
         originalImageData: Data?,
         metadataPolicy: ArtworkMetadataPolicy = .preserve,
-        renderFrame: @escaping @MainActor ([Int: UIImage]) -> UIImage?,
+        renderFrame: @escaping @MainActor ([Int: UIImage], CGFloat) -> UIImage?,
         progress: @escaping @MainActor (Double) -> Void
     ) async throws {
         guard let primarySource = sourceVideoURLs.sorted(by: { $0.key < $1.key }).first else {
@@ -147,16 +147,18 @@ enum ArtworkExporter {
         let pairedURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("lingdong-export-\(identifier)")
             .appendingPathExtension("mov")
+        let videoOutputSize = try livePhotoVideoOutputSize(for: renderedStill)
 
         defer { try? FileManager.default.removeItem(at: pairedURL) }
         try await makePairedVideo(
             sourceURL: primarySource.value,
             sourceVideoURLs: sourceVideoURLs,
             destinationURL: pairedURL,
-            outputSize: renderedStill.cgImage.map { CGSize(width: $0.width, height: $0.height) }
-                ?? CGSize(width: 1080, height: 1440),
+            outputSize: videoOutputSize,
             assetIdentifier: identifier,
-            renderFrame: renderFrame,
+            renderFrame: { frames in
+                renderFrame(frames, videoOutputSize.width)
+            },
             progress: progress
         )
         try await saveToPhotoLibrary(
@@ -165,6 +167,28 @@ enum ArtworkExporter {
             metadata: metadata,
             format: .jpeg,
             metadataPolicy: metadataPolicy
+        )
+    }
+
+    private static func livePhotoVideoOutputSize(for renderedStill: UIImage) throws -> CGSize {
+        guard let image = renderedStill.cgImage else {
+            throw ArtworkExportError.encodingFailed
+        }
+
+        let stillWidth = CGFloat(image.width)
+        let stillHeight = CGFloat(image.height)
+        guard stillWidth > 0, stillHeight > 0 else {
+            throw ArtworkExportError.encodingFailed
+        }
+
+        // A Live Photo's high-resolution still and paired movie are allowed to
+        // use different dimensions. Keep the requested original resolution for
+        // the still, while limiting H.264 motion frames to the same 2K/4K
+        // envelope already proven reliable by the app's 2K export option.
+        let scale = min(1, 2_160 / stillWidth, 3_840 / stillHeight)
+        return CGSize(
+            width: max(2, floor(stillWidth * scale)),
+            height: max(2, floor(stillHeight * scale))
         )
     }
 
@@ -310,17 +334,27 @@ enum ArtworkExporter {
         let writer = try AVAssetWriter(outputURL: destinationURL, fileType: .mov)
         let width = max(2, Int(outputSize.width.rounded()) / 2 * 2)
         let height = max(2, Int(outputSize.height.rounded()) / 2 * 2)
+        let videoOutputSettings: [String: Any] = [
+            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoWidthKey: width,
+            AVVideoHeightKey: height,
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: max(3_500_000, width * height * 3),
+                AVVideoMaxKeyFrameIntervalKey: Int(framesPerSecond),
+                AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel
+            ]
+        ]
+        guard writer.canApply(
+            outputSettings: videoOutputSettings,
+            forMediaType: .video
+        ) else {
+            throw ArtworkExportError.videoWriterFailed(
+                "当前设备无法编码所需尺寸的动态视频。"
+            )
+        }
         let videoInput = AVAssetWriterInput(
             mediaType: .video,
-            outputSettings: [
-                AVVideoCodecKey: AVVideoCodecType.h264,
-                AVVideoWidthKey: width,
-                AVVideoHeightKey: height,
-                AVVideoCompressionPropertiesKey: [
-                    AVVideoAverageBitRateKey: max(3_500_000, width * height * 3),
-                    AVVideoMaxKeyFrameIntervalKey: Int(framesPerSecond)
-                ]
-            ]
+            outputSettings: videoOutputSettings
         )
         videoInput.expectsMediaDataInRealTime = false
         let pixelAdaptor = AVAssetWriterInputPixelBufferAdaptor(

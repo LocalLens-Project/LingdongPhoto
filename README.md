@@ -6,6 +6,8 @@
 > **App Store 正式版：** [下载“灵动照片”1.0.0](https://apps.apple.com/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
 >
 > **源码版本说明：** App Store 当前正式版本为 1.0.0；本仓库与 TestFlight 已进入 1.0.1 阶段。仓库中的最新代码可能包含尚未随 App Store 正式版本发布的功能与修复。
+>
+> **审核状态：** iOS 1.0.1（Build 1024）已提交 App Store，目前正在等待 Apple 审核；审核通过并发布后将同步更新本文件中的版本信息。
 
 > **TestFlight 公共测试：** [立即安装并体验“灵动照片”](https://testflight.apple.com/join/p3gtANmj)
 
@@ -26,14 +28,14 @@
 | :---: | :---: | :---: | :---: |
 | 根据画面生成文案并保留拍摄时间 | 六种代表色、色值与整图占比 | 照片、文案和真实 EXIF 组合排版 | 手动涂抹或本机智能识别并遮挡隐私内容 |
 
-## TestFlight 1.0.1（1017）界面预览
+## TestFlight 1.0.1（1024）界面预览
 
-以下均为 **TestFlight 1.0.1（1017）版本的应用截图**。
+以下均为 **TestFlight 1.0.1（1024）版本的应用截图**。
 
 <p align="center">
-  <img src="./灵动卡片101.png?v=1017" alt="TestFlight 1.0.1（1017）灵动卡片" width="30%">
-  <img src="./摄影印章101.png?v=1017" alt="TestFlight 1.0.1（1017）摄影印章" width="30%">
-  <img src="./隐私马赛克101.png?v=1017" alt="TestFlight 1.0.1（1017）隐私马赛克" width="30%">
+  <img src="./灵动卡片101.png?v=1024" alt="TestFlight 1.0.1（1024）灵动卡片" width="30%">
+  <img src="./摄影印章101.png?v=1024" alt="TestFlight 1.0.1（1024）摄影印章" width="30%">
+  <img src="./隐私马赛克101.png?v=1024" alt="TestFlight 1.0.1（1024）隐私马赛克" width="30%">
 </p>
 
 | 灵动卡片 | 摄影印章 | 隐私马赛克 |
@@ -41,9 +43,9 @@
 | 主界面提供独立模式入口，文字区域会根据照片色彩生成协调配色 | 将标题、设备、镜头与真实拍摄参数分层呈现 | 本机智能识别人脸与敏感文字，并支持逐块开关、手动涂抹、擦除和撤销 |
 
 <p align="center">
-  <img src="./气泡印章101-1.png?v=1017" alt="TestFlight 1.0.1（1017）气泡印章自定义彩色相机图标" width="30%">
-  <img src="./气泡印章101-2.png?v=1017" alt="TestFlight 1.0.1（1017）气泡印章自定义单色相机图标" width="30%">
-  <img src="./气泡印章101-3.png?v=1017" alt="TestFlight 1.0.1（1017）气泡印章相机型号与拍摄信息" width="30%">
+  <img src="./气泡印章101-1.png?v=1024" alt="TestFlight 1.0.1（1024）气泡印章自定义彩色相机图标" width="30%">
+  <img src="./气泡印章101-2.png?v=1024" alt="TestFlight 1.0.1（1024）气泡印章自定义单色相机图标" width="30%">
+  <img src="./气泡印章101-3.png?v=1024" alt="TestFlight 1.0.1（1024）气泡印章相机型号与拍摄信息" width="30%">
 </p>
 
 | 自定义彩色相机图标 | 自定义单色相机图标 | 相机型号与拍摄信息 |
