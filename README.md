@@ -3,9 +3,9 @@
 一款面向 iOS 与 Android 的本地照片创作工具。iOS 版本使用 SwiftUI，Android 版本使用 Kotlin 与 Jetpack Compose；两个版本都可以从照片中提取感知色彩、识别画面内容、读取真实拍摄信息，并生成卡片、色盘、手帐、印章、壁纸与隐私遮挡作品。iOS 可以从系统照片操作列表或快捷指令进入处理流程，Android 可以通过系统照片选择器或分享菜单导入单张及多张照片。
 
 > [!IMPORTANT]
-> **App Store 正式版状态：** 1.0.0 正式版当前已提交审核，正在等待 Apple 审核结果。审核通过并正式上架后，本 README 将同步更新 App Store 下载入口与发布信息。
+> **App Store 正式版：** [下载“灵动照片”1.0.0](https://apps.apple.com/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
 >
-> **源码版本说明：** 当前仓库已进入 1.0.1 开发阶段；App Store 正在审核的版本仍为 1.0.0。仓库中的最新代码不代表相关功能已经通过审核或正式上架。
+> **源码版本说明：** App Store 当前正式版本为 1.0.0；本仓库与 TestFlight 已进入 1.0.1 阶段。仓库中的最新代码可能包含尚未随 App Store 正式版本发布的功能与修复。
 
 > **TestFlight 公共测试：** [立即安装并体验“灵动照片”](https://testflight.apple.com/join/p3gtANmj)
 
@@ -199,7 +199,7 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 ## iOS 液态玻璃
 
 - iOS 26 使用系统原生 Liquid Glass API
-- iOS 18 自动切换为兼容磨砂材质
+- iOS 17 至 iOS 18 自动切换为兼容磨砂材质
 - 按钮支持按压缩放、回弹和触觉反馈
 - 设置页、编辑弹窗、色盘面板和导出作品使用统一玻璃语言
 - 设置面板、导出中心、模式选择面板、系统选图器和照片操作扩展会跟随系统深色或浅色模式；主编辑界面继续保留既有视觉设计
@@ -246,7 +246,7 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 
 ### iOS
 
-- iOS 18.0+
+- iOS 17.0+
 - Xcode 26.0+（编译 iOS 26 原生 Liquid Glass 代码需要对应 SDK）
 - Swift 5 语言模式
 - iPhone；当前界面以竖屏体验为主
