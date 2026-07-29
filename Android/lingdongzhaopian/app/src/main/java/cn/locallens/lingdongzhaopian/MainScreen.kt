@@ -1,6 +1,8 @@
 package cn.locallens.lingdongzhaopian
 
+import android.content.res.Configuration
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,6 +18,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -44,13 +47,16 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MotionPhotosOff
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -65,6 +71,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -84,6 +91,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -97,6 +105,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -105,13 +114,35 @@ fun MainScreen(
     state: AppUiState,
     viewModel: LingdongViewModel,
     onExport: (androidx.compose.ui.geometry.Rect) -> Unit,
+    onExportTicketCode: (TicketCodeStyle, ExportDestination) -> Unit = { _, _ -> },
+    onTicketLandscapeChanged: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     var settingsShown by remember { mutableStateOf(false) }
     var exportShown by remember { mutableStateOf(false) }
     var copyEditorShown by remember { mutableStateOf(false) }
+    var modeSelectionShown by remember { mutableStateOf(false) }
+    var ticketStudioShown by remember { mutableStateOf(false) }
+    var ticketMessagePromptShown by remember { mutableStateOf(false) }
+    var ticketMessageEditorShown by remember { mutableStateOf(false) }
+    var scannerShown by remember { mutableStateOf(false) }
     var replacementIndex by remember { mutableStateOf<Int?>(null) }
     var canvasBounds by remember { mutableStateOf(androidx.compose.ui.geometry.Rect.Zero) }
+    var skippedTicketMessageForCurrentPhoto by remember(state.ticketSessionID) { mutableStateOf(false) }
+
+    fun requestExport() {
+        val current = viewModel.state.value
+        if (
+            current.mode == CreationMode.TravelTicket &&
+            TicketPayload.normalizedMessage(current.ticketMessage) == null &&
+            !skippedTicketMessageForCurrentPhoto
+        ) {
+            ticketMessagePromptShown = true
+        } else {
+            exportShown = true
+        }
+    }
 
     val singlePicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let { viewModel.loadUris(context, listOf(it), replaceIndex = replacementIndex) }
@@ -128,27 +159,67 @@ fun MainScreen(
         }
     }
 
+    LaunchedEffect(state.mode, state.photos.isEmpty()) {
+        if (state.mode != CreationMode.TravelTicket || state.photos.isEmpty()) {
+            onTicketLandscapeChanged(false)
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
-        AmbientBackground(if (!state.noticeAcknowledged || state.photos.isEmpty()) RGBColor.intro else state.palette)
+        // A ticket export must keep transparent pixels outside its silhouette, and the exporter
+        // records the whole view tree, so the ambient wash steps aside for that one frame.
+        val hidesAmbient = state.isExporting && state.mode == CreationMode.TravelTicket
+        if (!hidesAmbient) {
+            AmbientBackground(if (!state.noticeAcknowledged || state.photos.isEmpty()) RGBColor.intro else state.palette)
+        }
         if (state.noticeAcknowledged) {
             if (state.photos.isEmpty()) {
-                IntroScreen(state, viewModel, onPick = { openPicker() })
-            } else {
-                EditorScreen(
-                    state = state,
-                    viewModel = viewModel,
-                    onAdd = { openPicker(append = state.mode == CreationMode.Journal) },
-                    onSave = { exportShown = true },
-                    onSettings = { settingsShown = true },
-                    onEditCopy = { copyEditorShown = true },
-                    onCanvasBounds = { canvasBounds = it },
-                    onReplaceJournal = { index -> replacementIndex = index; singlePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                IntroScreen(
+                    state,
+                    viewModel,
+                    onPick = { openPicker() },
+                    onScanTicket = { scannerShown = true },
                 )
+            } else {
+                val showsLandscapeTicket = state.mode == CreationMode.TravelTicket &&
+                    configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+                if (showsLandscapeTicket) {
+                    LandscapeTicketEditor(
+                        state = state,
+                        viewModel = viewModel,
+                        onExitLandscape = { onTicketLandscapeChanged(false) },
+                        onAdd = { openPicker() },
+                        onSave = ::requestExport,
+                        onSettings = { settingsShown = true },
+                        onModeSelection = { modeSelectionShown = true },
+                        onEditCopy = { copyEditorShown = true },
+                        onOpenTicketStudio = { ticketStudioShown = true },
+                        onCanvasBounds = { canvasBounds = it },
+                    )
+                } else {
+                    EditorScreen(
+                        state = state,
+                        viewModel = viewModel,
+                        onAdd = { openPicker(append = state.mode == CreationMode.Journal) },
+                        onSave = ::requestExport,
+                        onSettings = { settingsShown = true },
+                        onModeSelection = { modeSelectionShown = true },
+                        onEnterTicketLandscape = { onTicketLandscapeChanged(true) },
+                        onEditCopy = { copyEditorShown = true },
+                        onOpenTicketStudio = { ticketStudioShown = true },
+                        onCanvasBounds = { canvasBounds = it },
+                        onReplaceJournal = { index -> replacementIndex = index; singlePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                    )
+                }
             }
         }
     }
 
-    if (!state.noticeAcknowledged) FreeNoticeDialog(viewModel::acknowledgeNotice)
+    if (!state.noticeAcknowledged) {
+        FreeNoticeDialog(viewModel::acknowledgeNotice)
+    } else if (!state.updateLog102Acknowledged) {
+        Version102UpdateDialog(viewModel::acknowledgeUpdateLog102)
+    }
 
     if (settingsShown) {
         val settingsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -161,13 +232,35 @@ fun MainScreen(
             Box(Modifier.fillMaxHeight(.94f).clip(RoundedCornerShape(topStart = 38.dp, topEnd = 38.dp))) {
                 SettingsScreen(
                     state,
-                    onMode = { viewModel.setMode(it); settingsShown = false },
                     onRatio = viewModel::setRatio,
                     onPreferences = viewModel::setPreferences,
                     onClose = { settingsShown = false },
                 )
             }
         }
+    }
+    if (modeSelectionShown) {
+        ModeSelectionSheet(
+            selectedMode = state.mode,
+            onSelect = { viewModel.setMode(it); modeSelectionShown = false },
+            onScanTicket = { modeSelectionShown = false; scannerShown = true },
+            onDismiss = { modeSelectionShown = false },
+        )
+    }
+    if (ticketStudioShown) {
+        TicketCodeStudioSheet(
+            state = state,
+            onPreferences = viewModel::setPreferences,
+            onTicketMessage = viewModel::updateTicketMessage,
+            onSaveCode = { style, destination ->
+                ticketStudioShown = false
+                onExportTicketCode(style, destination)
+            },
+            onDismiss = { ticketStudioShown = false },
+        )
+    }
+    if (scannerShown) {
+        TicketScannerDialog { scannerShown = false }
     }
     if (copyEditorShown) {
         CopyEditorDialog(
@@ -178,6 +271,45 @@ fun MainScreen(
             onTextScale = viewModel::setTextScale,
             onBubbleScale = viewModel::setBubbleScale,
             onDismiss = { copyEditorShown = false },
+        )
+    }
+    if (ticketMessagePromptShown) {
+        AlertDialog(
+            onDismissRequest = { ticketMessagePromptShown = false },
+            title = { Text("还没有写下这次的寄语") },
+            text = { Text("寄语会显示在影像票根的公开信息中。要在导出前补充吗？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        ticketMessagePromptShown = false
+                        ticketMessageEditorShown = true
+                    },
+                ) { Text("补充寄语") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { ticketMessagePromptShown = false }) { Text("取消") }
+                    TextButton(
+                        onClick = {
+                            ticketMessagePromptShown = false
+                            skippedTicketMessageForCurrentPhoto = true
+                            exportShown = true
+                        },
+                    ) { Text("直接导出") }
+                }
+            },
+        )
+    }
+    if (ticketMessageEditorShown) {
+        TicketMessageEditorSheet(
+            message = state.ticketMessage,
+            onSave = { message ->
+                viewModel.updateTicketMessage(message)
+                skippedTicketMessageForCurrentPhoto = false
+                ticketMessageEditorShown = false
+                exportShown = true
+            },
+            onDismiss = { ticketMessageEditorShown = false },
         )
     }
     if (exportShown) {
@@ -225,52 +357,103 @@ private fun AmbientBackground(palette: List<RGBColor>) {
 }
 
 @Composable
-private fun IntroScreen(state: AppUiState, viewModel: LingdongViewModel, onPick: () -> Unit) {
-    val pagerState = rememberPagerState(initialPage = state.mode.ordinal, pageCount = { CreationMode.entries.size })
+private fun IntroScreen(
+    state: AppUiState,
+    viewModel: LingdongViewModel,
+    onPick: () -> Unit,
+    onScanTicket: () -> Unit,
+) {
+    // One page per mode plus a trailing scan page, which needs no photo at all.
+    val pageCount = CreationMode.entries.size + 1
+    val pagerState = rememberPagerState(initialPage = state.mode.ordinal, pageCount = { pageCount })
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.distinctUntilChanged().collect { page ->
-            val mode = CreationMode.entries[page]
+            val mode = CreationMode.entries.getOrNull(page) ?: return@collect
             if (mode != state.mode) viewModel.setMode(mode)
         }
     }
     LaunchedEffect(state.mode) {
-        if (pagerState.currentPage != state.mode.ordinal) pagerState.animateScrollToPage(state.mode.ordinal)
+        if (pagerState.currentPage < CreationMode.entries.size &&
+            pagerState.currentPage != state.mode.ordinal
+        ) {
+            pagerState.animateScrollToPage(state.mode.ordinal)
+        }
     }
     HorizontalPager(pagerState, Modifier.fillMaxSize()) { page ->
-        val mode = CreationMode.entries[page]
-        Column(
-            Modifier.fillMaxSize().padding(horizontal = 24.dp).offset(y = 34.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            ModeGlyph(mode)
-            Spacer(Modifier.height(48.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(mode.title, color = Color.White.copy(alpha = .94f), fontSize = 24.sp, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Medium)
-                if (mode == CreationMode.Journal) Box(Modifier.padding(start = 7.dp).size(8.dp).background(Color(0xFFFF4F7B), CircleShape))
-            }
-            Text(mode.introSubtitle, color = Color.White.copy(alpha = .34f), fontSize = 13.sp, textAlign = TextAlign.Center, lineHeight = 21.sp, modifier = Modifier.padding(top = 10.dp))
-            Row(Modifier.padding(top = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CreationMode.entries.forEach { item -> Box(Modifier.size(if (item == state.mode) 6.dp else 5.dp).background(Color.White.copy(alpha = if (item == state.mode) 1f else .25f), CircleShape)) }
-            }
-            Box(
-                Modifier.padding(top = 30.dp).size(112.dp).liquidGlass(CircleShape, tint = Color.White, clear = true, shadowElevation = 18.dp).clickable(enabled = !state.isLoading, onClick = onPick),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (state.isLoading) CircularProgressIndicator(color = Color.White.copy(alpha = .88f), strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
-                else Icon(Icons.Default.Add, "为${mode.title}选择照片", tint = Color.White.copy(alpha = .93f), modifier = Modifier.size(36.dp))
-            }
-            if (state.isLoading && state.loadingStatus.isNotEmpty()) Text(state.loadingStatus, color = Color.White.copy(alpha = .55f), fontSize = 11.sp, modifier = Modifier.padding(top = 12.dp))
-        }
+        val mode = CreationMode.entries.getOrNull(page)
+        IntroPage(
+            title = mode?.title ?: "扫描验证票根",
+            subtitle = mode?.introSubtitle ?: "打开相机扫描影像票根上的验证二维码\n无需先添加照片",
+            icon = mode?.let(::modeIcon) ?: Icons.Outlined.QrCodeScanner,
+            accent = mode?.accent ?: Color(0xFFABE0FF),
+            showsBadge = mode == CreationMode.Journal,
+            actionIcon = if (mode == null) Icons.Outlined.QrCodeScanner else Icons.Default.Add,
+            actionDescription = if (mode == null) "扫描验证票根" else "为${mode.title}选择照片",
+            isBusy = mode != null && state.isLoading,
+            loadingStatus = if (mode != null) state.loadingStatus else "",
+            selectedPage = pagerState.currentPage,
+            pageCount = pageCount,
+            onAction = if (mode == null) onScanTicket else onPick,
+        )
     }
 }
 
 @Composable
-private fun ModeGlyph(mode: CreationMode) {
+private fun IntroPage(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    accent: Color,
+    showsBadge: Boolean,
+    actionIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    actionDescription: String,
+    isBusy: Boolean,
+    loadingStatus: String,
+    selectedPage: Int,
+    pageCount: Int,
+    onAction: () -> Unit,
+) {
+    Column(
+        Modifier.fillMaxSize().padding(horizontal = 24.dp).offset(y = 34.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        ModeGlyph(icon, accent)
+        Spacer(Modifier.height(48.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title, color = Color.White.copy(alpha = .94f), fontSize = 24.sp, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Medium)
+            if (showsBadge) Box(Modifier.padding(start = 7.dp).size(8.dp).background(Color(0xFFFF4F7B), CircleShape))
+        }
+        Text(subtitle, color = Color.White.copy(alpha = .34f), fontSize = 13.sp, textAlign = TextAlign.Center, lineHeight = 21.sp, modifier = Modifier.padding(top = 10.dp))
+        Row(Modifier.padding(top = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            repeat(pageCount) { index ->
+                val current = index == selectedPage
+                Box(
+                    Modifier
+                        .size(if (current) 6.dp else 5.dp)
+                        .background(Color.White.copy(alpha = if (current) 1f else .25f), CircleShape)
+                )
+            }
+        }
+        Box(
+            Modifier.padding(top = 30.dp).size(112.dp).liquidGlass(CircleShape, tint = Color.White, clear = true, shadowElevation = 18.dp).clickable(enabled = !isBusy, onClick = onAction),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isBusy) CircularProgressIndicator(color = Color.White.copy(alpha = .88f), strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
+            else Icon(actionIcon, actionDescription, tint = Color.White.copy(alpha = .93f), modifier = Modifier.size(36.dp))
+        }
+        if (isBusy && loadingStatus.isNotEmpty()) Text(loadingStatus, color = Color.White.copy(alpha = .55f), fontSize = 11.sp, modifier = Modifier.padding(top = 12.dp))
+    }
+}
+
+/**
+ * Each mode now shows its own symbol instead of the three identical green circles, so the intro
+ * pager tells the modes apart at a glance.
+ */
+@Composable
+private fun ModeGlyph(icon: androidx.compose.ui.graphics.vector.ImageVector, accent: Color) {
     Box(Modifier.size(98.dp), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(66.dp).offset(y = (-16).dp).background(mode.accent.copy(alpha = .72f), CircleShape))
-        Box(Modifier.size(66.dp).background(Color.White.copy(alpha = .30f), CircleShape))
-        Box(Modifier.size(66.dp).offset(y = 16.dp).background(Color.Black.copy(alpha = .46f), CircleShape).shadow(12.dp, CircleShape))
+        Icon(icon, null, Modifier.size(62.dp), tint = accent.copy(alpha = .94f))
     }
 }
 
@@ -281,7 +464,10 @@ private fun EditorScreen(
     onAdd: () -> Unit,
     onSave: () -> Unit,
     onSettings: () -> Unit,
+    onModeSelection: () -> Unit,
+    onEnterTicketLandscape: () -> Unit,
     onEditCopy: () -> Unit,
+    onOpenTicketStudio: () -> Unit,
     onCanvasBounds: (androidx.compose.ui.geometry.Rect) -> Unit,
     onReplaceJournal: (Int) -> Unit,
 ) {
@@ -292,6 +478,7 @@ private fun EditorScreen(
         val reserve = when (state.mode) {
             CreationMode.PrivacyMosaic -> 330.dp
             CreationMode.Journal -> 245.dp
+            CreationMode.TravelTicket -> 200.dp
             else -> 128.dp
         }
         val canvasWidth = when (state.mode) {
@@ -300,12 +487,24 @@ private fun EditorScreen(
         }.coerceAtLeast(if (maxWidth > 340.dp) 280.dp else maxWidth - 24.dp)
         val canvasHeight = canvasWidth / ratio
         val showsMotionPlayback = state.mode != CreationMode.PrivacyMosaic &&
+            state.mode != CreationMode.TravelTicket &&
             state.preferences.supportsMotionPhotos &&
             state.photos.any { it.isMotionPhoto }
 
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("灵动照片", fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), color = Color.Black.copy(alpha = if (state.preferences.showAppTitle) 1f else 0f))
+                if (state.mode == CreationMode.TravelTicket) {
+                    LiquidIconButton(
+                        Icons.Default.ScreenRotation,
+                        "横屏预览",
+                        {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onEnterTicketLandscape()
+                        },
+                    )
+                }
+                LiquidIconButton(Icons.Default.GridView, "选择创作模式", { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onModeSelection() })
                 LiquidIconButton(Icons.Default.Add, "添加照片", { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onAdd() }, enabled = state.mode != CreationMode.Journal || state.photos.size < 5)
                 if (state.mode == CreationMode.Journal && state.photos.size > 1) LiquidIconButton(Icons.Default.Remove, "移除照片", viewModel::removeLastJournalPhoto)
                 LiquidIconButton(Icons.Default.ArrowDownward, "保存照片", { haptics.performHapticFeedback(HapticFeedbackType.LongPress); onSave() })
@@ -342,16 +541,22 @@ private fun EditorScreen(
                 }
             }
             val gestureModifier = canvasGestureModifier(state, viewModel, onEditCopy, canvasWidth, canvasHeight)
+            val isTicket = state.mode == CreationMode.TravelTicket
+            if (isTicket) Spacer(Modifier.weight(1f))
             ArtworkCanvas(
                 state,
                 exporting = state.isExporting,
                 modifier = Modifier
-                    .padding(top = if (showsMotionPlayback) 12.dp else 20.dp)
+                    .padding(top = if (isTicket) 0.dp else if (showsMotionPlayback) 12.dp else 20.dp)
                     .width(canvasWidth)
                     .height(canvasHeight)
                     .onGloballyPositioned { onCanvasBounds(it.boundsInRoot()) }
                     .then(gestureModifier)
-                    .shadow(22.dp, RoundedCornerShape(22.dp), ambientColor = Color.Black.copy(alpha = .12f)),
+                    // A drop shadow would print a rectangular halo around the ticket's cut-outs.
+                    .then(
+                        if (isTicket) Modifier
+                        else Modifier.shadow(22.dp, RoundedCornerShape(22.dp), ambientColor = Color.Black.copy(alpha = .12f))
+                    ),
                 onPaletteOffset = viewModel::setPaletteOffset,
                 onTogglePrivacyMask = viewModel::togglePrivacyMask,
                 onCycleFont = { direction -> haptics.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.cycleFont(direction) },
@@ -364,7 +569,169 @@ private fun EditorScreen(
             if (state.mode == CreationMode.Journal) {
                 JournalControls(state, viewModel, onReplaceJournal, Modifier.padding(horizontal = 18.dp, vertical = 10.dp))
             }
+            if (isTicket) {
+                TicketEditorControls(
+                    state = state,
+                    onLayout = viewModel::setTicketLayout,
+                    onCodeStyle = viewModel::setTicketCodeStyle,
+                    onOpenStudio = onOpenTicketStudio,
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                )
+            }
             Spacer(Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun LandscapeTicketEditor(
+    state: AppUiState,
+    viewModel: LingdongViewModel,
+    onExitLandscape: () -> Unit,
+    onAdd: () -> Unit,
+    onSave: () -> Unit,
+    onSettings: () -> Unit,
+    onModeSelection: () -> Unit,
+    onEditCopy: () -> Unit,
+    onOpenTicketStudio: () -> Unit,
+    onCanvasBounds: (androidx.compose.ui.geometry.Rect) -> Unit,
+) {
+    BackHandler(onBack = onExitLandscape)
+    val haptics = LocalHapticFeedback.current
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        val ratio = state.ratio.valueFor(state.photos.firstOrNull()?.bitmap)
+        val controlsWidth = minOf(270.dp, maxOf(220.dp, maxWidth * .27f))
+        val previewAreaWidth = (maxWidth - controlsWidth - 14.dp).coerceAtLeast(320.dp)
+        val previewAreaHeight = (maxHeight - 56.dp).coerceAtLeast(190.dp)
+        val canvasWidth = minOf(previewAreaWidth, previewAreaHeight * ratio)
+        val canvasHeight = canvasWidth / ratio
+        val gestureModifier = canvasGestureModifier(
+            state,
+            viewModel,
+            onEditCopy,
+            canvasWidth,
+            canvasHeight,
+        )
+
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier.fillMaxWidth().height(48.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                GlassContainer(
+                    Modifier
+                        .width(112.dp)
+                        .height(42.dp)
+                        .clickable {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onExitLandscape()
+                        },
+                    cornerRadius = 21.dp,
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
+                    ) {
+                        Icon(Icons.Default.ScreenRotation, null, Modifier.size(17.dp))
+                        Text("返回竖屏", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text("影像票根", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "手动横屏预览",
+                        color = Color.Black.copy(alpha = .50f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                LiquidIconButton(
+                    Icons.Default.GridView,
+                    "选择创作模式",
+                    {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onModeSelection()
+                    },
+                    size = 42.dp,
+                )
+                LiquidIconButton(
+                    Icons.Default.Add,
+                    "添加照片",
+                    {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onAdd()
+                    },
+                    size = 42.dp,
+                )
+                LiquidIconButton(
+                    Icons.Default.ArrowDownward,
+                    "保存照片",
+                    {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onSave()
+                    },
+                    size = 42.dp,
+                )
+                LiquidIconButton(
+                    Icons.Outlined.Settings,
+                    "设置",
+                    {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onSettings()
+                    },
+                    size = 42.dp,
+                )
+            }
+
+            Row(
+                Modifier.fillMaxWidth().weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Box(
+                    Modifier
+                        .width(previewAreaWidth)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ArtworkCanvas(
+                        state,
+                        exporting = state.isExporting,
+                        modifier = Modifier
+                            .width(canvasWidth)
+                            .height(canvasHeight)
+                            .onGloballyPositioned { onCanvasBounds(it.boundsInRoot()) }
+                            .then(gestureModifier),
+                        onPaletteOffset = viewModel::setPaletteOffset,
+                        onTogglePrivacyMask = viewModel::togglePrivacyMask,
+                        onCycleFont = { direction ->
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.cycleFont(direction)
+                        },
+                        onAdjustTextScale = { delta ->
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.adjustTextScale(delta)
+                        },
+                        onBubbleScale = viewModel::setBubbleScale,
+                    )
+                }
+
+                TicketEditorControls(
+                    state = state,
+                    onLayout = viewModel::setTicketLayout,
+                    onCodeStyle = viewModel::setTicketCodeStyle,
+                    onOpenStudio = onOpenTicketStudio,
+                    modifier = Modifier.width(controlsWidth),
+                    isLandscape = true,
+                )
+            }
         }
     }
 }
@@ -410,7 +777,14 @@ private fun canvasGestureModifier(
             val old = state.journalTransforms.getOrElse(index) { JournalTransform() }
             viewModel.updateJournalTransform(index, old.scale * zoom, old.offset + pan)
         } else {
-            val scale = (state.imageScale * zoom).coerceIn(1f, 4f)
+            // A 21:9 ticket can exactly consume a landscape photo's horizontal pixels at 1x.
+            // Give a deliberate horizontal drag a small amount of overscan so it always changes
+            // the composition instead of appearing broken on wide Android displays.
+            val horizontalTicketPan = state.mode == CreationMode.TravelTicket &&
+                state.preferences.ticketLayout == TicketLayoutStyle.Classic &&
+                abs(pan.x) > .5f
+            val minimumScale = if (horizontalTicketPan) 1.12f else 1f
+            val scale = (state.imageScale * zoom).coerceIn(minimumScale, 4f)
             val offset = if (state.mode == CreationMode.PrivacyMosaic) {
                 val horizontalLimit = (widthPx * (scale - 1f) / 2f).coerceAtLeast(0f)
                 val verticalLimit = (heightPx * (scale - 1f) / 2f).coerceAtLeast(0f)
@@ -425,7 +799,11 @@ private fun canvasGestureModifier(
     }
     return Modifier
         .then(
-            if (state.mode == CreationMode.MotionCard || state.mode == CreationMode.BubbleStamp || state.mode == CreationMode.Journal) {
+            if (state.mode == CreationMode.MotionCard ||
+                state.mode == CreationMode.BubbleStamp ||
+                state.mode == CreationMode.Journal ||
+                state.mode == CreationMode.TravelTicket
+            ) {
                 Modifier.semantics {
                     onClick(label = "编辑作品文字") {
                         onEditCopy()
@@ -448,6 +826,14 @@ private fun canvasGestureModifier(
                         when (state.mode) {
                             CreationMode.MotionCard -> if (point.y < heightPx * .43f) onEditCopy()
                             CreationMode.BubbleStamp -> if (point.y > widthPx * .91f) onEditCopy()
+                            CreationMode.TravelTicket -> {
+                                val hitsText = when (state.preferences.ticketLayout) {
+                                    TicketLayoutStyle.Classic -> point.x < widthPx * .44f
+                                    TicketLayoutStyle.Vertical -> point.y > heightPx * .50f
+                                    TicketLayoutStyle.Minimal -> point.y > heightPx * .58f
+                                }
+                                if (hitsText) onEditCopy()
+                            }
                             CreationMode.Journal -> {
                                 val journalIndex = journalIndexAt(
                                     point,
@@ -805,6 +1191,138 @@ private fun FreeNoticeDialog(onDismiss: () -> Unit) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun Version102UpdateDialog(onDismiss: () -> Unit) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(.88f)
+                    .widthIn(max = 520.dp)
+                    .shadow(28.dp, RoundedCornerShape(32.dp)),
+                shape = RoundedCornerShape(32.dp),
+                color = Color(0xFFF9F9F7),
+                tonalElevation = 0.dp,
+            ) {
+                Column(Modifier.fillMaxSize()) {
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(start = 24.dp, end = 24.dp, top = 27.dp, bottom = 18.dp),
+                        verticalArrangement = Arrangement.spacedBy(22.dp),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Text(
+                                "灵动照片 1.0.2",
+                                color = Color.Black.copy(alpha = .52f),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                "让照片成为可以分享的票根",
+                                color = Color(0xFF171717),
+                                fontSize = 27.sp,
+                                lineHeight = 34.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                "这次更新带来了影像票根、扫码验证、取色渐变。",
+                                color = Color.Black.copy(alpha = .58f),
+                                fontSize = 14.sp,
+                                lineHeight = 21.sp,
+                            )
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(17.dp)) {
+                            UpdateLogItem(
+                                number = 1,
+                                title = "影像票根与扫描验证票根",
+                                detail = "可以将照片制作成具有旅行纪念感的影像票根，提供横向经典、纵向旅行和极简凭证等版式，并可自定义展示文字、拍摄信息、配色及验证二维码。通过“扫描验证票根”，可读取二维码并查看对应的票根信息。",
+                            )
+                            UpdateLogItem(
+                                number = 2,
+                                title = "动态照片卡片新增“取色渐变”",
+                                detail = "顶部背景可根据照片的代表色自动生成渐变效果，并自动调整文字显示效果，让卡片色彩与照片更加协调。",
+                            )
+                            UpdateLogItem(
+                                number = 3,
+                                title = "更直观的模式浏览",
+                                detail = "未添加照片时，每个创作模式都会显示对应的专属图标；左右滑动即可浏览，并可从主界面最后一页直接进入“扫描验证票根”。",
+                            )
+                        }
+                    }
+
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF9F9F7))
+                            .padding(start = 22.dp, end = 22.dp, top = 10.dp, bottom = 16.dp),
+                    ) {
+                        Button(
+                            onClick = onDismiss,
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF171717),
+                                contentColor = Color.White,
+                            ),
+                        ) {
+                            Text("开始体验 1.0.2", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpdateLogItem(number: Int, title: String, detail: String) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(13.dp),
+    ) {
+        Box(
+            Modifier.size(30.dp).background(Color.Black.copy(alpha = .065f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                number.toString(),
+                color = Color.Black.copy(alpha = .78f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Column(
+            Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                title,
+                color = Color(0xFF171717),
+                fontSize = 16.sp,
+                lineHeight = 22.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                detail,
+                color = Color.Black.copy(alpha = .57f),
+                fontSize = 13.sp,
+                lineHeight = 20.sp,
+            )
         }
     }
 }

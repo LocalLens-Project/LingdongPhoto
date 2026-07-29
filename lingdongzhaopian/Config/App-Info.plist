@@ -20,8 +20,10 @@
     <string>$(MARKETING_VERSION)</string>
     <key>CFBundleVersion</key>
     <string>$(CURRENT_PROJECT_VERSION)</string>
-    <key>LingdongAppGroupIdentifier</key>
-    <string>$(APP_GROUP_IDENTIFIER)</string>
+	<key>LingdongAppGroupIdentifier</key>
+	<string>$(APP_GROUP_IDENTIFIER)</string>
+	<key>TicketAppClipBaseURL</key>
+	<string>https://appclip.apple.com/id?p=$(APP_CLIP_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
@@ -39,6 +41,8 @@
     <string>用于将生成的灵动照片作品保存到您的相册。</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>用于精确匹配您分享的实况照片并读取动态片段。照片仅在本机处理，不会上传；本应用已开源，可公开审查。</string>
+    <key>NSCameraUsageDescription</key>
+    <string>用于扫描由灵动照片生成的票根二维码。相机画面仅在本机识别，不会保存或上传。</string>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>
@@ -48,9 +52,10 @@
     <true/>
     <key>UILaunchScreen</key>
     <dict/>
-    <key>UISupportedInterfaceOrientations</key>
-    <array>
-        <string>UIInterfaceOrientationPortrait</string>
-    </array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
 </dict>
 </plist>

@@ -25,12 +25,14 @@ private enum PhotoSelectionOperation: Equatable {
     case replace(index: Int)
 }
 
-private enum Version101Audience: String {
-    case upgradedFrom100
-    case installed101
+private enum Version102Audience: String {
+    case upgradedFromPreviousVersion
+    case installed102
 }
 
 struct ContentView: View {
+    private static let ticketScannerIntroID = "ticketScanner"
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
@@ -51,20 +53,34 @@ struct ContentView: View {
     @AppStorage("showAppTitle") private var showAppTitle = true
     @AppStorage("showMissingCaptureTime") private var showMissingCaptureTime = true
     @AppStorage("artworkTemplateStyle") private var templateStyleRaw = ArtworkTemplateStyle.classic.rawValue
+    @AppStorage("motionCardHeaderStyle") private var motionCardHeaderStyleRaw = MotionCardHeaderStyle.solid.rawValue
     @AppStorage("journalLayout") private var journalLayoutRaw = JournalLayoutMode.automatic.rawValue
     @AppStorage("exportFormat") private var exportFormatRaw = ArtworkExportFormat.jpeg.rawValue
     @AppStorage("exportResolution") private var exportResolutionRaw = ArtworkExportResolution.standard.rawValue
     @AppStorage("exportMetadataPolicy") private var exportMetadataPolicyRaw = ArtworkMetadataPolicy.removeLocation.rawValue
     @AppStorage("exportDestination") private var exportDestinationRaw = ArtworkExportDestination.photoLibrary.rawValue
+    @AppStorage("ticketCodeStyle") private var ticketCodeStyleRaw = TicketCodeStyle.barcode.rawValue
+    @AppStorage("ticketLayoutStyle") private var ticketLayoutRaw = TicketLayoutStyle.classic.rawValue
+    @AppStorage("ticketShowCopy") private var ticketShowCopy = true
+    @AppStorage("ticketShowDate") private var ticketShowDate = true
+    @AppStorage("ticketShowPlace") private var ticketShowPlace = false
+    @AppStorage("ticketShowDevice") private var ticketShowDevice = true
+    @AppStorage("ticketShowParameters") private var ticketShowParameters = true
+    @AppStorage("ticketShowPalette") private var ticketShowPalette = true
+    @AppStorage("ticketHeaderMode") private var ticketHeaderModeRaw = TicketHeaderMode.custom.rawValue
+    @AppStorage("ticketCustomHeader") private var ticketCustomHeader = "LINGDONG"
+    @AppStorage("ticketCityNameStyle") private var ticketCityNameStyleRaw = TicketCityNameStyle.pinyin.rawValue
     // This key is intentionally independent of the build number. Do not rename it
     // for future releases, otherwise users would see the one-time hint again.
     @AppStorage("didShowLivePhotoPlaybackHint") private var didShowLivePhotoPlaybackHint = false
     @AppStorage("didShowLivePhotoPlaybackHintBuild1060") private var didShowLivePhotoPlaybackHintBuild1060 = false
-    @AppStorage("version101Audience") private var version101AudienceRaw = ""
-    @AppStorage("didShowVersion101Update") private var didShowVersion101Update = false
+    @AppStorage("version102Audience") private var version102AudienceRaw = ""
+    @AppStorage("didShowVersion102Update") private var didShowVersion102Update = false
     @AppStorage("didShowModeSelectionHint101") private var didShowModeSelectionHint101 = false
+    @AppStorage("didShowTicketLandscapeHint") private var didShowTicketLandscapeHint = false
 
     @State private var mode: CreationMode = .motionCard
+    @State private var introPageID = CreationMode.motionCard.rawValue
     @State private var pickerSelections: [PhotoPickerSelection] = []
     @State private var isPickerPresented = false
     @State private var selectedPhotos: [SelectedPhoto] = []
@@ -82,6 +98,7 @@ struct ContentView: View {
     @State private var saveState: SaveVisualState = .idle
     @State private var settingsPresented = false
     @State private var modeSelectionPresented = false
+    @State private var ticketScannerPresented = false
     @State private var toastMessage: String?
     @State private var errorTitle = "无法保存"
     @State private var saveErrorMessage = ""
@@ -91,6 +108,16 @@ struct ContentView: View {
     @State private var importStatus = ""
     @State private var isImportingSharedPhoto = false
     @State private var exportCenterPresented = false
+    @State private var ticketStudioPresented = false
+    @State private var ticketMessage = ""
+    @State private var ticketMessagePromptPresented = false
+    @State private var ticketMessageEditorPresented = false
+    @State private var shouldExportAfterTicketMessageEditor = false
+    @State private var skippedTicketMessageForCurrentPhoto = false
+    @State private var verifiedTicketPayload: TicketPayload?
+    @State private var ticketVerificationErrorMessage = ""
+    @State private var ticketVerificationErrorPresented = false
+    @State private var isTicketLandscape = false
     @State private var sharedExportFile: ExportedArtworkFile?
     @State private var documentExportFile: ExportedArtworkFile?
 
@@ -130,11 +157,13 @@ struct ContentView: View {
     @State private var livePlaybackSessionID: UUID?
     @State private var livePhotoHintTask: Task<Void, Never>?
     @State private var modeSelectionHintTask: Task<Void, Never>?
+    @State private var ticketLandscapeHintTask: Task<Void, Never>?
     @State private var livePreviewFrames: [Int: UIImage] = [:]
     @State private var isLivePhotoPlaying = false
     @State private var isLivePhotoHintPresented = false
     @State private var isModeSelectionHintPresented = false
-    @State private var version101UpdatePresented = false
+    @State private var isTicketLandscapeHintPresented = false
+    @State private var version102UpdatePresented = false
     @StateObject private var cameraWatermarkLibrary = CameraWatermarkLibrary()
 
     private var pickerLimit: Int {
@@ -150,6 +179,9 @@ struct ContentView: View {
     }
     private var templateStyle: ArtworkTemplateStyle {
         ArtworkTemplateStyle(rawValue: templateStyleRaw) ?? .classic
+    }
+    private var motionCardHeaderStyle: MotionCardHeaderStyle {
+        MotionCardHeaderStyle(rawValue: motionCardHeaderStyleRaw) ?? .solid
     }
     private var journalLayout: JournalLayoutMode {
         JournalLayoutMode(rawValue: journalLayoutRaw) ?? .automatic
@@ -170,6 +202,25 @@ struct ContentView: View {
         get { ArtworkExportDestination(rawValue: exportDestinationRaw) ?? .photoLibrary }
         nonmutating set { exportDestinationRaw = newValue.rawValue }
     }
+    private var ticketCodeStyle: TicketCodeStyle {
+        get { TicketCodeStyle(rawValue: ticketCodeStyleRaw) ?? .barcode }
+        nonmutating set { ticketCodeStyleRaw = newValue.rawValue }
+    }
+    private var ticketLayout: TicketLayoutStyle {
+        get { TicketLayoutStyle(rawValue: ticketLayoutRaw) ?? .classic }
+        nonmutating set {
+            ticketLayoutRaw = newValue.rawValue
+            ratio = newValue == .vertical ? .threeFour : .twentyOneNine
+        }
+    }
+    private var ticketHeaderMode: TicketHeaderMode {
+        get { TicketHeaderMode(rawValue: ticketHeaderModeRaw) ?? .custom }
+        nonmutating set { ticketHeaderModeRaw = newValue.rawValue }
+    }
+    private var ticketCityNameStyle: TicketCityNameStyle {
+        get { TicketCityNameStyle(rawValue: ticketCityNameStyleRaw) ?? .pinyin }
+        nonmutating set { ticketCityNameStyleRaw = newValue.rawValue }
+    }
     private var primaryMetadata: PhotoMetadata { selectedPhotos.first?.metadata ?? .empty }
     private var activeCameraWatermark: UIImage? {
         guard useCustomCameraWatermarks else { return nil }
@@ -186,7 +237,9 @@ struct ContentView: View {
         })
     }
     private var showsLivePlaybackControl: Bool {
-        mode != .privacyMosaic && selectedPhotos.contains(where: \.isLivePhoto)
+        mode != .privacyMosaic
+            && mode != .travelTicket
+            && selectedPhotos.contains(where: \.isLivePhoto)
     }
     private var canPresentLivePhotoHint: Bool {
         isEditorVisible
@@ -195,7 +248,7 @@ struct ContentView: View {
             && didShowModeSelectionHint101
             && !isModeSelectionHintPresented
             && modeSelectionHintTask == nil
-            && !version101UpdatePresented
+            && !version102UpdatePresented
             && !modeSelectionPresented
             && !settingsPresented
             && !isPickerPresented
@@ -203,9 +256,24 @@ struct ContentView: View {
     private var canPresentModeSelectionHint: Bool {
         isEditorVisible
             && !didShowModeSelectionHint101
-            && !version101UpdatePresented
+            && !version102UpdatePresented
             && !modeSelectionPresented
             && !settingsPresented
+            && !isPickerPresented
+    }
+    private var canPresentTicketLandscapeHint: Bool {
+        isEditorVisible
+            && mode == .travelTicket
+            && !isTicketLandscape
+            && !didShowTicketLandscapeHint
+            && didShowModeSelectionHint101
+            && !isModeSelectionHintPresented
+            && modeSelectionHintTask == nil
+            && !version102UpdatePresented
+            && !modeSelectionPresented
+            && !settingsPresented
+            && !exportCenterPresented
+            && !ticketStudioPresented
             && !isPickerPresented
     }
     private var hasShownLivePhotoPlaybackHint: Bool {
@@ -239,15 +307,76 @@ struct ContentView: View {
         }
         return result
     }
+    private var ticketPayload: TicketPayload {
+        let signature = TicketPayload.contentSignature(
+            for: selectedPhotos.first?.originalData ?? Data(),
+            fallback: combinedSemantic.signature
+        )
+        let paletteEntries = ticketShowPalette
+            ? zip(palette.prefix(6), palettePercentages.prefix(6)).map { color, percentage in
+                TicketPaletteEntry(hex: color.hex, percentage: percentage)
+            }
+            : []
+        let captureTime: String?
+        if ticketShowDate,
+           primaryMetadata.captureDate != nil || showMissingCaptureTime {
+            captureTime = primaryMetadata.captureTimeText
+        } else {
+            captureTime = nil
+        }
+        let place: String?
+        if ticketShowPlace,
+           primaryMetadata.placeName != nil || primaryMetadata.hasLocation {
+            place = primaryMetadata.displayTitle
+        } else {
+            place = nil
+        }
+        let device = ticketShowDevice
+            ? primaryMetadata.captureDevice.displayName
+            : nil
+        let headerTitle: String?
+        switch ticketHeaderMode {
+        case .custom:
+            let value = ticketCustomHeader
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            headerTitle = value.isEmpty ? nil : value
+        case .city:
+            headerTitle = primaryMetadata.ticketCityLabel(style: ticketCityNameStyle)
+                ?? "LINGDONG"
+        }
+        return TicketPayload(
+            ticketID: TicketPayload.ticketIdentifier(from: signature),
+            fingerprint: TicketPayload.fingerprintText(from: signature),
+            headerTitle: headerTitle,
+            title: ticketShowCopy ? artworkCopy.title : "一张影像票根",
+            subtitle: ticketShowCopy ? artworkCopy.subtitle : nil,
+            message: ticketMessage,
+            captureTime: captureTime,
+            place: place,
+            device: device,
+            lens: ticketShowDevice ? primaryMetadata.cameraLensLine : nil,
+            captureSettings: ticketShowParameters
+                ? primaryMetadata.captureSettingsLine
+                : nil,
+            palette: paletteEntries,
+            revealLayout: ticketLayout.revealLayout
+        )
+    }
 
     var body: some View {
-        GeometryReader { proxy in
+        let presentedContent = AnyView(GeometryReader { proxy in
             ZStack {
                 AmbientBackground(palette: isEditorVisible ? palette : RGBColor.intro)
 
                 if isEditorVisible {
-                    editorView(in: proxy.size)
-                        .transition(.opacity)
+                    Group {
+                        if mode == .travelTicket, isTicketLandscape {
+                            ticketLandscapeEditorView(in: proxy.size)
+                        } else {
+                            editorView(in: proxy.size)
+                        }
+                    }
+                    .transition(.opacity)
                 } else {
                     introView
                         .transition(.opacity)
@@ -261,7 +390,7 @@ struct ContentView: View {
                     isEnabled: !editCopyPresented
                         && !settingsPresented
                         && !modeSelectionPresented
-                        && !version101UpdatePresented
+                        && !version102UpdatePresented
                         && !isPickerPresented
                 ) {
                     resetComposition()
@@ -282,8 +411,8 @@ struct ContentView: View {
         // into the user's system setting independently.
         .environment(\.colorScheme, .light)
         .statusBarHidden(true)
-        .sheet(isPresented: $version101UpdatePresented) {
-            Version101UpdateView(onNext: completeVersion101Update)
+        .sheet(isPresented: $version102UpdatePresented) {
+            Version102UpdateView(onNext: completeVersion102Update)
                 .environment(\.colorScheme, .dark)
                 .presentationDetents([.fraction(0.94)])
                 .presentationDragIndicator(.hidden)
@@ -307,9 +436,18 @@ struct ContentView: View {
             Task { await loadSelectedPhotos() }
         }
         .onChange(of: mode) { _, newMode in
+            if introPageID != newMode.rawValue {
+                introPageID = newMode.rawValue
+            }
             stopLivePhotoPlayback()
             dismissLivePhotoHint()
-            ratio = newMode.defaultRatio
+            dismissTicketLandscapeHint()
+            if newMode != .travelTicket, isTicketLandscape {
+                setTicketLandscape(false)
+            }
+            ratio = newMode == .travelTicket && ticketLayout == .vertical
+                ? .threeFour
+                : newMode.defaultRatio
             if newMode == .privacyMosaic {
                 refreshPrivacyPreview()
             } else {
@@ -346,6 +484,10 @@ struct ContentView: View {
                     get: { templateStyle },
                     set: { templateStyleRaw = $0.rawValue }
                 ),
+                motionCardHeaderStyle: Binding(
+                    get: { motionCardHeaderStyle },
+                    set: { motionCardHeaderStyleRaw = $0.rawValue }
+                ),
                 journalLayout: Binding(
                     get: { journalLayout },
                     set: { journalLayoutRaw = $0.rawValue }
@@ -353,7 +495,7 @@ struct ContentView: View {
                 cameraWatermarkLibrary: cameraWatermarkLibrary
             )
             .environment(\.colorScheme, systemColorScheme)
-            .presentationDetents([.fraction(0.94)])
+            .presentationDetents(isTicketLandscape ? [.large] : [.fraction(0.94)])
             .presentationDragIndicator(.hidden)
             .presentationCornerRadius(38)
             .presentationBackground(.ultraThinMaterial)
@@ -361,13 +503,19 @@ struct ContentView: View {
         .sheet(isPresented: $modeSelectionPresented) {
             CreationModeSelectionView(
                 selectedMode: mode,
-                onSelect: selectCreationMode
+                onSelect: selectCreationMode,
+                onScanTicket: openTicketScanner
             )
             .environment(\.colorScheme, systemColorScheme)
-            .presentationDetents([.fraction(0.72)])
+            .presentationDetents(isTicketLandscape ? [.large] : [.fraction(0.84)])
             .presentationDragIndicator(.hidden)
             .presentationCornerRadius(38)
             .presentationBackground(.clear)
+        }
+        .fullScreenCover(isPresented: $ticketScannerPresented) {
+            TicketQRScannerScreen(
+                onCancel: { ticketScannerPresented = false }
+            )
         }
         .sheet(isPresented: $editCopyPresented) {
             ArtworkCopyEditor(
@@ -382,21 +530,103 @@ struct ContentView: View {
                 .presentationContentInteraction(.scrolls)
                 .presentationCornerRadius(34)
         }
+        .sheet(
+            isPresented: $ticketMessageEditorPresented,
+            onDismiss: {
+                guard shouldExportAfterTicketMessageEditor else { return }
+                shouldExportAfterTicketMessageEditor = false
+                presentExportCenter()
+            }
+        ) {
+            TicketMessageEditorSheet(message: ticketMessage) { value in
+                ticketMessage = value
+                skippedTicketMessageForCurrentPhoto = false
+                shouldExportAfterTicketMessageEditor = true
+            }
+            .environment(\.colorScheme, systemColorScheme)
+            .presentationDetents(isTicketLandscape ? [.large] : [.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(34)
+        }
         .sheet(isPresented: $exportCenterPresented) {
             ExportCenterView(
-                format: Binding(get: { exportFormat }, set: { exportFormat = $0 }),
+                format: Binding(
+                    get: {
+                        mode == .travelTicket ? .png : exportFormat
+                    },
+                    set: {
+                        guard mode != .travelTicket else { return }
+                        exportFormat = $0
+                    }
+                ),
                 resolution: Binding(get: { exportResolution }, set: { exportResolution = $0 }),
                 metadataPolicy: Binding(get: { exportMetadataPolicy }, set: { exportMetadataPolicy = $0 }),
                 destination: Binding(get: { exportDestination }, set: { exportDestination = $0 }),
                 sourcePixelWidth: images.first?.cgImage.map { CGFloat($0.width) } ?? 1080,
-                supportsLiveExport: supportsLivePhotos && mode != .privacyMosaic && !liveSourceVideoURLs.isEmpty,
+                supportsLiveExport: supportsLivePhotos
+                    && mode != .privacyMosaic
+                    && mode != .travelTicket
+                    && !liveSourceVideoURLs.isEmpty,
+                requiresTransparency: mode == .travelTicket,
                 onExport: performConfiguredExport
             )
             .environment(\.colorScheme, systemColorScheme)
-            .presentationDetents([.fraction(0.94)])
+            .presentationDetents(isTicketLandscape ? [.large] : [.fraction(0.94)])
             .presentationDragIndicator(.hidden)
             .presentationCornerRadius(38)
             .presentationBackground(.ultraThinMaterial)
+        }
+        .sheet(isPresented: $ticketStudioPresented) {
+            TicketCodeStudioView(
+                codeStyle: Binding(
+                    get: { ticketCodeStyle },
+                    set: { ticketCodeStyle = $0 }
+                ),
+                showCopy: $ticketShowCopy,
+                showDate: $ticketShowDate,
+                showPlace: $ticketShowPlace,
+                showDevice: $ticketShowDevice,
+                showParameters: $ticketShowParameters,
+                showPalette: $ticketShowPalette,
+                message: Binding(
+                    get: { ticketMessage },
+                    set: {
+                        ticketMessage = String(
+                            $0.prefix(TicketPayload.messageCharacterLimit)
+                        )
+                    }
+                ),
+                headerMode: Binding(
+                    get: { ticketHeaderMode },
+                    set: { ticketHeaderMode = $0 }
+                ),
+                customHeader: $ticketCustomHeader,
+                cityNameStyle: Binding(
+                    get: { ticketCityNameStyle },
+                    set: { ticketCityNameStyle = $0 }
+                ),
+                detectedCityName: primaryMetadata.ticketCityName,
+                payload: ticketPayload,
+                baseURLString: TicketEnvelope.configuredBaseURLString,
+                onSaveToPhotos: saveTicketCodeToPhotos,
+                onSaveToFiles: saveTicketCodeToFiles,
+                onShare: shareTicketCode
+            )
+            .environment(\.colorScheme, systemColorScheme)
+            .presentationDetents(isTicketLandscape ? [.large] : [.fraction(0.94)])
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(38)
+            .presentationBackground(.ultraThinMaterial)
+        }
+        .fullScreenCover(item: $verifiedTicketPayload) { payload in
+            TicketVerificationView(
+                payload: payload,
+                onClose: { verifiedTicketPayload = nil }
+            )
+        }
+        .sheet(isPresented: $ticketVerificationErrorPresented) {
+            TicketVerificationErrorView(message: ticketVerificationErrorMessage)
+                .presentationDragIndicator(.visible)
         }
         .sheet(item: $sharedExportFile) { item in
             SystemShareSheet(url: item.url)
@@ -407,13 +637,36 @@ struct ContentView: View {
             FileExportPicker(url: item.url)
                 .preferredColorScheme(.light)
         }
+        .alert(
+            "还没有写下这次的寄语",
+            isPresented: $ticketMessagePromptPresented
+        ) {
+            Button("补充寄语") {
+                Task { @MainActor in
+                    await Task.yield()
+                    ticketMessageEditorPresented = true
+                }
+            }
+            Button("直接导出") {
+                skippedTicketMessageForCurrentPhoto = true
+                Task { @MainActor in
+                    await Task.yield()
+                    presentExportCenter()
+                }
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("寄语会显示在影像票根的公开信息中。要在导出前补充吗？")
+        }
         .alert(errorTitle, isPresented: $saveErrorPresented) {
             Button("好", role: .cancel) {}
         } message: {
             Text(saveErrorMessage)
-        }
+        })
+
+        return presentedContent
         .task {
-            configureVersion101Experience()
+            configureVersion102Experience()
             if didShowLivePhotoPlaybackHintBuild1060 {
                 didShowLivePhotoPlaybackHint = true
             }
@@ -439,15 +692,47 @@ struct ContentView: View {
                 dismissLivePhotoHint()
             }
         }
+        .onChange(of: canPresentTicketLandscapeHint) { _, canPresent in
+            if canPresent {
+                presentTicketLandscapeHintIfNeeded()
+            } else if mode != .travelTicket || isTicketLandscape {
+                dismissTicketLandscapeHint()
+            }
+        }
         .onDisappear {
             stopLivePhotoPlayback()
             dismissModeSelectionHint(animated: false)
             dismissLivePhotoHint(animated: false)
+            dismissTicketLandscapeHint(animated: false)
+            if isTicketLandscape {
+                setTicketLandscape(false)
+            }
         }
-        .onOpenURL(perform: handleSharedPhotoURL)
+        .onOpenURL(perform: handleIncomingURL)
+        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+            guard let url = activity.webpageURL else { return }
+            handleIncomingURL(url)
+        }
     }
 
-    private func handleSharedPhotoURL(_ url: URL) {
+    private func handleIncomingURL(_ url: URL) {
+        let queryItems = URLComponents(
+            url: url,
+            resolvingAgainstBaseURL: false
+        )?.queryItems ?? []
+        let isTicketURL = queryItems.contains { $0.name == TicketEnvelope.payloadKey }
+            || queryItems.contains { $0.name == TicketEnvelope.checksumKey }
+        if isTicketURL {
+            do {
+                verifiedTicketPayload = try TicketEnvelope.decode(from: url)
+            } catch {
+                ticketVerificationErrorMessage = (error as? LocalizedError)?
+                    .errorDescription
+                    ?? "票根内容无法读取，请让发送者重新生成二维码。"
+                ticketVerificationErrorPresented = true
+            }
+            return
+        }
         guard url.scheme == SharedPhotoHandoff.urlScheme,
               url.host == "import" else { return }
         let modeValue = URLComponents(url: url, resolvingAgainstBaseURL: false)?
@@ -490,28 +775,82 @@ struct ContentView: View {
     }
 
     private var introView: some View {
-        TabView(selection: $mode) {
+        TabView(selection: $introPageID) {
             ForEach(CreationMode.allCases) { item in
                 modeIntro(item)
-                    .tag(item)
+                    .tag(item.rawValue)
             }
+
+            ticketScannerIntro
+                .tag(Self.ticketScannerIntroID)
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
         .ignoresSafeArea(edges: .bottom)
+        .onChange(of: introPageID) { _, pageID in
+            guard let selectedMode = CreationMode(rawValue: pageID),
+                  selectedMode != mode else { return }
+            mode = selectedMode
+        }
     }
 
     private func modeIntro(_ item: CreationMode) -> some View {
+        introPage(
+            title: item.title,
+            subtitle: item.introSubtitle,
+            symbol: item.symbol,
+            accent: item.accent,
+            showsJournalBadge: item == .journal,
+            actionSymbol: "plus",
+            actionAccessibilityLabel: "为\(item.title)选择照片",
+            isBusy: isLoading && item == mode,
+            isActionDisabled: isLoading,
+            showsImportStatus: true,
+            action: { openPicker() }
+        )
+    }
+
+    private var ticketScannerIntro: some View {
+        introPage(
+            title: "扫描验证票根",
+            subtitle: "打开相机扫描影像票根上的验证二维码\n无需先添加照片",
+            symbol: "qrcode.viewfinder",
+            accent: Color(red: 0.67, green: 0.88, blue: 1.00),
+            showsJournalBadge: false,
+            actionSymbol: "qrcode.viewfinder",
+            actionAccessibilityLabel: "扫描验证票根",
+            actionAccessibilityHint: "打开相机扫描灵动照片票根二维码",
+            isBusy: false,
+            isActionDisabled: false,
+            showsImportStatus: false,
+            action: openTicketScanner
+        )
+    }
+
+    private func introPage(
+        title: String,
+        subtitle: String,
+        symbol: String,
+        accent: Color,
+        showsJournalBadge: Bool,
+        actionSymbol: String,
+        actionAccessibilityLabel: String,
+        actionAccessibilityHint: String? = nil,
+        isBusy: Bool,
+        isActionDisabled: Bool,
+        showsImportStatus: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
         VStack(spacing: 0) {
             Spacer()
 
-            ModeGlyph(mode: item)
-                .id(item)
+            ModeGlyph(symbol: symbol, accent: accent)
+                .id(symbol)
                 .padding(.bottom, 55)
 
             HStack(spacing: 7) {
-                Text(item.title)
+                Text(title)
                     .font(.custom("Songti SC", size: 24).weight(.medium))
-                if item == .journal {
+                if showsJournalBadge {
                     Circle()
                         .fill(.pink)
                         .frame(width: 8, height: 8)
@@ -520,7 +859,7 @@ struct ContentView: View {
             }
             .foregroundStyle(.white.opacity(0.94))
 
-            Text(item.introSubtitle)
+            Text(subtitle)
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.32))
                 .multilineTextAlignment(.center)
@@ -529,22 +868,25 @@ struct ContentView: View {
                 .padding(.top, 10)
 
             HStack(spacing: 8) {
-                ForEach(CreationMode.allCases) { dotMode in
+                ForEach(introPageIDs, id: \.self) { pageID in
                     Circle()
-                        .fill(dotMode == mode ? .white : .white.opacity(0.25))
-                        .frame(width: dotMode == mode ? 6 : 5, height: dotMode == mode ? 6 : 5)
+                        .fill(pageID == introPageID ? .white : .white.opacity(0.25))
+                        .frame(
+                            width: pageID == introPageID ? 6 : 5,
+                            height: pageID == introPageID ? 6 : 5
+                        )
                 }
             }
             .padding(.top, 19)
 
-            Button(action: { openPicker() }) {
+            Button(action: action) {
                 ZStack {
-                    if isLoading && item == mode {
+                    if isBusy {
                         ProgressView()
                             .controlSize(.regular)
                             .tint(.white.opacity(0.88))
                     } else {
-                        Image(systemName: "plus")
+                        Image(systemName: actionSymbol)
                             .font(.system(size: 32, weight: .light))
                     }
                 }
@@ -554,11 +896,12 @@ struct ContentView: View {
             .buttonStyle(LiquidPressButtonStyle())
             .foregroundStyle(.white.opacity(0.92))
             .liquidGlass(in: Circle(), interactive: true, variant: .clear)
-            .disabled(isLoading)
+            .disabled(isActionDisabled)
             .padding(.top, 31)
-            .accessibilityLabel("为\(item.title)选择照片")
+            .accessibilityLabel(actionAccessibilityLabel)
+            .accessibilityHint(actionAccessibilityHint ?? "")
 
-            if isLoading && item == mode && !importStatus.isEmpty {
+            if showsImportStatus && isBusy && !importStatus.isEmpty {
                 Text(importStatus)
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.52))
@@ -572,6 +915,10 @@ struct ContentView: View {
         .offset(y: 35)
     }
 
+    private var introPageIDs: [String] {
+        CreationMode.allCases.map(\.rawValue) + [Self.ticketScannerIntroID]
+    }
+
     private func editorView(in size: CGSize) -> some View {
         let ratioValue = editorRatio(in: size)
         let availableWidth = size.width - 32
@@ -583,6 +930,9 @@ struct ContentView: View {
         } else if mode == .journal {
             // Reserve room for the liquid-glass thumbnail editor on compact phones.
             let editorReserve: CGFloat = size.height < 760 ? 285 : 230
+            canvasWidth = min(availableWidth, max(280, size.height - editorReserve) * ratioValue)
+        } else if mode == .travelTicket {
+            let editorReserve: CGFloat = size.height < 760 ? 250 : 215
             canvasWidth = min(availableWidth, max(280, size.height - editorReserve) * ratioValue)
         } else {
             // Extra-tall ratios must remain fully reachable on compact iPhones.
@@ -626,6 +976,35 @@ struct ContentView: View {
                     }
                 }
                 .zIndex(50)
+
+                if mode == .travelTicket {
+                    LiquidCircleButton(
+                        symbol: "rectangle.landscape.rotate",
+                        isEnabled: !controlsAreDimmed,
+                        action: enterTicketLandscape
+                    )
+                    .overlay(alignment: .top) {
+                        if isTicketLandscapeHintPresented {
+                            TicketLandscapeHint(
+                                tint: livePhotoHintTint,
+                                foreground: livePhotoHintForeground,
+                                action: enterTicketLandscape
+                            )
+                            .offset(y: 49)
+                            .transition(
+                                .asymmetric(
+                                    insertion: .scale(scale: 0.72, anchor: .top)
+                                        .combined(with: .opacity)
+                                        .combined(with: .move(edge: .top)),
+                                    removal: .scale(scale: 0.80, anchor: .top)
+                                        .combined(with: .opacity)
+                                )
+                            )
+                        }
+                    }
+                    .zIndex(49)
+                    .accessibilityLabel("翻转为横屏票根预览")
+                }
 
                 LiquidCircleButton(
                     symbol: "plus",
@@ -700,59 +1079,12 @@ struct ContentView: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
 
-            ArtworkCanvas(
-                mode: mode,
-                images: displayedImages,
-                palette: palette,
-                palettePercentages: palettePercentages,
-                ratio: ratio,
-                showHexValues: showHexValues,
-                showPalettePercentages: showPalettePercentages,
-                showDeviceInfo: showDeviceInfo,
-                showBubbles: showBubbles,
-                cameraWatermarkImage: activeCameraWatermark,
-                gentleBackground: gentleBackground,
-                imageScale: imageScale,
-                imageOffset: imageOffset,
-                metadata: primaryMetadata,
-                showMissingCaptureTime: showMissingCaptureTime,
-                copy: artworkCopy,
-                fontStyle: fontStyle,
-                templateStyle: templateStyle,
-                textScale: textScale,
-                bubbleScale: bubbleScale,
-                paletteOffset: paletteOffset,
-                paletteLayout: paletteLayout,
-                useLiteraryColorNames: useLiteraryColorNames,
-                preservePaletteBackground: preservePaletteBackground,
-                applyLiquidGlassOnExport: applyLiquidGlassOnExport,
-                paletteRevealStage: paletteRevealStage,
-                generationProgress: generationProgress,
-                privacyMasks: privacyMasks,
-                privacyStrokes: privacyStrokes,
-                privacyPixelatedImage: privacyPixelatedImage,
-                journalLayout: journalLayout,
-                journalTransforms: journalTransforms,
-                selectedJournalIndex: selectedJournalIndex
-            )
-            .frame(width: canvasWidth, height: canvasHeight)
-            .scaleEffect(canvasRevealed ? 1 : 0.78)
-            .opacity(canvasRevealed ? 1 : 0.18)
-            .shadow(color: .black.opacity(canvasRevealed ? 0.12 : 0), radius: 22, y: 12)
-            .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-            .gesture(activeCanvasGesture(canvasSize: CGSize(width: canvasWidth, height: canvasHeight)))
-            .accessibilityLabel(
-                mode == .privacyMosaic && isPrivacyPainting
-                    ? "隐私马赛克预览，单指\(privacyBrushMode.rawValue)"
-                    : "\(mode.title)预览，可拖拽或双指缩放"
-            )
-            .accessibilityAction(named: "编辑作品文字") {
-                if mode == .motionCard || mode == .bubbleStamp || mode == .journal {
-                    editCopyPresented = true
-                }
+            if mode == .travelTicket {
+                Spacer(minLength: 24)
             }
-            .accessibilityAction(named: "恢复默认构图") { resetComposition() }
-            .padding(.top, showsLivePlaybackControl ? 8 : 20)
+
+            artworkPreview(width: canvasWidth, height: canvasHeight)
+            .padding(.top, mode == .travelTicket ? 0 : (showsLivePlaybackControl ? 8 : 20))
 
             if mode == .privacyMosaic {
                 PrivacyMosaicControls(
@@ -789,9 +1121,188 @@ struct ContentView: View {
                 .padding(.top, 10)
             }
 
-            Spacer(minLength: mode == .privacyMosaic ? 8 : 18)
+            if mode == .travelTicket {
+                TicketEditorControls(
+                    layout: Binding(
+                        get: { ticketLayout },
+                        set: { ticketLayout = $0 }
+                    ),
+                    codeStyle: Binding(
+                        get: { ticketCodeStyle },
+                        set: { ticketCodeStyle = $0 }
+                    ),
+                    onOpenStudio: { ticketStudioPresented = true }
+                )
+                .padding(.horizontal, 18)
+                .padding(.top, 12)
+            }
+
+            Spacer(minLength: mode == .travelTicket
+                ? 24
+                : (mode == .privacyMosaic ? 8 : 18))
         }
         .safeAreaPadding(.top)
+    }
+
+    private func ticketLandscapeEditorView(in size: CGSize) -> AnyView {
+        let ratioValue = editorRatio(in: size)
+        let controlsWidth = min(270, max(220, size.width * 0.27))
+        let previewAreaWidth = max(360, size.width - controlsWidth - 62)
+        let previewAreaHeight = max(190, size.height - 82)
+        let canvasWidth = min(previewAreaWidth, previewAreaHeight * ratioValue)
+        let canvasHeight = canvasWidth / ratioValue
+
+        return AnyView(VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Button(action: exitTicketLandscape) {
+                    Label("返回竖屏", systemImage: "rectangle.portrait.rotate")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 13)
+                        .frame(height: 42)
+                }
+                .buttonStyle(LiquidPressButtonStyle())
+                .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
+                .accessibilityLabel("返回竖屏预览")
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("影像票根")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                    Text("手动横屏预览")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 8)
+
+                LiquidCircleButton(
+                    symbol: "square.grid.2x2",
+                    isEnabled: !controlsAreDimmed,
+                    action: openModeSelection
+                )
+
+                LiquidCircleButton(
+                    symbol: "plus",
+                    isEnabled: !controlsAreDimmed,
+                    action: { openPicker(append: false) }
+                )
+
+                LiquidCircleButton(
+                    symbol: saveState == .success ? "checkmark" : "arrow.down",
+                    isEnabled: canSave,
+                    isBusy: saveState == .saving,
+                    action: saveArtwork
+                )
+
+                LiquidCircleButton(
+                    symbol: "gearshape",
+                    isEnabled: !controlsAreDimmed,
+                    action: { settingsPresented = true }
+                )
+            }
+            .frame(height: 48)
+
+            HStack(spacing: 14) {
+                artworkPreview(width: canvasWidth, height: canvasHeight)
+                    .frame(
+                        maxWidth: previewAreaWidth,
+                        maxHeight: previewAreaHeight,
+                        alignment: .center
+                    )
+
+                TicketEditorControls(
+                    layout: Binding(
+                        get: { ticketLayout },
+                        set: { ticketLayout = $0 }
+                    ),
+                    codeStyle: Binding(
+                        get: { ticketCodeStyle },
+                        set: { ticketCodeStyle = $0 }
+                    ),
+                    isLandscape: true,
+                    onOpenStudio: { ticketStudioPresented = true }
+                )
+                .frame(width: controlsWidth)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .safeAreaPadding(.horizontal)
+        )
+    }
+
+    private func artworkPreview(width: CGFloat, height: CGFloat) -> AnyView {
+        AnyView(ArtworkCanvas(
+            mode: mode,
+            images: displayedImages,
+            palette: palette,
+            palettePercentages: palettePercentages,
+            ratio: ratio,
+            showHexValues: showHexValues,
+            showPalettePercentages: showPalettePercentages,
+            showDeviceInfo: showDeviceInfo,
+            showBubbles: showBubbles,
+            cameraWatermarkImage: activeCameraWatermark,
+            gentleBackground: gentleBackground,
+            imageScale: imageScale,
+            imageOffset: imageOffset,
+            metadata: primaryMetadata,
+            showMissingCaptureTime: showMissingCaptureTime,
+            copy: artworkCopy,
+            fontStyle: fontStyle,
+            templateStyle: templateStyle,
+            motionCardHeaderStyle: motionCardHeaderStyle,
+            textScale: textScale,
+            bubbleScale: bubbleScale,
+            paletteOffset: paletteOffset,
+            paletteLayout: paletteLayout,
+            useLiteraryColorNames: useLiteraryColorNames,
+            preservePaletteBackground: preservePaletteBackground,
+            applyLiquidGlassOnExport: applyLiquidGlassOnExport,
+            paletteRevealStage: paletteRevealStage,
+            generationProgress: generationProgress,
+            privacyMasks: privacyMasks,
+            privacyStrokes: privacyStrokes,
+            privacyPixelatedImage: privacyPixelatedImage,
+            journalLayout: journalLayout,
+            journalTransforms: journalTransforms,
+            selectedJournalIndex: selectedJournalIndex,
+            ticketPayload: ticketPayload,
+            ticketCodeStyle: ticketCodeStyle,
+            ticketLayout: ticketLayout,
+            ticketAppClipBaseURL: TicketEnvelope.configuredBaseURLString
+        )
+        .frame(width: width, height: height)
+        .scaleEffect(canvasRevealed ? 1 : 0.78)
+        .opacity(canvasRevealed ? 1 : 0.18)
+        .shadow(
+            color: .black.opacity(
+                mode == .travelTicket || !canvasRevealed ? 0 : 0.12
+            ),
+            radius: 22,
+            y: 12
+        )
+        .contentShape(RoundedRectangle(
+            cornerRadius: mode == .travelTicket ? 0 : 26,
+            style: .continuous
+        ))
+        .gesture(activeCanvasGesture(canvasSize: CGSize(width: width, height: height)))
+        .accessibilityLabel(
+            mode == .privacyMosaic && isPrivacyPainting
+                ? "隐私马赛克预览，单指\(privacyBrushMode.rawValue)"
+                : "\(mode.title)预览，可拖拽或双指缩放"
+        )
+        .accessibilityAction(named: "编辑作品文字") {
+            if mode == .motionCard
+                || mode == .bubbleStamp
+                || mode == .journal
+                || mode == .travelTicket {
+                editCopyPresented = true
+            }
+        }
+        .accessibilityAction(named: "恢复默认构图") { resetComposition() }
+        )
     }
 
     private func activeCanvasGesture(canvasSize: CGSize) -> AnyGesture<Void> {
@@ -1099,6 +1610,8 @@ struct ContentView: View {
             return point.y < canvasSize.height * 0.82 ? .font : .textSize
         case .journal where point.y < canvasSize.height * 0.28 || point.y > canvasSize.height * 0.68:
             return point.y < canvasSize.height * 0.28 ? .font : .textSize
+        case .travelTicket:
+            return .image
         default:
             return .image
         }
@@ -1140,6 +1653,15 @@ struct ContentView: View {
             shouldEdit = point.y > canvasSize.width * 0.91
         case .journal:
             shouldEdit = point.y < canvasSize.height * 0.28 || point.y > canvasSize.height * 0.68
+        case .travelTicket:
+            switch ticketLayout {
+            case .classic:
+                shouldEdit = point.x < canvasSize.width * 0.44
+            case .vertical:
+                shouldEdit = point.y > canvasSize.height * 0.50
+            case .minimal:
+                shouldEdit = point.y > canvasSize.height * 0.58
+            }
         default:
             shouldEdit = false
         }
@@ -1489,6 +2011,8 @@ struct ContentView: View {
         case .replaceAll:
             combined = Array(imported.prefix(mode == .journal ? 5 : 1))
             PhotoAssetLoader.removeTemporaryResources(for: selectedPhotos)
+            ticketMessage = ""
+            skippedTicketMessageForCurrentPhoto = false
             journalTransforms = Array(repeating: JournalPhotoTransform(), count: combined.count)
             selectedJournalIndex = mode == .journal ? 0 : nil
         case .append:
@@ -1626,6 +2150,14 @@ struct ContentView: View {
         }
     }
 
+    private func openTicketScanner() {
+        modeSelectionPresented = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(240))
+            ticketScannerPresented = true
+        }
+    }
+
     private func finishModeChange() {
         // Switching creation modes changes only the presentation. The selected
         // photo, its metadata/semantic analysis, palette and Live Photo resource
@@ -1643,6 +2175,8 @@ struct ContentView: View {
         presentLivePhotoHintIfNeeded()
         if mode == .privacyMosaic, selectedPhotos.contains(where: \.isLivePhoto) {
             showToast("隐私遮挡后仅支持静态导出，避免动态帧泄露隐私", duration: 3.6)
+        } else if mode == .travelTicket, selectedPhotos.contains(where: \.isLivePhoto) {
+            showToast("影像票根使用实况照片的关键帧生成静态凭证", duration: 3.0)
         }
     }
 
@@ -1673,6 +2207,31 @@ struct ContentView: View {
     private func saveArtwork() {
         guard canSave, saveState == .idle else { return }
         dismissModeSelectionHint()
+        if mode == .travelTicket,
+           TicketPayload.normalizedMessage(ticketMessage) == nil,
+           !skippedTicketMessageForCurrentPhoto {
+            ticketMessagePromptPresented = true
+            return
+        }
+        presentExportCenter()
+    }
+
+    private func presentExportCenter() {
+        if mode == .travelTicket,
+           ticketCodeStyle == .verificationQR {
+            do {
+                _ = try TicketEnvelope.invocationURL(
+                    for: ticketPayload,
+                    baseURLString: TicketEnvelope.configuredBaseURLString
+                )
+            } catch {
+                presentSaveError(
+                    error.localizedDescription,
+                    title: "无法生成验证二维码"
+                )
+                return
+            }
+        }
         if mode == .privacyMosaic {
             finishPrivacyPainting()
             if exportMetadataPolicy == .preserve {
@@ -1698,6 +2257,11 @@ struct ContentView: View {
         destination: ArtworkExportDestination
     ) {
         guard canSave, saveState == .idle else { return }
+        let effectiveFormat: ArtworkExportFormat = mode == .travelTicket
+            ? .png
+            : format
+        let ticketLayoutAtExport = ticketLayout
+        let validatesTicketAlpha = mode == .travelTicket
         stopLivePhotoPlayback()
         dismissLivePhotoHint()
         withAnimation(.easeOut(duration: 0.16)) { saveState = .saving }
@@ -1720,11 +2284,13 @@ struct ContentView: View {
                 let originalData = selectedPhotos.first?.originalData
                 let pairedVideoURLs: [Int: URL] = supportsLivePhotos
                     && mode != .privacyMosaic
+                    && mode != .travelTicket
                     && destination == .photoLibrary
                     ? liveSourceVideoURLs
                     : [:]
                 let hasMissingLiveResource = supportsLivePhotos
                     && mode != .privacyMosaic
+                    && mode != .travelTicket
                     && destination == .photoLibrary
                     && selectedPhotos.contains { $0.isLivePhoto && $0.pairedVideoURL == nil }
                 if hasMissingLiveResource {
@@ -1759,19 +2325,37 @@ struct ContentView: View {
                         image,
                         metadata: metadata,
                         originalImageData: originalData,
-                        format: format,
-                        metadataPolicy: metadataPolicy
+                        format: effectiveFormat,
+                        metadataPolicy: metadataPolicy,
+                        encodedDataValidator: validatesTicketAlpha
+                            ? {
+                                TicketArtworkAlphaMask.hasExpectedTransparency(
+                                    pngData: $0,
+                                    layout: ticketLayoutAtExport
+                                )
+                            }
+                            : nil
                     )
                 } else {
-                    showToast("正在编码 \(format.rawValue) 静态作品…", duration: 30)
+                    showToast("正在编码 \(effectiveFormat.rawValue) 静态作品…", duration: 30)
                     let data = try ArtworkExporter.encodedStillData(
                         image,
                         metadata: metadata,
                         originalImageData: originalData,
-                        format: format,
+                        format: effectiveFormat,
                         metadataPolicy: metadataPolicy
                     )
-                    let url = try ExportTemporaryFile.make(data: data, format: format)
+                    if validatesTicketAlpha,
+                       !TicketArtworkAlphaMask.hasExpectedTransparency(
+                            pngData: data,
+                            layout: ticketLayoutAtExport
+                       ) {
+                        throw ArtworkExportError.transparencyValidationFailed
+                    }
+                    let url = try ExportTemporaryFile.make(
+                        data: data,
+                        format: effectiveFormat
+                    )
                     let item = ExportedArtworkFile(url: url)
                     if destination == .files {
                         documentExportFile = item
@@ -1796,17 +2380,17 @@ struct ContentView: View {
         }
     }
 
-    private func configureVersion101Experience() {
+    private func configureVersion102Experience() {
 #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("--version101-upgrade") {
-            version101AudienceRaw = Version101Audience.upgradedFrom100.rawValue
-            didShowVersion101Update = false
+        if arguments.contains("--version102-upgrade") {
+            version102AudienceRaw = Version102Audience.upgradedFromPreviousVersion.rawValue
+            didShowVersion102Update = false
             didShowModeSelectionHint101 = false
             didAcknowledgeFreeNotice = true
-        } else if arguments.contains("--version101-fresh") {
-            version101AudienceRaw = Version101Audience.installed101.rawValue
-            didShowVersion101Update = false
+        } else if arguments.contains("--version102-fresh") {
+            version102AudienceRaw = Version102Audience.installed102.rawValue
+            didShowVersion102Update = false
             didShowModeSelectionHint101 = false
             didShowLivePhotoPlaybackHint = false
             didShowLivePhotoPlaybackHintBuild1060 = false
@@ -1814,18 +2398,18 @@ struct ContentView: View {
         }
 #endif
 
-        if version101AudienceRaw.isEmpty {
-            version101AudienceRaw = hasVersion100InstallEvidence()
-                ? Version101Audience.upgradedFrom100.rawValue
-                : Version101Audience.installed101.rawValue
+        if version102AudienceRaw.isEmpty {
+            version102AudienceRaw = hasPreviousVersionInstallEvidence()
+                ? Version102Audience.upgradedFromPreviousVersion.rawValue
+                : Version102Audience.installed102.rawValue
         }
 
-        guard version101AudienceRaw == Version101Audience.upgradedFrom100.rawValue,
-              !didShowVersion101Update else { return }
-        version101UpdatePresented = true
+        guard version102AudienceRaw == Version102Audience.upgradedFromPreviousVersion.rawValue,
+              !didShowVersion102Update else { return }
+        version102UpdatePresented = true
     }
 
-    private func hasVersion100InstallEvidence() -> Bool {
+    private func hasPreviousVersionInstallEvidence() -> Bool {
         let defaults = UserDefaults.standard
         let legacyKeys = [
             "didAcknowledgeFreeNotice",
@@ -1836,14 +2420,16 @@ struct ContentView: View {
             "paletteLayout",
             "showAppTitle",
             "didShowLivePhotoPlaybackHint",
-            "didShowLivePhotoPlaybackHintBuild1060"
+            "didShowLivePhotoPlaybackHintBuild1060",
+            "version101Audience",
+            "didShowVersion101Update"
         ]
         if legacyKeys.contains(where: { defaults.object(forKey: $0) != nil }) {
             return true
         }
 
         // App data containers survive an update, while the installed app bundle
-        // is replaced. This catches a 1.0.0 installation even when the user had
+        // is replaced. This catches an earlier installation even when the user had
         // not changed any setting yet.
         let fileManager = FileManager.default
         let containerAttributes = try? fileManager.attributesOfItem(atPath: NSHomeDirectory())
@@ -1855,9 +2441,9 @@ struct ContentView: View {
         return bundleDate.timeIntervalSince(containerDate) > 300
     }
 
-    private func completeVersion101Update() {
-        didShowVersion101Update = true
-        version101UpdatePresented = false
+    private func completeVersion102Update() {
+        didShowVersion102Update = true
+        version102UpdatePresented = false
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 80 : 460))
             presentModeSelectionHintIfNeeded()
@@ -1867,7 +2453,34 @@ struct ContentView: View {
     private func openModeSelection() {
         dismissModeSelectionHint()
         dismissLivePhotoHint()
+        dismissTicketLandscapeHint()
         modeSelectionPresented = true
+    }
+
+    private func enterTicketLandscape() {
+        guard mode == .travelTicket else { return }
+        didShowTicketLandscapeHint = true
+        dismissTicketLandscapeHint()
+        withAnimation(.easeInOut(duration: reduceMotion ? 0.12 : 0.28)) {
+            isTicketLandscape = true
+        }
+        InterfaceOrientationController.shared.request(.landscapeRight)
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+    }
+
+    private func exitTicketLandscape() {
+        setTicketLandscape(false)
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+    }
+
+    private func setTicketLandscape(_ enabled: Bool) {
+        dismissTicketLandscapeHint(animated: false)
+        withAnimation(.easeInOut(duration: reduceMotion ? 0.12 : 0.28)) {
+            isTicketLandscape = enabled
+        }
+        InterfaceOrientationController.shared.request(
+            enabled ? .landscapeRight : .portrait
+        )
     }
 
     private var guidanceHintAnimation: Animation {
@@ -1924,6 +2537,57 @@ struct ContentView: View {
             }
         } else {
             isModeSelectionHintPresented = false
+        }
+    }
+
+    private func presentTicketLandscapeHintIfNeeded() {
+        guard canPresentTicketLandscapeHint,
+              !isTicketLandscapeHintPresented,
+              ticketLandscapeHintTask == nil else { return }
+
+        ticketLandscapeHintTask = Task {
+            do {
+                try await Task.sleep(for: .milliseconds(reduceMotion ? 100 : 380))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled, canPresentTicketLandscapeHint else {
+                ticketLandscapeHintTask = nil
+                return
+            }
+
+            didShowTicketLandscapeHint = true
+            withAnimation(guidanceHintAnimation) {
+                isTicketLandscapeHintPresented = true
+            }
+            UIAccessibility.post(
+                notification: .announcement,
+                argument: "点击翻转，横屏预览票根效果更佳"
+            )
+
+            do {
+                try await Task.sleep(for: .seconds(5))
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            withAnimation(guidanceHintAnimation) {
+                isTicketLandscapeHintPresented = false
+            }
+            ticketLandscapeHintTask = nil
+        }
+    }
+
+    private func dismissTicketLandscapeHint(animated: Bool = true) {
+        ticketLandscapeHintTask?.cancel()
+        ticketLandscapeHintTask = nil
+        guard isTicketLandscapeHintPresented else { return }
+        if animated {
+            withAnimation(guidanceHintAnimation) {
+                isTicketLandscapeHintPresented = false
+            }
+        } else {
+            isTicketLandscapeHintPresented = false
         }
     }
 
@@ -2081,6 +2745,7 @@ struct ContentView: View {
                 copy: artworkCopy,
                 fontStyle: fontStyle,
                 templateStyle: templateStyle,
+                motionCardHeaderStyle: motionCardHeaderStyle,
                 textScale: textScale,
                 bubbleScale: bubbleScale,
                 paletteOffset: paletteOffset,
@@ -2094,14 +2759,33 @@ struct ContentView: View {
                     privacyMasks: privacyMasks,
                     privacyStrokes: privacyStrokes,
                     privacyPixelatedImage: privacyPixelatedImage,
-                    journalLayout: journalLayout,
-                    journalTransforms: journalTransforms,
-                    selectedJournalIndex: nil
+                journalLayout: journalLayout,
+                journalTransforms: journalTransforms,
+                selectedJournalIndex: nil,
+                ticketPayload: ticketPayload,
+                ticketCodeStyle: ticketCodeStyle,
+                ticketLayout: ticketLayout,
+                ticketAppClipBaseURL: TicketEnvelope.configuredBaseURLString
             )
             .frame(width: renderWidth, height: renderHeight)
         )
         renderer.scale = renderScale
-        return renderer.uiImage
+        guard let rendered = renderer.uiImage else { return nil }
+        guard mode == .travelTicket,
+              ticketLayout != .minimal else {
+            return rendered
+        }
+        guard let masked = TicketArtworkAlphaMask.applying(
+            to: rendered,
+            layout: ticketLayout
+        ),
+        TicketArtworkAlphaMask.hasExpectedTransparency(
+            masked,
+            layout: ticketLayout
+        ) else {
+            return nil
+        }
+        return masked
     }
 
     private func showToast(_ message: String, duration: Double) {
@@ -2123,6 +2807,69 @@ struct ContentView: View {
         errorTitle = title
         saveErrorMessage = message
         saveErrorPresented = true
+    }
+
+    private func ticketCodeExportImage(
+        _ style: TicketCodeStyle
+    ) throws -> UIImage {
+        try TicketCodeRenderer.exportCard(
+            for: style,
+            payload: ticketPayload,
+            baseURLString: TicketEnvelope.configuredBaseURLString
+        )
+    }
+
+    private func saveTicketCodeToPhotos(_ style: TicketCodeStyle) {
+        Task {
+            do {
+                let image = try ticketCodeExportImage(style)
+                try await ArtworkExporter.saveStill(
+                    image,
+                    metadata: .empty,
+                    originalImageData: nil,
+                    format: .png,
+                    metadataPolicy: .removeAll
+                )
+                showToast("\(style.title)已保存到系统相册", duration: 2.2)
+            } catch {
+                presentSaveError(
+                    error.localizedDescription,
+                    title: "无法保存票根编码"
+                )
+            }
+        }
+    }
+
+    private func saveTicketCodeToFiles(_ style: TicketCodeStyle) {
+        do {
+            let image = try ticketCodeExportImage(style)
+            guard let data = image.pngData() else {
+                throw ArtworkExportError.encodingFailed
+            }
+            let url = try ExportTemporaryFile.make(data: data, format: .png)
+            documentExportFile = ExportedArtworkFile(url: url)
+        } catch {
+            presentSaveError(
+                error.localizedDescription,
+                title: "无法导出票根编码"
+            )
+        }
+    }
+
+    private func shareTicketCode(_ style: TicketCodeStyle) {
+        do {
+            let image = try ticketCodeExportImage(style)
+            guard let data = image.pngData() else {
+                throw ArtworkExportError.encodingFailed
+            }
+            let url = try ExportTemporaryFile.make(data: data, format: .png)
+            sharedExportFile = ExportedArtworkFile(url: url)
+        } catch {
+            presentSaveError(
+                error.localizedDescription,
+                title: "无法分享票根编码"
+            )
+        }
     }
 
     private func defaultCopy(
@@ -2161,12 +2908,55 @@ struct ContentView: View {
             didShowLivePhotoPlaybackHint = false
             didShowLivePhotoPlaybackHintBuild1060 = false
         }
+        if arguments.contains("--reset-ticket-landscape-hint") {
+            dismissTicketLandscapeHint(animated: false)
+            didShowTicketLandscapeHint = false
+        }
         if arguments.contains("--palette") { mode = .colorPalette }
         if arguments.contains("--journal") { mode = .journal }
         if arguments.contains("--stamp") { mode = .bubbleStamp }
         if arguments.contains("--wallpaper") { mode = .spectrumWallpaper }
         if arguments.contains("--privacy") { mode = .privacyMosaic }
+        if arguments.contains("--ticket") { mode = .travelTicket }
+        if arguments.contains("--ticket-barcode") {
+            ticketCodeStyleRaw = TicketCodeStyle.barcode.rawValue
+        }
+        if arguments.contains("--ticket-qr") {
+            ticketCodeStyleRaw = TicketCodeStyle.verificationQR.rawValue
+        }
+        if arguments.contains("--ticket-header-city") {
+            ticketHeaderModeRaw = TicketHeaderMode.city.rawValue
+        }
+        if arguments.contains("--ticket-header-blank") {
+            ticketHeaderModeRaw = TicketHeaderMode.custom.rawValue
+            ticketCustomHeader = ""
+        }
+        if arguments.contains("--ticket-city-chinese") {
+            ticketCityNameStyleRaw = TicketCityNameStyle.chinese.rawValue
+        }
+        if arguments.contains("--ticket-city-pinyin") {
+            ticketCityNameStyleRaw = TicketCityNameStyle.pinyin.rawValue
+        }
+        if arguments.contains("--ticket-layout-classic") {
+            ticketLayoutRaw = TicketLayoutStyle.classic.rawValue
+        }
+        if arguments.contains("--ticket-layout-vertical") {
+            ticketLayoutRaw = TicketLayoutStyle.vertical.rawValue
+        }
+        if arguments.contains("--ticket-layout-minimal") {
+            ticketLayoutRaw = TicketLayoutStyle.minimal.rawValue
+        }
+        if let debugMessage = arguments
+            .first(where: { $0.hasPrefix("--ticket-message=") })
+            .map({ String($0.dropFirst("--ticket-message=".count)) }) {
+            ticketMessage = String(
+                debugMessage.prefix(TicketPayload.messageCharacterLimit)
+            )
+        }
         ratio = mode.defaultRatio
+        if mode == .travelTicket, ticketLayout == .vertical {
+            ratio = .threeFour
+        }
         if arguments.contains("--ratio-square") { ratio = .oneOne }
         if arguments.contains("--ratio-four-five") { ratio = .fourFive }
         if arguments.contains("--ratio-nine-sixteen") { ratio = .nineSixteen }
@@ -2276,7 +3066,12 @@ struct ContentView: View {
             altitude: nil,
             placeName: "示例地点"
         )
-        let debugMetadata = fixtureData.map(PhotoMetadata.read(from:)) ?? fallbackMetadata
+        var debugMetadata = fixtureData.map(PhotoMetadata.read(from:)) ?? fallbackMetadata
+        if arguments.contains("--ticket-city-fixture") {
+            debugMetadata.latitude = 25.6065
+            debugMetadata.longitude = 100.2676
+            debugMetadata.placeName = "大理市 · 大理古城"
+        }
         let debugDevice = debugMetadata.captureDevice
         print(
             "DEVICE_BADGE_RESULT: \(debugDevice.category.rawValue) | "
@@ -2389,6 +3184,30 @@ struct ContentView: View {
         if arguments.contains("--settings") { settingsPresented = true }
         if arguments.contains("--mode-picker") { modeSelectionPresented = true }
         if arguments.contains("--export-center") { exportCenterPresented = true }
+        if mode == .travelTicket,
+           arguments.contains("--ticket-studio"),
+           !arguments.contains("--ticket-landscape") {
+            ticketStudioPresented = true
+        }
+        if mode == .travelTicket, arguments.contains("--ticket-landscape") {
+            Task {
+                try? await Task.sleep(for: .milliseconds(260))
+                enterTicketLandscape()
+                if arguments.contains("--ticket-studio") {
+                    try? await Task.sleep(for: .milliseconds(420))
+                    ticketStudioPresented = true
+                }
+            }
+        }
+        if mode == .travelTicket, arguments.contains("--ticket-verify") {
+            verifiedTicketPayload = ticketPayload
+        }
+        if mode == .travelTicket, arguments.contains("--ticket-message-prompt") {
+            Task {
+                try? await Task.sleep(for: .milliseconds(350))
+                saveArtwork()
+            }
+        }
         if mode == .privacyMosaic, arguments.contains("--privacy-paint") {
             isPrivacyPainting = true
             privacyBrushMode = .paint
@@ -2482,6 +3301,94 @@ struct ContentView: View {
                         atomically: true,
                         encoding: .utf8
                     )
+            }
+        }
+        if mode == .travelTicket,
+           arguments.contains("--debug-ticket-code-suite") {
+            Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard let directory = FileManager.default.urls(
+                    for: .documentDirectory,
+                    in: .userDomainMask
+                ).first else { return }
+                var report: [String] = []
+                do {
+                    let url = try TicketEnvelope.invocationURL(
+                        for: ticketPayload,
+                        baseURLString: TicketEnvelope.configuredBaseURLString
+                    )
+                    let decoded = try TicketEnvelope.decode(from: url)
+                    report.append(
+                        decoded == ticketPayload.compacted(level: 0)
+                            ? "PASS QR payload round trip"
+                            : "FAIL QR payload round trip"
+                    )
+
+                    for style in TicketCodeStyle.allCases {
+                        let image = try TicketCodeRenderer.exportCard(
+                            for: style,
+                            payload: ticketPayload,
+                            baseURLString: TicketEnvelope.configuredBaseURLString
+                        )
+                        guard let data = image.pngData() else {
+                            report.append("FAIL \(style.title) PNG encoding")
+                            continue
+                        }
+                        let name = style == .barcode
+                            ? "ticket-code-barcode.png"
+                            : "ticket-code-qr.png"
+                        try data.write(
+                            to: directory.appendingPathComponent(name),
+                            options: .atomic
+                        )
+                        report.append(
+                            image.size.width >= 1_200
+                                ? "PASS \(style.title) export"
+                                : "FAIL \(style.title) export size"
+                        )
+                    }
+                } catch {
+                    report.append("FAIL \(error.localizedDescription)")
+                }
+                try? report.joined(separator: "\n").write(
+                    to: directory.appendingPathComponent("ticket-code-suite.txt"),
+                    atomically: true,
+                    encoding: .utf8
+                )
+            }
+        }
+        if mode == .travelTicket,
+           arguments.contains("--debug-ticket-save-photos") {
+            Task {
+                try? await Task.sleep(for: .milliseconds(700))
+                guard let directory = FileManager.default.urls(
+                    for: .documentDirectory,
+                    in: .userDomainMask
+                ).first else { return }
+                let reportURL = directory.appendingPathComponent(
+                    "ticket-save-photos.txt"
+                )
+                do {
+                    let image = try ticketCodeExportImage(ticketCodeStyle)
+                    try await ArtworkExporter.saveStill(
+                        image,
+                        metadata: .empty,
+                        originalImageData: nil,
+                        format: .png,
+                        metadataPolicy: .removeAll
+                    )
+                    try? "PASS ticket code saved to Photos".write(
+                        to: reportURL,
+                        atomically: true,
+                        encoding: .utf8
+                    )
+                } catch {
+                    try? "FAIL \(error.localizedDescription)".write(
+                        to: reportURL,
+                        atomically: true,
+                        encoding: .utf8
+                    )
+                }
             }
         }
         if mode == .privacyMosaic, arguments.contains("--privacy-render") {
@@ -2596,6 +3503,7 @@ private struct CreationModeSelectionView: View {
 
     let selectedMode: CreationMode
     let onSelect: (CreationMode) -> Void
+    let onScanTicket: () -> Void
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -2630,9 +3538,13 @@ private struct CreationModeSelectionView: View {
             .padding(.bottom, 14)
 
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(CreationMode.allCases) { item in
-                        modeCard(item)
+                VStack(spacing: 12) {
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(CreationMode.allCases) { item in
+                            modeCard(item)
+                        }
+
+                        scanTicketCard
                     }
                 }
                 .padding(.horizontal, 16)
@@ -2651,6 +3563,43 @@ private struct CreationModeSelectionView: View {
             }
             .ignoresSafeArea()
         }
+    }
+
+    private var scanTicketCard: some View {
+        Button(action: onScanTicket) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "qrcode.viewfinder")
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 42, height: 42)
+
+                    Spacer(minLength: 8)
+                }
+
+                Text("扫描验证票根")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+
+                Text("打开相机扫描二维码，在本机查看票根验证结果")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 132, alignment: .topLeading)
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
+        .buttonStyle(LiquidPressButtonStyle())
+        .liquidGlass(
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+            interactive: true,
+            variant: .clear
+        )
+        .accessibilityLabel("扫描验证票根")
+        .accessibilityHint("打开相机扫描灵动照片票根二维码")
     }
 
     private func modeCard(_ item: CreationMode) -> some View {
@@ -2713,22 +3662,15 @@ private struct CreationModeSelectionView: View {
 }
 
 private struct ModeGlyph: View {
-    let mode: CreationMode
+    let symbol: String
+    let accent: Color
 
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(mode.accent.opacity(0.72))
-                .frame(width: 66, height: 66)
-                .offset(y: -16)
-            Circle()
-                .fill(.white.opacity(0.30))
-                .frame(width: 66, height: 66)
-            Circle()
-                .fill(.black.opacity(0.46))
-                .frame(width: 66, height: 66)
-                .offset(y: 16)
-        }
+        Image(systemName: symbol)
+            .font(.system(size: 62, weight: .light))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(accent.opacity(0.94))
+            .frame(width: 98, height: 98)
         .shadow(color: .black.opacity(0.12), radius: 12, y: 7)
         .transaction { transaction in
             transaction.animation = nil
@@ -2795,7 +3737,9 @@ private struct ArtworkCopyEditor: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                if mode == .motionCard || mode == .bubbleStamp {
+                if mode == .motionCard
+                    || mode == .bubbleStamp
+                    || mode == .travelTicket {
                     Section("标题") {
                         TextField("输入标题", text: tracked(\.title), axis: .vertical)
                             .lineLimit(1...3)
@@ -2803,7 +3747,7 @@ private struct ArtworkCopyEditor: View {
                             .submitLabel(.done)
                     }
                 }
-                if mode == .bubbleStamp {
+                if mode == .bubbleStamp || mode == .travelTicket {
                     Section("英文副标题") {
                         TextField("输入副标题", text: tracked(\.subtitle), axis: .vertical)
                             .lineLimit(1...3)

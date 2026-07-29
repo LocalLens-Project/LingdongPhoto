@@ -3,4 +3,6 @@
 DEVELOPMENT_TEAM = YOUR_TEAM_ID
 PRODUCT_BUNDLE_IDENTIFIER = com.example.yourapp
 SHARE_EXTENSION_BUNDLE_IDENTIFIER = com.example.yourapp.ShareExtension
+APP_CLIP_BUNDLE_IDENTIFIER = com.example.yourapp.Clip
+PARENT_APP_BUNDLE_IDENTIFIER = com.example.yourapp
 APP_GROUP_IDENTIFIER = group.com.example.yourapp

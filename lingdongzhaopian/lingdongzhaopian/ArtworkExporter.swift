@@ -16,6 +16,7 @@ enum ArtworkExportError: LocalizedError {
     case missingVideo
     case videoWriterFailed(String)
     case photoLibraryFailed
+    case transparencyValidationFailed
 
     var errorDescription: String? {
         switch self {
@@ -29,6 +30,8 @@ enum ArtworkExportError: LocalizedError {
             "Live Photo 生成失败：\(reason)"
         case .photoLibraryFailed:
             "保存失败，请确认设备存储空间后重试。"
+        case .transparencyValidationFailed:
+            "票根透明区域校验失败，请稍后重试。"
         }
     }
 }
@@ -104,7 +107,8 @@ enum ArtworkExporter {
         metadata: PhotoMetadata,
         originalImageData: Data?,
         format: ArtworkExportFormat = .jpeg,
-        metadataPolicy: ArtworkMetadataPolicy = .preserve
+        metadataPolicy: ArtworkMetadataPolicy = .preserve,
+        encodedDataValidator: ((Data) -> Bool)? = nil
     ) async throws {
         let data = try imageData(
             image: image,
@@ -114,6 +118,10 @@ enum ArtworkExporter {
             format: format,
             metadataPolicy: metadataPolicy
         )
+        if let encodedDataValidator,
+           !encodedDataValidator(data) {
+            throw ArtworkExportError.transparencyValidationFailed
+        }
         try await saveToPhotoLibrary(
             photoData: data,
             pairedVideoURL: nil,
@@ -200,7 +208,8 @@ enum ArtworkExporter {
         format: ArtworkExportFormat,
         metadataPolicy: ArtworkMetadataPolicy
     ) throws -> Data {
-        guard let cgImage = image.cgImage,
+        guard let sourceImage = image.cgImage,
+              let cgImage = imageForEncoding(sourceImage, format: format),
               let destinationData = CFDataCreateMutable(nil, 0),
               let destination = CGImageDestinationCreateWithData(
                 destinationData,
@@ -223,7 +232,6 @@ enum ArtworkExporter {
         }
         properties[kCGImagePropertyPixelWidth] = cgImage.width
         properties[kCGImagePropertyPixelHeight] = cgImage.height
-        properties[kCGImagePropertyOrientation] = 1
         properties[kCGImageDestinationLossyCompressionQuality] = 0.94
         if metadataPolicy.preservesMetadata {
             merge(
@@ -240,6 +248,11 @@ enum ArtworkExporter {
             properties.removeValue(forKey: kCGImagePropertyIPTCDictionary)
         }
 
+        // The exported pixels are rendered in their final upright orientation.
+        // Do not retain the source photo's TIFF rotation tag, otherwise Photos
+        // may rotate the already-upright artwork a second time in its viewer.
+        normalizeRenderedOrientation(in: &properties)
+
         var makerApple = metadataPolicy.preservesMetadata
             ? properties[kCGImagePropertyMakerAppleDictionary] as? [String: Any] ?? [:]
             : [:]
@@ -255,6 +268,46 @@ enum ArtworkExporter {
             throw ArtworkExportError.encodingFailed
         }
         return destinationData as Data
+    }
+
+    private static func imageForEncoding(
+        _ image: CGImage,
+        format: ArtworkExportFormat
+    ) -> CGImage? {
+        guard format == .jpeg else { return image }
+
+        // JPEG has no alpha channel. ImageIO otherwise turns fully transparent
+        // ticket corners and the punched notch black. Composite them over a
+        // neutral white surface so JPEG exports remain clean, while PNG/HEIC
+        // continue to preserve the genuinely hollow areas.
+        guard let context = CGContext(
+            data: nil,
+            width: image.width,
+            height: image.height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return nil
+        }
+        let rect = CGRect(x: 0, y: 0, width: image.width, height: image.height)
+        context.setFillColor(CGColor(gray: 1, alpha: 1))
+        context.fill(rect)
+        context.draw(image, in: rect)
+        return context.makeImage()
+    }
+
+    private static func normalizeRenderedOrientation(
+        in properties: inout [CFString: Any]
+    ) {
+        properties[kCGImagePropertyOrientation] = 1
+
+        guard var tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any] else {
+            return
+        }
+        tiff[kCGImagePropertyTIFFOrientation] = 1
+        properties[kCGImagePropertyTIFFDictionary] = tiff
     }
 
     private static func merge(

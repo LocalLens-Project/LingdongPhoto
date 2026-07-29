@@ -176,6 +176,32 @@ struct ModeSelectionHint: View {
     }
 }
 
+struct TicketLandscapeHint: View {
+    let tint: Color
+    let foreground: Color
+    let action: () -> Void
+
+    var body: some View {
+        let shape = ModeSelectionHintShape()
+        Button(action: action) {
+            Text("点击翻转，横屏预览更佳")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(foreground)
+                .lineLimit(1)
+                .padding(.top, 7)
+                .frame(width: 202, height: 52)
+                .contentShape(shape)
+        }
+        .buttonStyle(LivePhotoHintButtonStyle())
+        .background {
+            shape.fill(tint.opacity(0.18))
+        }
+        .liquidGlass(in: shape, interactive: true, variant: .clear)
+        .accessibilityLabel("点击翻转，横屏预览票根效果更佳")
+        .accessibilityHint("切换到应用内横屏票根工作区")
+    }
+}
+
 private struct ModeSelectionHintShape: InsettableShape {
     private var insetAmount: CGFloat = 0
 

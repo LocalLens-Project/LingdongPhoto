@@ -234,7 +234,7 @@ object LiteraryColorCatalog {
     }
 }
 
-data class MotionCardTheme(val background: RGBColor, val foreground: RGBColor)
+data class MotionCardTheme(val background: RGBColor, val foreground: RGBColor, val anchor: RGBColor)
 
 object MotionCardThemeResolver {
     fun resolve(colors: List<RGBColor>, percentages: List<Double>): MotionCardTheme {
@@ -271,11 +271,102 @@ object MotionCardThemeResolver {
         val preferred = anchor.mixed(if (dark) white else black, if (dark) .88f else .82f)
         val foreground = if (preferred.contrastRatio(background) >= 7f) preferred
         else if (black.contrastRatio(background) >= white.contrastRatio(background)) black else white
-        return MotionCardTheme(background, foreground)
+        return MotionCardTheme(background, foreground, anchor)
     }
 
     private val RGBColor.chromaSpan: Float
         get() = maxOf(red, green, blue) - minOf(red, green, blue)
+
+    private fun RGBColor.mixed(other: RGBColor, amount: Float): RGBColor {
+        val value = amount.coerceIn(0f, 1f)
+        return RGBColor(
+            red + (other.red - red) * value,
+            green + (other.green - green) * value,
+            blue + (other.blue - blue) * value,
+        )
+    }
+}
+
+data class MotionCardGradientTheme(val colors: List<RGBColor>, val foreground: RGBColor)
+
+/**
+ * Builds the "取色渐变" card header.
+ *
+ * The upper stop borrows a sufficiently represented secondary tone while the lower edge returns to
+ * the dominant image tone, so the header reads as a continuation of the photograph without copying
+ * or blurring any recognisable image content.
+ */
+object MotionCardGradientResolver {
+    private const val MINIMUM_TEXT_CONTRAST = 7f
+
+    fun resolve(colors: List<RGBColor>, percentages: List<Double>): MotionCardGradientTheme {
+        val source = colors.ifEmpty { listOf(RGBColor(.34f, .53f, .31f)) }
+        val solid = MotionCardThemeResolver.resolve(source, percentages)
+        val weights = source.indices.map { index -> percentages.getOrElse(index) { 0.0 }.coerceAtLeast(0.0) }
+        val strongest = maxOf(weights.maxOrNull() ?: 0.0, 1.0)
+        val support = source.indices
+            .filter { index ->
+                source[index] != solid.anchor &&
+                    (weights[index] >= strongest * .08 || weights[index] >= 2)
+            }
+            .maxByOrNull { index -> supportScore(source[index], weights[index], solid.anchor, strongest) }
+            ?.let { source[it] }
+            ?: solid.background
+
+        val raw = listOf(
+            support.mixed(solid.anchor, .42f),
+            support.mixed(solid.anchor, .68f),
+            solid.anchor.mixed(solid.background, .16f),
+            solid.anchor,
+        )
+
+        val black = RGBColor(.025f, .025f, .028f)
+        val white = RGBColor(.975f, .975f, .97f)
+        val blackMinimum = raw.minOf { black.contrastRatio(it) }
+        val whiteMinimum = raw.minOf { white.contrastRatio(it) }
+        val neutral = if (blackMinimum >= whiteMinimum) black else white
+        val safe = raw.map { colorEnsuringContrast(it, neutral) }.toMutableList()
+
+        // Nearly monochrome photographs can otherwise produce a gradient that is mathematically
+        // present but visually indistinguishable from a solid fill. Strengthen only the far edge so
+        // the transition into the photograph still feels continuous.
+        if (neutral.relativeLuminance > .5f) {
+            safe[0] = safe[0].mixed(black, .38f)
+            safe[1] = safe[1].mixed(black, .16f)
+        } else {
+            safe[0] = colorEnsuringContrast(safe[0].mixed(black, .12f), neutral)
+            safe[1] = colorEnsuringContrast(safe[1].mixed(black, .05f), neutral)
+        }
+
+        val tinted = solid.anchor.mixed(neutral, .88f)
+        val foreground = if (safe.all { tinted.contrastRatio(it) >= MINIMUM_TEXT_CONTRAST }) tinted else neutral
+        return MotionCardGradientTheme(safe, foreground)
+    }
+
+    private fun supportScore(color: RGBColor, weight: Double, anchor: RGBColor, strongest: Double): Double {
+        val redDelta = (color.red - anchor.red).toDouble()
+        val greenDelta = (color.green - anchor.green).toDouble()
+        val blueDelta = (color.blue - anchor.blue).toDouble()
+        val distance = kotlin.math.sqrt(redDelta * redDelta + greenDelta * greenDelta + blueDelta * blueDelta)
+        val luminanceDistance = abs(color.relativeLuminance - anchor.relativeLuminance).toDouble()
+        return (weight / strongest).coerceAtMost(1.0) * .52 +
+            minOf(distance, 1.2) * .30 +
+            minOf(luminanceDistance, 1.0) * .18
+    }
+
+    private fun colorEnsuringContrast(initial: RGBColor, foreground: RGBColor): RGBColor {
+        val target = if (foreground.relativeLuminance > .5f) {
+            RGBColor(.018f, .018f, .020f)
+        } else {
+            RGBColor(.985f, .985f, .98f)
+        }
+        var result = initial
+        repeat(24) {
+            if (foreground.contrastRatio(result) >= MINIMUM_TEXT_CONTRAST) return result
+            result = result.mixed(target, .08f)
+        }
+        return result
+    }
 
     private fun RGBColor.mixed(other: RGBColor, amount: Float): RGBColor {
         val value = amount.coerceIn(0f, 1f)

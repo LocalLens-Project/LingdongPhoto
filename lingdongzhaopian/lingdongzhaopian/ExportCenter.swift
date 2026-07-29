@@ -132,6 +132,7 @@ struct ExportCenterView: View {
     @Binding var destination: ArtworkExportDestination
     let sourcePixelWidth: CGFloat
     let supportsLiveExport: Bool
+    let requiresTransparency: Bool
     let onExport: () -> Void
 
     var body: some View {
@@ -165,9 +166,15 @@ struct ExportCenterView: View {
                                 title: "图片格式",
                                 symbol: "doc.richtext",
                                 selection: $format,
-                                values: ArtworkExportFormat.allCases
+                                values: requiresTransparency
+                                    ? [.png]
+                                    : ArtworkExportFormat.allCases
                             )
-                            Text("\(resolution.detail) · \(format.detail)")
+                            Text(
+                                requiresTransparency
+                                    ? "\(resolution.detail) · PNG 保留票根圆角与镂空处的透明像素"
+                                    : "\(resolution.detail) · \(format.detail)"
+                            )
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)

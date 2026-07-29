@@ -24,6 +24,7 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
         AppUiState(
             preferences = readPreferences(),
             noticeAcknowledged = prefs.getBoolean("noticeAcknowledged", false),
+            updateLog102Acknowledged = prefs.getBoolean("updateLogAcknowledged_1_0_2", false),
         )
     )
     val state: StateFlow<AppUiState> = _state.asStateFlow()
@@ -36,12 +37,19 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
         update { it.copy(noticeAcknowledged = true) }
     }
 
+    fun acknowledgeUpdateLog102() {
+        prefs.edit().putBoolean("updateLogAcknowledged_1_0_2", true).apply()
+        update { it.copy(updateLog102Acknowledged = true) }
+    }
+
     fun setMode(mode: CreationMode) {
-        if (mode == CreationMode.PrivacyMosaic) stopMotionPreview()
+        if (mode == CreationMode.PrivacyMosaic || mode == CreationMode.TravelTicket) stopMotionPreview()
         update {
         it.copy(
             mode = mode,
-            ratio = mode.defaultRatio,
+            ratio = if (mode == CreationMode.TravelTicket) {
+                it.preferences.ticketLayout.defaultRatio
+            } else mode.defaultRatio,
             imageScale = 1f,
             imageOffset = Offset.Zero,
             paletteOffset = 0f,
@@ -52,6 +60,18 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
 
     fun setRatio(value: ArtworkRatio) = update { it.copy(ratio = value) }
     fun setTemplate(value: ArtworkTemplateStyle) = setPreferences(state.value.preferences.copy(templateStyle = value))
+
+    fun setTicketLayout(value: TicketLayoutStyle) {
+        setPreferences(state.value.preferences.copy(ticketLayout = value))
+        update { current ->
+            if (current.mode == CreationMode.TravelTicket) {
+                current.copy(ratio = value.defaultRatio, imageScale = 1f, imageOffset = Offset.Zero)
+            } else current
+        }
+    }
+
+    fun setTicketCodeStyle(value: TicketCodeStyle) =
+        setPreferences(state.value.preferences.copy(ticketCodeStyle = value))
     fun setJournalLayout(value: JournalLayoutMode) = setPreferences(state.value.preferences.copy(journalLayout = value))
     fun setPaletteLayout(value: PaletteLayoutMode) = setPreferences(state.value.preferences.copy(paletteLayout = value)).also {
         update { current -> current.copy(paletteOffset = 0f) }
@@ -81,6 +101,10 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
                         palette = paletteResult.colors,
                         palettePercentages = paletteResult.percentages,
                         artworkCopy = copy,
+                        ticketMessage = if (!append && replaceIndex == null) "" else it.ticketMessage,
+                        ticketSessionID = if (!append && replaceIndex == null) {
+                            it.ticketSessionID + 1L
+                        } else it.ticketSessionID,
                         isLoading = false,
                         loadingStatus = "",
                         imageScale = 1f,
@@ -225,6 +249,10 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
     fun clearMotionExportFrames() = update { it.copy(motionPreviewFrames = emptyMap(), isMotionPlaying = false) }
 
     fun updateCopy(value: ArtworkCopy) = update { it.copy(artworkCopy = value) }
+    fun updateTicketMessage(value: String) = update {
+        it.copy(ticketMessage = TicketPayload.limitedMessage(value))
+    }
+
     fun regenerateCopy() {
         val current = state.value
         val photo = current.photos.firstOrNull() ?: return
@@ -298,11 +326,23 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
         supportsMotionPhotos = prefs.getBoolean("supportsMotionPhotos", true),
         paletteLayout = enumValueOrDefault(prefs.getString("paletteLayout", null), PaletteLayoutMode.Floating),
         templateStyle = enumValueOrDefault(prefs.getString("templateStyle", null), ArtworkTemplateStyle.Classic),
+        motionCardHeaderStyle = enumValueOrDefault(prefs.getString("motionCardHeaderStyle", null), MotionCardHeaderStyle.Solid),
         journalLayout = enumValueOrDefault(prefs.getString("journalLayout", null), JournalLayoutMode.Automatic),
         exportFormat = enumValueOrDefault(prefs.getString("exportFormat", null), ExportFormat.Jpeg),
         exportResolution = enumValueOrDefault(prefs.getString("exportResolution", null), ExportResolution.Standard),
         metadataPolicy = enumValueOrDefault(prefs.getString("metadataPolicy", null), MetadataPolicy.RemoveLocation),
         exportDestination = enumValueOrDefault(prefs.getString("exportDestination", null), ExportDestination.PhotoLibrary),
+        ticketCodeStyle = enumValueOrDefault(prefs.getString("ticketCodeStyle", null), TicketCodeStyle.Barcode),
+        ticketLayout = enumValueOrDefault(prefs.getString("ticketLayout", null), TicketLayoutStyle.Classic),
+        ticketShowCopy = prefs.getBoolean("ticketShowCopy", true),
+        ticketShowDate = prefs.getBoolean("ticketShowDate", true),
+        ticketShowPlace = prefs.getBoolean("ticketShowPlace", false),
+        ticketShowDevice = prefs.getBoolean("ticketShowDevice", true),
+        ticketShowParameters = prefs.getBoolean("ticketShowParameters", true),
+        ticketShowPalette = prefs.getBoolean("ticketShowPalette", true),
+        ticketHeaderMode = enumValueOrDefault(prefs.getString("ticketHeaderMode", null), TicketHeaderMode.Custom),
+        ticketCustomHeader = prefs.getString("ticketCustomHeader", null) ?: "LINGDONG",
+        ticketCityNameStyle = enumValueOrDefault(prefs.getString("ticketCityNameStyle", null), TicketCityNameStyle.Pinyin),
     )
 
     private inline fun <reified T : Enum<T>> enumValueOrDefault(raw: String?, default: T): T =
@@ -323,11 +363,23 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
             .putBoolean("supportsMotionPhotos", value.supportsMotionPhotos)
             .putString("paletteLayout", value.paletteLayout.name)
             .putString("templateStyle", value.templateStyle.name)
+            .putString("motionCardHeaderStyle", value.motionCardHeaderStyle.name)
             .putString("journalLayout", value.journalLayout.name)
             .putString("exportFormat", value.exportFormat.name)
             .putString("exportResolution", value.exportResolution.name)
             .putString("metadataPolicy", value.metadataPolicy.name)
             .putString("exportDestination", value.exportDestination.name)
+            .putString("ticketCodeStyle", value.ticketCodeStyle.name)
+            .putString("ticketLayout", value.ticketLayout.name)
+            .putBoolean("ticketShowCopy", value.ticketShowCopy)
+            .putBoolean("ticketShowDate", value.ticketShowDate)
+            .putBoolean("ticketShowPlace", value.ticketShowPlace)
+            .putBoolean("ticketShowDevice", value.ticketShowDevice)
+            .putBoolean("ticketShowParameters", value.ticketShowParameters)
+            .putBoolean("ticketShowPalette", value.ticketShowPalette)
+            .putString("ticketHeaderMode", value.ticketHeaderMode.name)
+            .putString("ticketCustomHeader", value.ticketCustomHeader)
+            .putString("ticketCityNameStyle", value.ticketCityNameStyle.name)
             .apply()
     }
 
