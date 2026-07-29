@@ -2,6 +2,7 @@ package cn.locallens.lingdongzhaopian
 
 import android.content.Intent
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -67,6 +68,14 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     state = state,
                     viewModel = viewModel,
                     onExport = { bounds -> exportArtwork(findComposeRoot(), bounds) },
+                    onExportTicketCode = { style, destination -> exportTicketCode(style, destination) },
+                    onTicketLandscapeChanged = { landscape ->
+                        requestedOrientation = if (landscape) {
+                            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                        } else {
+                            ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                        }
+                    },
                 )
             }
         }
@@ -120,6 +129,59 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
 
+    /** Exports the credential on its own — no photograph, no metadata, no location. */
+    private fun exportTicketCode(style: TicketCodeStyle, destination: ExportDestination) {
+        lifecycleScope.launch {
+            val exported = runCatching {
+                withContext(Dispatchers.Default) {
+                    val bitmap = TicketCodeRenderer.exportCard(style, viewModel.state.value.ticketPayload)
+                    val state = viewModel.state.value
+                    ExportManager.encode(
+                        this@MainActivity,
+                        bitmap,
+                        state.copy(
+                            photos = emptyList(),
+                            preferences = state.preferences.copy(
+                                exportFormat = ExportFormat.Png,
+                                metadataPolicy = MetadataPolicy.RemoveAll,
+                            ),
+                        ),
+                    ).also { bitmap.recycle() }
+                }
+            }.getOrElse {
+                Toast.makeText(this@MainActivity, "无法生成票根编码：${it.message ?: "请稍后重试"}", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            when (destination) {
+                ExportDestination.PhotoLibrary -> {
+                    val saved = withContext(Dispatchers.IO) {
+                        ExportManager.saveToPhotoLibrary(this@MainActivity, exported)
+                    }
+                    Toast.makeText(this@MainActivity, if (saved) "${style.title}已保存到相册" else "保存失败", Toast.LENGTH_SHORT).show()
+                }
+
+                ExportDestination.Files -> {
+                    pendingDocument = exported
+                    createDocument.launch(exported.fileName)
+                }
+
+                ExportDestination.Share -> {
+                    val uri = FileProvider.getUriForFile(this@MainActivity, "$packageName.files", exported.file)
+                    startActivity(
+                        Intent.createChooser(
+                            Intent(Intent.ACTION_SEND).apply {
+                                type = exported.mime
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            },
+                            "分享票根编码",
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     private fun findComposeRoot(): View {
         val content = findViewById<ViewGroup>(android.R.id.content)
         return content.getChildAt(0) ?: content
@@ -132,11 +194,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             viewModel.setExporting(true)
             delay(220)
             val rawState = viewModel.state.value
-            val state = if (rawState.mode == CreationMode.PrivacyMosaic && rawState.preferences.metadataPolicy == MetadataPolicy.Preserve) {
+            var state = if (rawState.mode == CreationMode.PrivacyMosaic && rawState.preferences.metadataPolicy == MetadataPolicy.Preserve) {
                 rawState.copy(preferences = rawState.preferences.copy(metadataPolicy = MetadataPolicy.RemoveLocation))
             } else rawState
+            if (state.mode == CreationMode.TravelTicket) {
+                // Only PNG keeps the alpha in the ticket's rounded corners and punched notch.
+                state = state.copy(preferences = state.preferences.copy(exportFormat = ExportFormat.Png))
+            }
             val exportsMotionPhoto = state.preferences.supportsMotionPhotos &&
                 state.mode != CreationMode.PrivacyMosaic &&
+                state.mode != CreationMode.TravelTicket &&
                 state.preferences.exportDestination == ExportDestination.PhotoLibrary &&
                 state.photos.any { it.isMotionPhoto }
             if (exportsMotionPhoto) Toast.makeText(this@MainActivity, "正在生成 Motion Photo 动态作品…", Toast.LENGTH_LONG).show()

@@ -25,9 +25,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -63,6 +66,12 @@ class AppInstrumentedTest {
     fun dismissNotice() {
         val nodes = composeRule.onAllNodesWithText("我知道了").fetchSemanticsNodes()
         if (nodes.isNotEmpty()) composeRule.onNodeWithText("我知道了").performClick()
+        composeRule.waitForIdle()
+        val updateNodes = composeRule.onAllNodesWithText("开始体验 1.0.2").fetchSemanticsNodes()
+        if (updateNodes.isNotEmpty()) {
+            composeRule.onNodeWithText("开始体验 1.0.2").performClick()
+            composeRule.waitForIdle()
+        }
     }
 
     @Test
@@ -75,10 +84,7 @@ class AppInstrumentedTest {
         shareImage(createTestJpeg("all-modes.jpg"))
         waitForEditor()
         CreationMode.entries.forEach { mode ->
-            composeRule.onNodeWithContentDescription("设置").performClick()
-            composeRule.waitUntil(5_000) { composeRule.onAllNodesWithText(mode.title).fetchSemanticsNodes().isNotEmpty() }
-            composeRule.onNodeWithText(mode.title).performClick()
-            composeRule.waitForIdle()
+            selectMode(mode)
             composeRule.onNodeWithTag("artwork-${mode.name}").assertIsDisplayed()
         }
     }
@@ -244,9 +250,7 @@ class AppInstrumentedTest {
     fun paletteCanvasRedrawsDirectlyAtTwoKResolution() = runBlocking {
         shareImage(createTestJpeg("high-resolution.jpg"))
         waitForEditor()
-        composeRule.onNodeWithContentDescription("设置").performClick()
-        composeRule.onNodeWithText(CreationMode.ColorPalette.title).performClick()
-        composeRule.waitForIdle()
+        selectMode(CreationMode.ColorPalette)
         val bounds = composeRule.onNodeWithTag("artwork-${CreationMode.ColorPalette.name}").fetchSemanticsNode().boundsInRoot
         val root = composeRule.activity.findViewById<ViewGroup>(android.R.id.content).getChildAt(0)
         val rendered = ExportManager.renderArtwork(root, bounds, ExportDimensions(2160, 2880))
@@ -351,6 +355,18 @@ class AppInstrumentedTest {
             exportResolution = ExportResolution.Original,
             metadataPolicy = MetadataPolicy.RemoveAll,
             exportDestination = ExportDestination.Share,
+            motionCardHeaderStyle = MotionCardHeaderStyle.SampledGradient,
+            ticketCodeStyle = TicketCodeStyle.VerificationQR,
+            ticketLayout = TicketLayoutStyle.Vertical,
+            ticketShowCopy = false,
+            ticketShowDate = false,
+            ticketShowPlace = true,
+            ticketShowDevice = false,
+            ticketShowParameters = false,
+            ticketShowPalette = false,
+            ticketHeaderMode = TicketHeaderMode.City,
+            ticketCustomHeader = "DA LI",
+            ticketCityNameStyle = TicketCityNameStyle.Chinese,
         )
         try {
             first.setPreferences(expected)
@@ -377,8 +393,7 @@ class AppInstrumentedTest {
         composeRule.onNodeWithText("编辑作品文字", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("完成").performClick()
 
-        composeRule.onNodeWithContentDescription("设置").performClick()
-        composeRule.onNodeWithText(CreationMode.PrivacyMosaic.title).performClick()
+        selectMode(CreationMode.PrivacyMosaic)
         composeRule.onNodeWithText("手动涂抹").performClick()
         val privacyCanvas = composeRule.onNodeWithTag("artwork-${CreationMode.PrivacyMosaic.name}")
         val privacyBounds = privacyCanvas.fetchSemanticsNode().boundsInRoot
@@ -629,10 +644,191 @@ class AppInstrumentedTest {
         }
     }
 
+    /**
+     * The end-to-end guarantee for cross-platform tickets: whatever the renderer paints must scan
+     * back to the exact payload iOS would read.
+     */
+    @Test
+    fun renderedTicketQrScansBackToTheSamePayload() {
+        val payload = TicketPayload.sample
+        val bitmap = TicketCodeRenderer.image(
+            style = TicketCodeStyle.VerificationQR,
+            payload = payload,
+            pixelWidth = 900,
+            pixelHeight = 900,
+            foregroundColor = Color.BLACK,
+            backgroundColor = Color.WHITE,
+        )
+        val decoded = decodeCode(bitmap)
+        assertEquals(TicketEnvelope.invocationURL(payload), decoded)
+        assertEquals(payload.compacted(0), TicketEnvelope.decode(decoded))
+        bitmap.recycle()
+    }
+
+    /**
+     * The other half of the compatibility promise: a QR generated by iOS's `CIQRCodeGenerator`
+     * (checked in as a fixture) goes through the very same ML Kit scanner the in-app camera uses
+     * and verifies here. Regenerate the fixture from the iOS `TicketEnvelope` if the format changes.
+     */
+    @Test
+    fun anIOSGeneratedTicketQrScansAndVerifiesOnAndroid() = runBlocking {
+        val context = androidx.test.platform.app.InstrumentationRegistry
+            .getInstrumentation().context
+        val fixture = context.assets.open("ios-ticket-qr.png").use(BitmapFactory::decodeStream)
+        val expectedUrl = context.assets.open("ios-ticket-url.txt").use { it.readBytes() }
+            .toString(Charsets.UTF_8).trim()
+
+        val scanner = com.google.mlkit.vision.barcode.BarcodeScanning.getClient(
+            com.google.mlkit.vision.barcode.BarcodeScannerOptions.Builder()
+                .setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_QR_CODE)
+                .build()
+        )
+        val scanned = try {
+            scanner.process(InputImage.fromBitmap(fixture, 0)).await()
+                .firstNotNullOfOrNull { it.rawValue }
+        } finally {
+            scanner.close()
+        }
+        assertEquals(expectedUrl, scanned)
+
+        val payload = TicketEnvelope.decode(scanned!!)
+        val expected = TicketPayload.sample.compacted(0)
+        assertEquals(expected.ticketID, payload.ticketID)
+        assertEquals(expected.fingerprint, payload.fingerprint)
+        assertEquals(expected.title, payload.title)
+        assertEquals(expected.palette, payload.palette)
+        assertEquals(expected.revealLayout, payload.revealLayout)
+        fixture.recycle()
+    }
+
+    @Test
+    fun renderedTicketBarcodeScansBackToTheAdvertisedNumber() {
+        val payload = TicketPayload.sample
+        val bitmap = TicketCodeRenderer.image(
+            style = TicketCodeStyle.Barcode,
+            payload = payload,
+            pixelWidth = 1_200,
+            pixelHeight = 400,
+            foregroundColor = Color.BLACK,
+            backgroundColor = Color.WHITE,
+        )
+        assertEquals(TicketEnvelope.barcodeValue(payload), decodeCode(bitmap))
+        bitmap.recycle()
+    }
+
+    @Test
+    fun ticketExportKeepsTransparentCutOutsAndAnOpaqueBody() = runBlocking {
+        val photo = Bitmap.createBitmap(1_200, 900, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(Color.rgb(126, 148, 96))
+        }
+        listOf(TicketLayoutStyle.Classic, TicketLayoutStyle.Vertical).forEach { layout ->
+            val state = AppUiState(
+                mode = CreationMode.TravelTicket,
+                ratio = layout.defaultRatio,
+                photos = listOf(SelectedPhoto(Uri.EMPTY, photo, contentSignature = 42L)),
+                palette = RGBColor.fallback,
+                palettePercentages = listOf(41.7, 29.9, 11.4, 6.3, 5.7, 5.0),
+                preferences = AppPreferences(ticketLayout = layout),
+            )
+            composeRule.activityRule.scenario.onActivity { activity ->
+                activity.setContent {
+                    ArtworkCanvas(
+                        state,
+                        Modifier.size(420.dp, (420f / layout.defaultRatio.value).dp),
+                        exporting = true,
+                    )
+                }
+            }
+            composeRule.waitForIdle()
+            val bounds = composeRule
+                .onNodeWithTag("artwork-${CreationMode.TravelTicket.name}")
+                .fetchSemanticsNode().boundsInRoot
+            val root = composeRule.activity.findViewById<ViewGroup>(android.R.id.content).getChildAt(0)
+            val rendered = ExportManager.renderArtwork(root, bounds, ExportDimensions(1_260, (1_260 / layout.defaultRatio.value).toInt()))
+
+            listOf(
+                0 to 0,
+                rendered.width - 1 to 0,
+                0 to rendered.height - 1,
+                rendered.width - 1 to rendered.height - 1,
+            ).forEach { (x, y) ->
+                assertTrue(
+                    "$layout corner ($x,$y) should be transparent",
+                    Color.alpha(rendered.getPixel(x, y)) <= 8,
+                )
+            }
+            if (layout == TicketLayoutStyle.Classic) {
+                assertTrue(
+                    "classic ticket notch should be punched out",
+                    Color.alpha(rendered.getPixel(rendered.width - 1, rendered.height / 2)) <= 8,
+                )
+            }
+            assertTrue(
+                "$layout body should stay opaque",
+                Color.alpha(rendered.getPixel(rendered.width / 2, rendered.height / 2)) >= 250,
+            )
+            rendered.recycle()
+        }
+        photo.recycle()
+    }
+
+    @Test
+    fun ticketModeShowsItsControlsAndCredentialSwitcher() {
+        shareImage(createTestJpeg("ticket-ui.jpg"))
+        waitForEditor()
+        selectMode(CreationMode.TravelTicket)
+        composeRule.onNodeWithText(TicketLayoutStyle.Classic.label).assertIsDisplayed()
+        composeRule.onNodeWithText("预览与公开信息").assertIsDisplayed()
+
+        composeRule.onNodeWithContentDescription(TicketCodeStyle.VerificationQR.shortTitle).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("灵动照片验证二维码").assertIsDisplayed()
+
+        composeRule.onNodeWithText(TicketLayoutStyle.Classic.label).performClick()
+        composeRule.onNodeWithText(TicketLayoutStyle.Vertical.label).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("artwork-${CreationMode.TravelTicket.name}").assertIsDisplayed()
+
+        composeRule.onNodeWithText("预览与公开信息").performClick()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText("选择票根凭证").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag("ticket-studio").performScrollToNode(hasText("票根公开信息"))
+        composeRule.onNodeWithText("票根公开信息").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("ticket-studio").performScrollToNode(hasText("预览扫描后的验证界面"))
+        composeRule.onNodeWithText("预览扫描后的验证界面").performClick()
+        composeRule.waitUntil(8_000) {
+            composeRule.onAllNodesWithText("影像票根 · 本地验证").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithContentDescription("关闭验证页面").performClick()
+    }
+
+    private fun decodeCode(bitmap: Bitmap): String {
+        val pixels = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+        val source = com.google.zxing.RGBLuminanceSource(bitmap.width, bitmap.height, pixels)
+        val binary = com.google.zxing.BinaryBitmap(com.google.zxing.common.HybridBinarizer(source))
+        return com.google.zxing.MultiFormatReader().decode(binary).text
+    }
+
     private fun waitForEditor() {
         composeRule.waitUntil(20_000) {
             composeRule.onAllNodesWithText("灵动照片").fetchSemanticsNodes().isNotEmpty() &&
                 runCatching { composeRule.onNodeWithContentDescription("保存照片").fetchSemanticsNode() }.isSuccess
         }
+    }
+
+    /** Modes now live in their own sheet instead of the settings list. */
+    private fun selectMode(mode: CreationMode) {
+        composeRule.onNodeWithContentDescription("选择创作模式").performClick()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithText(mode.title).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText(mode.title).performClick()
+        composeRule.waitUntil(5_000) {
+            composeRule.onAllNodesWithTag("artwork-${mode.name}").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.waitForIdle()
     }
 }

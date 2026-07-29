@@ -11,6 +11,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
     case bubbleStamp
     case spectrumWallpaper
     case privacyMosaic
+    case travelTicket
 
     var id: String { rawValue }
 
@@ -22,6 +23,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .bubbleStamp: "气泡印章"
         case .spectrumWallpaper: "色谱壁纸"
         case .privacyMosaic: "隐私马赛克"
+        case .travelTicket: "影像票根"
         }
     }
 
@@ -33,6 +35,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .bubbleStamp: "随心而动的有机气泡，捕捉影像跳动的呼吸节奏"
         case .spectrumWallpaper: "拒绝千篇一律，每一次亮屏都是你的专属艺术创作"
         case .privacyMosaic: "手动涂抹或智能识别人脸、车牌、二维码与敏感文字"
+        case .travelTicket: "让色彩、拍摄信息与可验证凭证共同封存一次旅程"
         }
     }
 
@@ -50,6 +53,8 @@ enum CreationMode: String, CaseIterable, Identifiable {
             "拒绝千篇一律\n每一次亮屏都是你的专属艺术创作"
         case .privacyMosaic:
             "让隐私留在画面之外\n手动涂抹或智能识别，安心分享每一张照片"
+        case .travelTicket:
+            "把一张照片变成可以被扫描、被验证的旅行凭证"
         }
     }
 
@@ -61,6 +66,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .bubbleStamp: "seal"
         case .spectrumWallpaper: "rectangle.on.rectangle"
         case .privacyMosaic: "eye.slash"
+        case .travelTicket: "ticket"
         }
     }
 
@@ -72,6 +78,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .bubbleStamp: Color(red: 0.82, green: 0.93, blue: 0.55)
         case .spectrumWallpaper: Color(red: 0.86, green: 1.00, blue: 0.83)
         case .privacyMosaic: Color(red: 0.62, green: 0.84, blue: 1.00)
+        case .travelTicket: Color(red: 0.98, green: 0.72, blue: 0.48)
         }
     }
 
@@ -79,6 +86,8 @@ enum CreationMode: String, CaseIterable, Identifiable {
         switch self {
         case .journal, .spectrumWallpaper:
             .nineSixteen
+        case .travelTicket:
+            .twentyOneNine
         case .motionCard, .colorPalette, .bubbleStamp, .privacyMosaic:
             .threeFour
         }
@@ -92,6 +101,7 @@ enum ArtworkRatio: String, CaseIterable, Identifiable {
     case fourFive = "4:5"
     case nineSixteen = "9:16"
     case sixteenNine = "16:9"
+    case twentyOneNine = "21:9"
 
     var id: String { rawValue }
 
@@ -102,6 +112,7 @@ enum ArtworkRatio: String, CaseIterable, Identifiable {
         case .fourFive: 4.0 / 5.0
         case .nineSixteen: 9.0 / 16.0
         case .sixteenNine: 16.0 / 9.0
+        case .twentyOneNine: 21.0 / 9.0
         }
     }
 
@@ -126,6 +137,20 @@ enum ArtworkTemplateStyle: String, CaseIterable, Identifiable {
         case .classic: "rectangle.split.1x2"
         case .airy: "rectangle.inset.filled"
         case .immersive: "photo.fill"
+        }
+    }
+}
+
+enum MotionCardHeaderStyle: String, CaseIterable, Identifiable {
+    case solid = "纯色"
+    case sampledGradient = "取色渐变"
+
+    var id: String { rawValue }
+
+    var symbol: String {
+        switch self {
+        case .solid: "rectangle.fill"
+        case .sampledGradient: "square.fill.on.square.fill"
         }
     }
 }

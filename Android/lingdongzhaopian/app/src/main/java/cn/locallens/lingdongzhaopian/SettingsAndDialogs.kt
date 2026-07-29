@@ -33,7 +33,11 @@ import androidx.compose.material.icons.outlined.CameraRoll
 import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.Copyright
+import androidx.compose.material.icons.outlined.Gradient
+import androidx.compose.material.icons.outlined.QrCode
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Crop
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
@@ -103,7 +107,6 @@ private val SectionDivider = Color.Black.copy(alpha = .085f)
 @Composable
 fun SettingsScreen(
     state: AppUiState,
-    onMode: (CreationMode) -> Unit,
     onRatio: (ArtworkRatio) -> Unit,
     onPreferences: (AppPreferences) -> Unit,
     @Suppress("UNUSED_PARAMETER") onClose: () -> Unit,
@@ -123,15 +126,6 @@ fun SettingsScreen(
             contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
-            item {
-                SettingsSection("模式选择") {
-                    CreationMode.entries.forEachIndexed { index, mode ->
-                        ModeRow(mode, selected = state.mode == mode, onClick = { onMode(mode) })
-                        if (index < CreationMode.entries.lastIndex) SettingsDivider()
-                    }
-                }
-            }
-
             item {
                 SettingsSection("免费承诺") {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -208,6 +202,24 @@ fun SettingsScreen(
             item {
                 SettingsSection("灵动卡片操作技巧") {
                     TemplateRow(state, onPreferences)
+                    SettingsDivider()
+                    EnumRow(
+                        Icons.Outlined.Gradient,
+                        "顶部背景",
+                        state.preferences.motionCardHeaderStyle.label,
+                        MotionCardHeaderStyle.entries.map { it.label },
+                        subtitle = if (state.preferences.templateStyle == ArtworkTemplateStyle.Immersive) {
+                            "沉浸模板没有独立顶部区域；切换为经典或留白模板后生效。"
+                        } else {
+                            "取色渐变会从照片代表色生成平滑过渡，并自动选择清晰的文字颜色。"
+                        },
+                    ) { label ->
+                        onPreferences(
+                            state.preferences.copy(
+                                motionCardHeaderStyle = MotionCardHeaderStyle.entries.first { it.label == label }
+                            )
+                        )
+                    }
                     SettingsDivider()
                     RatioRow(state, onRatio)
                     SettingsDivider()
@@ -298,6 +310,22 @@ fun SettingsScreen(
             }
 
             item {
+                SettingsSection("影像票根选项") {
+                    TipRow(Icons.Outlined.ConfirmationNumber, "票根版式与凭证类型在编辑界面下方切换；点击“预览与公开信息”可选择公开哪些内容")
+                    SettingsDivider()
+                    RatioRow(state, onRatio)
+                    SettingsDivider()
+                    TipRow(Icons.Outlined.QrCode, "验证二维码与 iPhone 版通用：本机生成的票根可以在 iPhone 上扫描验证，iPhone 生成的也能在这里识别")
+                    SettingsDivider()
+                    TipRow(Icons.Outlined.QrCodeScanner, "扫码验证只解析二维码里发送者主动公开的内容，不读取相册、不拍照、不联网")
+                    SettingsDivider()
+                    TipRow(Icons.Outlined.Description, "票根固定导出 PNG，以保留圆角与撕口处的透明像素")
+                    SettingsDivider()
+                    TipRow(Icons.Outlined.CameraRoll, "票根使用动态照片的关键帧生成静态凭证")
+                }
+            }
+
+            item {
                 SettingsSection("获取更新") {
                     Column(
                         Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -333,7 +361,7 @@ fun SettingsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("版本 1.0.0 (Build 2)", color = SecondaryText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("版本 1.0.2 (Build 1)", color = SecondaryText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Text("灵动照片 · 完全免费", color = SecondaryText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Text("本开源项目由专注隐私的 LocalLens Project 发起", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
@@ -369,40 +397,14 @@ private fun UpdateLinkRow(icon: ImageVector, title: String, address: String, onC
     }
 }
 
-@Composable
-private fun ModeRow(mode: CreationMode, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 18.dp, vertical = 15.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Icon(modeIcon(mode), null, Modifier.size(19.dp).widthIn(min = 34.dp), tint = Color.Black.copy(alpha = .86f))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(mode.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                if (mode == CreationMode.Journal || mode == CreationMode.PrivacyMosaic) {
-                    Text(
-                        "新",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.background(Color.Red, CircleShape).padding(horizontal = 6.dp, vertical = 3.dp),
-                    )
-                }
-            }
-            Text(mode.subtitle, color = SecondaryText, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 2)
-        }
-        if (selected) Icon(Icons.Default.Check, null, Modifier.size(18.dp), tint = SystemBlue)
-    }
-}
-
-private fun modeIcon(mode: CreationMode): ImageVector = when (mode) {
+fun modeIcon(mode: CreationMode): ImageVector = when (mode) {
     CreationMode.MotionCard -> Icons.Outlined.MotionPhotosOn
     CreationMode.ColorPalette -> Icons.Outlined.Palette
     CreationMode.Journal -> Icons.Outlined.BookmarkBorder
     CreationMode.BubbleStamp -> Icons.Outlined.Verified
     CreationMode.SpectrumWallpaper -> Icons.Outlined.Layers
     CreationMode.PrivacyMosaic -> Icons.Outlined.VisibilityOff
+    CreationMode.TravelTicket -> Icons.Outlined.ConfirmationNumber
 }
 
 @Composable
@@ -454,10 +456,17 @@ private fun TipRow(icon: ImageVector, text: String) {
 }
 
 @Composable
-private fun EnumRow(icon: ImageVector, title: String, selected: String, options: List<String>, onSelected: (String) -> Unit) {
+private fun EnumRow(
+    icon: ImageVector,
+    title: String,
+    selected: String,
+    options: List<String>,
+    subtitle: String? = null,
+    onSelected: (String) -> Unit,
+) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        SettingRow(icon, title) {
+        SettingRow(icon, title, subtitle) {
             Box {
                 Text(
                     selected,
@@ -553,10 +562,13 @@ fun CopyEditorDialog(
                         Text("由 Android ML Kit 在本机识别画面，不会上传照片。", color = SecondaryText, fontSize = 12.sp, modifier = Modifier.padding(16.dp))
                     }
                 }
-                if (state.mode == CreationMode.MotionCard || state.mode == CreationMode.BubbleStamp) {
+                if (state.mode == CreationMode.MotionCard ||
+                    state.mode == CreationMode.BubbleStamp ||
+                    state.mode == CreationMode.TravelTicket
+                ) {
                     item { EditorFieldSection("标题", "输入标题", title) { title = it } }
                 }
-                if (state.mode == CreationMode.BubbleStamp) {
+                if (state.mode == CreationMode.BubbleStamp || state.mode == CreationMode.TravelTicket) {
                     item { EditorFieldSection("英文副标题", "输入副标题", subtitle) { subtitle = it } }
                 }
                 if (state.mode == CreationMode.Journal) {
@@ -609,7 +621,11 @@ private fun FormInformationRow(icon: ImageVector, text: String, weight: FontWeig
 fun ExportCenterDialog(state: AppUiState, onPreferences: (AppPreferences) -> Unit, onExport: () -> Unit, onDismiss: () -> Unit) {
     val p = state.preferences
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val hasMotionExport = state.mode != CreationMode.PrivacyMosaic && p.supportsMotionPhotos && state.photos.any { it.isMotionPhoto }
+    val requiresTransparency = state.mode == CreationMode.TravelTicket
+    val hasMotionExport = state.mode != CreationMode.PrivacyMosaic &&
+        state.mode != CreationMode.TravelTicket &&
+        p.supportsMotionPhotos &&
+        state.photos.any { it.isMotionPhoto }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -642,10 +658,25 @@ fun ExportCenterDialog(state: AppUiState, onPreferences: (AppPreferences) -> Uni
                             onPreferences(p.copy(exportResolution = ExportResolution.entries.first { it.label == label }))
                         }
                         HorizontalDivider(color = SectionDivider)
-                        ExportPickerRow(Icons.Outlined.Description, "图片格式", p.exportFormat.label, ExportFormat.entries.map { it.label }) { label ->
-                            onPreferences(p.copy(exportFormat = ExportFormat.entries.first { it.label == label }))
+                        ExportPickerRow(
+                            Icons.Outlined.Description,
+                            "图片格式",
+                            if (requiresTransparency) ExportFormat.Png.label else p.exportFormat.label,
+                            if (requiresTransparency) listOf(ExportFormat.Png.label) else ExportFormat.entries.map { it.label },
+                        ) { label ->
+                            if (!requiresTransparency) {
+                                onPreferences(p.copy(exportFormat = ExportFormat.entries.first { it.label == label }))
+                            }
                         }
-                        Text("${p.exportResolution.detail} · ${p.exportFormat.detail}", color = SecondaryText, fontSize = 11.sp)
+                        Text(
+                            if (requiresTransparency) {
+                                "${p.exportResolution.detail} · PNG 保留票根圆角与镂空处的透明像素"
+                            } else {
+                                "${p.exportResolution.detail} · ${p.exportFormat.detail}"
+                            },
+                            color = SecondaryText,
+                            fontSize = 11.sp,
+                        )
                     }
                 }
                 item {

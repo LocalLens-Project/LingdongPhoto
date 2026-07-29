@@ -33,6 +33,7 @@ object PhotoProcessor {
         val metadataDeferred = async(Dispatchers.IO) { readMetadata(context, uri) }
         val motionDeferred = async(Dispatchers.IO) { MotionPhotoExtractor.extract(context, uri) }
         val sizeDeferred = async(Dispatchers.IO) { readSourceSize(context, uri) }
+        val signatureDeferred = async(Dispatchers.IO) { readContentSignature(context, uri) }
         val bitmap = bitmapDeferred.await()
         val semantic = analyzeSemantic(bitmap)
         val size = sizeDeferred.await()
@@ -44,8 +45,28 @@ object PhotoProcessor {
             motionVideoFile = motionDeferred.await(),
             sourceWidth = size.first.takeIf { it > 0 } ?: bitmap.width,
             sourceHeight = size.second.takeIf { it > 0 } ?: bitmap.height,
+            contentSignature = signatureDeferred.await(),
         )
     }
+
+    /**
+     * Hashes the untouched source bytes, matching iOS's `TicketPayload.contentSignature`, so the
+     * same photograph yields the same ticket number and fingerprint on both platforms.
+     */
+    private fun readContentSignature(context: Context, uri: Uri): Long = runCatching {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read <= 0) break
+                digest.update(buffer, 0, read)
+            }
+        } ?: return@runCatching 0L
+        var value = 0L
+        digest.digest().take(8).forEach { value = (value shl 8) or (it.toLong() and 0xFF) }
+        value
+    }.getOrDefault(0L)
 
     private fun decodeBitmap(context: Context, uri: Uri): Bitmap {
         val source = ImageDecoder.createSource(context.contentResolver, uri)

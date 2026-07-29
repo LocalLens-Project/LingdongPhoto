@@ -7,12 +7,44 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		05A2842BAFDF93C08B1E0C9E /* TicketPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6993F22C7953CF171D806A86 /* TicketPayload.swift */; };
+		15D0E990936A3150C13839B0 /* TicketPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6993F22C7953CF171D806A86 /* TicketPayload.swift */; };
+		16C399E3FCCB6C5CA392DC6B /* LingdongTicketClipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0CDD32762F90C740FFBC86B /* LingdongTicketClipApp.swift */; };
+		266293A61810BF06D6BA30E2 /* TicketCodeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984E98EBA5407DCD8FF13290 /* TicketCodeRenderer.swift */; };
+		30695E8D2FB49D2204F6B7E6 /* TicketCodeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984E98EBA5407DCD8FF13290 /* TicketCodeRenderer.swift */; };
+		54ABC64C319CB9CAA65922F0 /* TicketVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 897D8DBC3DC1157CF0E159B5 /* TicketVerificationView.swift */; };
+		61908A7F20D57370706570E7 /* TicketClipRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 670ECCEA792F07698153232F /* TicketClipRootView.swift */; };
+		9DF90A16BDA36D5162EE1D0E /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BAC7928C02CC1B7E0F6DFFC7 /* Foundation.framework */; };
 		A1000000000000000000000B /* LingdongShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* LingdongShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A1000000000000000000000C /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D /* AppIntents.framework */; };
 		A1000000000000000000000F /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D /* AppIntents.framework */; };
+		BDF983752BD33D0D831DB26D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5031ACDEA5F2C8D0A0D0A4B6 /* Assets.xcassets */; };
+		BF56252D01EFD3FA392F7B18 /* TicketVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 897D8DBC3DC1157CF0E159B5 /* TicketVerificationView.swift */; };
+		EF7451A59C8232975D370AE7 /* LingdongTicketClip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = 97A2AADF17BF830F10B7096F /* LingdongTicketClip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		863EA8FA7F77FDD1A4952ED6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4B2A61E43008AA4A00FD02F8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FEE6DBC43D8C335F80EA5E84;
+			remoteInfo = LingdongTicketClip;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
+		12C06C381752F3F4A9D8EDB8 /* Embed App Clips */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/AppClips";
+			dstSubfolderSpec = 16;
+			files = (
+				EF7451A59C8232975D370AE7 /* LingdongTicketClip.app in Embed App Clips */,
+			);
+			name = "Embed App Clips";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A1000000000000000000000A /* Embed App Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -27,11 +59,21 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		37BCC838FD40F1F4B00E4704 /* AppClip.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = AppClip.entitlements; sourceTree = "<group>"; };
 		4B2A61EC3008AA4A00FD02F8 /* lingdongzhaopian.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = lingdongzhaopian.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B2A62003008AA4A00FD02F8 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		4B2A62023008AA4A00FD02F8 /* Signing.local.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.local.example.xcconfig; sourceTree = "<group>"; };
+		5031ACDEA5F2C8D0A0D0A4B6 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = lingdongzhaopian/Assets.xcassets; sourceTree = "<group>"; };
+		670ECCEA792F07698153232F /* TicketClipRootView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TicketClipRootView.swift; sourceTree = "<group>"; };
+		6993F22C7953CF171D806A86 /* TicketPayload.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TicketPayload.swift; sourceTree = "<group>"; };
+		897D8DBC3DC1157CF0E159B5 /* TicketVerificationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TicketVerificationView.swift; sourceTree = "<group>"; };
+		97A2AADF17BF830F10B7096F /* LingdongTicketClip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LingdongTicketClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		984E98EBA5407DCD8FF13290 /* TicketCodeRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TicketCodeRenderer.swift; sourceTree = "<group>"; };
 		A10000000000000000000001 /* LingdongShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LingdongShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000000000000000000000D /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
+		B323DD16DF298BE45730FD7C /* AppClip-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "AppClip-Info.plist"; sourceTree = "<group>"; };
+		BAC7928C02CC1B7E0F6DFFC7 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		E0CDD32762F90C740FFBC86B /* LingdongTicketClipApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LingdongTicketClipApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -56,6 +98,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4EE968D97ADEEDC130F55903 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9DF90A16BDA36D5162EE1D0E /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A10000000000000000000003 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -75,6 +125,9 @@
 				4B2A62013008AA4A00FD02F8 /* Config */,
 				A1000000000000000000000E /* Frameworks */,
 				4B2A61ED3008AA4A00FD02F8 /* Products */,
+				E81729E9BBEE9A7548EDE261 /* SharedTicket */,
+				A761C9F65FB9429CC02DD438 /* LingdongTicketClip */,
+				EEADDF1A10701E5DB1CD69FF /* Shared Resources */,
 			);
 			sourceTree = "<group>";
 		};
@@ -83,6 +136,7 @@
 			children = (
 				4B2A61EC3008AA4A00FD02F8 /* lingdongzhaopian.app */,
 				A10000000000000000000001 /* LingdongShareExtension.appex */,
+				97A2AADF17BF830F10B7096F /* LingdongTicketClip.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -92,16 +146,54 @@
 			children = (
 				4B2A62003008AA4A00FD02F8 /* Signing.xcconfig */,
 				4B2A62023008AA4A00FD02F8 /* Signing.local.example.xcconfig */,
+				B323DD16DF298BE45730FD7C /* AppClip-Info.plist */,
+				37BCC838FD40F1F4B00E4704 /* AppClip.entitlements */,
 			);
 			path = Config;
+			sourceTree = "<group>";
+		};
+		6E6AB4B71C1CFBCDCABBA9DF /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				BAC7928C02CC1B7E0F6DFFC7 /* Foundation.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 		A1000000000000000000000E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				A1000000000000000000000D /* AppIntents.framework */,
+				6E6AB4B71C1CFBCDCABBA9DF /* iOS */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A761C9F65FB9429CC02DD438 /* LingdongTicketClip */ = {
+			isa = PBXGroup;
+			children = (
+				E0CDD32762F90C740FFBC86B /* LingdongTicketClipApp.swift */,
+				670ECCEA792F07698153232F /* TicketClipRootView.swift */,
+			);
+			path = LingdongTicketClip;
+			sourceTree = "<group>";
+		};
+		E81729E9BBEE9A7548EDE261 /* SharedTicket */ = {
+			isa = PBXGroup;
+			children = (
+				6993F22C7953CF171D806A86 /* TicketPayload.swift */,
+				984E98EBA5407DCD8FF13290 /* TicketCodeRenderer.swift */,
+				897D8DBC3DC1157CF0E159B5 /* TicketVerificationView.swift */,
+			);
+			path = SharedTicket;
+			sourceTree = "<group>";
+		};
+		EEADDF1A10701E5DB1CD69FF /* Shared Resources */ = {
+			isa = PBXGroup;
+			children = (
+				5031ACDEA5F2C8D0A0D0A4B6 /* Assets.xcassets */,
+			);
+			name = "Shared Resources";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -115,17 +207,17 @@
 				4B2A61E93008AA4A00FD02F8 /* Frameworks */,
 				4B2A61EA3008AA4A00FD02F8 /* Resources */,
 				A1000000000000000000000A /* Embed App Extensions */,
+				12C06C381752F3F4A9D8EDB8 /* Embed App Clips */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				FC59959816F723B0480F758B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				4B2A61EE3008AA4A00FD02F8 /* lingdongzhaopian */,
 			);
 			name = lingdongzhaopian;
-			packageProductDependencies = (
-			);
 			productName = lingdongzhaopian;
 			productReference = 4B2A61EC3008AA4A00FD02F8 /* lingdongzhaopian.app */;
 			productType = "com.apple.product-type.application";
@@ -146,11 +238,26 @@
 				A10000000000000000000002 /* LingdongShareExtension */,
 			);
 			name = LingdongShareExtension;
-			packageProductDependencies = (
-			);
 			productName = LingdongShareExtension;
 			productReference = A10000000000000000000001 /* LingdongShareExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
+		};
+		FEE6DBC43D8C335F80EA5E84 /* LingdongTicketClip */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E436C9E3A41130396EA25520 /* Build configuration list for PBXNativeTarget "LingdongTicketClip" */;
+			buildPhases = (
+				5183A241C42BC4105B5528B5 /* Sources */,
+				4EE968D97ADEEDC130F55903 /* Frameworks */,
+				7CF0C6832DE0A389DDC13B41 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LingdongTicketClip;
+			productName = LingdongTicketClip;
+			productReference = 97A2AADF17BF830F10B7096F /* LingdongTicketClip.app */;
+			productType = "com.apple.product-type.application.on-demand-install-capable";
 		};
 /* End PBXNativeTarget section */
 
@@ -166,6 +273,9 @@
 						CreatedOnToolsVersion = 26.6;
 					};
 					A10000000000000000000006 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					FEE6DBC43D8C335F80EA5E84 = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
@@ -186,6 +296,7 @@
 			targets = (
 				4B2A61EB3008AA4A00FD02F8 /* lingdongzhaopian */,
 				A10000000000000000000006 /* LingdongShareExtension */,
+				FEE6DBC43D8C335F80EA5E84 /* LingdongTicketClip */,
 			);
 		};
 /* End PBXProject section */
@@ -195,6 +306,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7CF0C6832DE0A389DDC13B41 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BDF983752BD33D0D831DB26D /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -212,6 +331,21 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				05A2842BAFDF93C08B1E0C9E /* TicketPayload.swift in Sources */,
+				266293A61810BF06D6BA30E2 /* TicketCodeRenderer.swift in Sources */,
+				54ABC64C319CB9CAA65922F0 /* TicketVerificationView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5183A241C42BC4105B5528B5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				16C399E3FCCB6C5CA392DC6B /* LingdongTicketClipApp.swift in Sources */,
+				61908A7F20D57370706570E7 /* TicketClipRootView.swift in Sources */,
+				15D0E990936A3150C13839B0 /* TicketPayload.swift in Sources */,
+				30695E8D2FB49D2204F6B7E6 /* TicketCodeRenderer.swift in Sources */,
+				BF56252D01EFD3FA392F7B18 /* TicketVerificationView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -224,7 +358,58 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		FC59959816F723B0480F758B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = LingdongTicketClip;
+			target = FEE6DBC43D8C335F80EA5E84 /* LingdongTicketClip */;
+			targetProxy = 863EA8FA7F77FDD1A4952ED6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		1CF8B9600B4815720E3E6590 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4B2A62003008AA4A00FD02F8 /* Signing.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = Config/AppClip.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1028;
+				DEVELOPMENT_LANGUAGE = "zh-Hans";
+				DEVELOPMENT_TEAM = 3JY86A9DP3;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/AppClip-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "APPCLIP $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		4B2A61F53008AA4C00FD02F8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -351,7 +536,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/App.entitlements;
-				CURRENT_PROJECT_VERSION = 1024;
+				CURRENT_PROJECT_VERSION = 1028;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/App-Info.plist";
@@ -368,7 +553,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -391,7 +576,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/App.entitlements;
-				CURRENT_PROJECT_VERSION = 1024;
+				CURRENT_PROJECT_VERSION = 1028;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/App-Info.plist";
@@ -408,7 +593,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -424,13 +609,54 @@
 			};
 			name = Release;
 		};
+		74B40A38AC433ADF93478E19 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4B2A62003008AA4A00FD02F8 /* Signing.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = Config/AppClip.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1028;
+				DEVELOPMENT_LANGUAGE = "zh-Hans";
+				DEVELOPMENT_TEAM = 3JY86A9DP3;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Config/AppClip-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.clip;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG APPCLIP $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
 		A10000000000000000000008 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4B2A62003008AA4A00FD02F8 /* Signing.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Config/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1024;
+				CURRENT_PROJECT_VERSION = 1028;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/ShareExtension-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
@@ -440,7 +666,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SHARE_EXTENSION_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -462,7 +688,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Config/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1024;
+				CURRENT_PROJECT_VERSION = 1028;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/ShareExtension-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
@@ -472,7 +698,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SHARE_EXTENSION_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -514,6 +740,15 @@
 			buildConfigurations = (
 				A10000000000000000000008 /* Debug */,
 				A10000000000000000000009 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E436C9E3A41130396EA25520 /* Build configuration list for PBXNativeTarget "LingdongTicketClip" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1CF8B9600B4815720E3E6590 /* Release */,
+				74B40A38AC433ADF93478E19 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

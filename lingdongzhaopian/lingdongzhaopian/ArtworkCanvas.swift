@@ -23,6 +23,7 @@ struct ArtworkCanvas: View {
     var copy: ArtworkCopy = ArtworkCopy()
     var fontStyle: ArtworkFontStyle = .rounded
     var templateStyle: ArtworkTemplateStyle = .classic
+    var motionCardHeaderStyle: MotionCardHeaderStyle = .solid
     var textScale: CGFloat = 1
     var bubbleScale: CGFloat = 1
     var paletteOffset: CGFloat = 0
@@ -39,6 +40,10 @@ struct ArtworkCanvas: View {
     var journalLayout: JournalLayoutMode = .automatic
     var journalTransforms: [JournalPhotoTransform] = []
     var selectedJournalIndex: Int?
+    var ticketPayload: TicketPayload = .sample
+    var ticketCodeStyle: TicketCodeStyle = .barcode
+    var ticketLayout: TicketLayoutStyle = .classic
+    var ticketAppClipBaseURL: String = TicketEnvelope.configuredBaseURLString
 
     private var colors: [RGBColor] {
         palette.isEmpty ? RGBColor.fallback : palette
@@ -72,6 +77,7 @@ struct ArtworkCanvas: View {
         switch mode {
         case .bubbleStamp: 0
         case .spectrumWallpaper: 28
+        case .travelTicket: 0
         default: 22
         }
     }
@@ -109,7 +115,409 @@ struct ArtworkCanvas: View {
             spectrumWallpaper(size: size)
         case .privacyMosaic:
             privacyMosaic(size: size)
+        case .travelTicket:
+            travelTicket(size: size)
         }
+    }
+
+    @ViewBuilder
+    private func travelTicket(size: CGSize) -> some View {
+        switch ticketLayout {
+        case .classic:
+            classicTravelTicket(size: size)
+                .mask { TicketArtworkMask(layout: .classic) }
+        case .vertical:
+            verticalTravelTicket(size: size)
+                .mask { TicketArtworkMask(layout: .vertical) }
+        case .minimal:
+            minimalTravelTicket(size: size)
+        }
+    }
+
+    private func classicTravelTicket(size: CGSize) -> some View {
+        let dominant = colors[0]
+        let themeBrightness: CGFloat
+        if dominant.relativeLuminance < 0.18 {
+            themeBrightness = 0.10
+        } else if dominant.relativeLuminance < 0.48 {
+            themeBrightness = 0.26
+        } else {
+            themeBrightness = -0.06
+        }
+        let background = dominant.adjusted(
+            brightness: themeBrightness,
+            saturation: -0.38
+        )
+        let foreground = readableForeground(
+            preferred: darkestColor,
+            background: background
+        )
+        let contentInset = max(8, size.width * 0.026)
+        let ticketHeight = size.height
+        let ticketWidth = size.width
+        let stubWidth = ticketWidth * (
+            ticketCodeStyle == .verificationQR ? 0.335 : 0.285
+        )
+
+        return ZStack(alignment: .leading) {
+            primaryPhoto(
+                size: CGSize(width: ticketWidth, height: ticketHeight),
+                cornerRadius: 0
+            )
+
+            TicketScallopedPanel(
+                color: background.color,
+                scallopCount: 7
+            )
+            .frame(width: stubWidth, height: ticketHeight)
+
+            VStack(alignment: .center, spacing: max(3, size.height * 0.018)) {
+                if let headerTitle = ticketPayload.headerTitle,
+                   !headerTitle.isEmpty {
+                    Text(headerTitle)
+                        .font(.system(
+                            size: max(9, size.width * 0.027),
+                            weight: .black,
+                            design: .rounded
+                        ))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.62)
+                        .multilineTextAlignment(.center)
+                        .tracking(max(0.6, size.width * 0.003))
+                        .frame(maxWidth: .infinity)
+                }
+
+                Text(ticketPayload.title)
+                    .font(fontStyle.font(
+                        size: max(7, size.width * 0.014) * textScale,
+                        weight: .semibold
+                    ))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(foreground.color.opacity(0.72))
+                    .frame(maxWidth: .infinity)
+
+                VStack(alignment: .center, spacing: max(2, size.height * 0.007)) {
+                    if let time = ticketPayload.captureTime {
+                        Text(time)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.70)
+                    }
+                    Text("NO.\(ticketPayload.ticketID.replacingOccurrences(of: "LD-", with: ""))")
+                        .fontDesign(.monospaced)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.58)
+                    Text(String(ticketPayload.fingerprint.suffix(8)))
+                        .fontDesign(.monospaced)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.70)
+                }
+                .font(.system(
+                    size: max(6, size.width * 0.0108),
+                    weight: .semibold,
+                    design: .rounded
+                ))
+                .foregroundStyle(foreground.color.opacity(0.70))
+                .frame(maxWidth: .infinity)
+
+                Spacer(minLength: 2)
+
+                ticketCode(
+                    availableSize: CGSize(
+                        width: stubWidth - contentInset * 1.85,
+                        height: ticketCodeStyle == .barcode
+                            ? ticketHeight * 0.24
+                            : ticketHeight * 0.47
+                    ),
+                    foreground: foreground
+                )
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .foregroundStyle(foreground.color)
+            .padding(.horizontal, contentInset * 0.80)
+            .padding(.vertical, contentInset * 0.80)
+            .frame(width: stubWidth, height: ticketHeight, alignment: .center)
+        }
+        .frame(width: ticketWidth, height: ticketHeight)
+    }
+
+    private func verticalTravelTicket(size: CGSize) -> some View {
+        let dominant = colors[0]
+        let background = dominant.adjusted(
+            brightness: dominant.relativeLuminance < 0.18
+                ? 0.10
+                : (dominant.relativeLuminance < 0.48 ? 0.24 : -0.05),
+            saturation: -0.30
+        )
+        let foreground = readableForeground(preferred: darkestColor, background: background)
+        let inset: CGFloat = 0
+        let photoHeight = size.height * 0.52
+
+        return VStack(spacing: 0) {
+            primaryPhoto(
+                size: CGSize(
+                    width: size.width - inset * 2,
+                    height: photoHeight
+                ),
+                cornerRadius: 0
+            )
+            .overlay(alignment: .topTrailing) {
+                Text(ticketPayload.ticketID)
+                    .font(.system(
+                        size: max(7, size.width * 0.024),
+                        weight: .bold,
+                        design: .monospaced
+                    ))
+                    .foregroundStyle(.white.opacity(0.90))
+                    .shadow(color: .black.opacity(0.48), radius: 6, y: 2)
+                    .padding(max(9, size.width * 0.040))
+            }
+
+            VStack(alignment: .leading, spacing: max(8, size.height * 0.014)) {
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(ticketPayload.title)
+                            .font(fontStyle.font(
+                                size: max(11, size.width * 0.050) * textScale,
+                                weight: .bold
+                            ))
+                            .lineLimit(2)
+                        if let subtitle = ticketPayload.subtitle {
+                            Text(subtitle)
+                                .font(.system(size: max(7, size.width * 0.025), weight: .medium))
+                                .lineLimit(2)
+                                .foregroundStyle(foreground.color.opacity(0.60))
+                        }
+                    }
+
+                    Spacer(minLength: 4)
+
+                    ticketCode(
+                        availableSize: CGSize(
+                            width: size.width * 0.30,
+                            height: ticketCodeStyle == .barcode
+                                ? size.height * 0.10
+                                : size.width * 0.30
+                        ),
+                        foreground: foreground
+                    )
+                }
+
+                Divider()
+                    .overlay(foreground.color.opacity(0.18))
+
+                HStack(spacing: 8) {
+                    ticketInfoLabel(
+                        title: "DATE",
+                        value: ticketPayload.captureTime ?? "未记录"
+                    )
+                    ticketInfoLabel(
+                        title: "CAMERA",
+                        value: ticketPayload.device ?? "未公开"
+                    )
+                }
+
+                ticketPaletteDots
+            }
+            .foregroundStyle(foreground.color)
+            .padding(max(12, size.width * 0.050))
+            .frame(maxHeight: .infinity)
+            .background(background.color)
+        }
+        .frame(width: size.width - inset * 2, height: size.height - inset * 2)
+    }
+
+    private func minimalTravelTicket(size: CGSize) -> some View {
+        let dominant = colors[0]
+        let panelBackground = dominant.adjusted(
+            brightness: dominant.relativeLuminance < 0.30 ? 0.14 : -0.18,
+            saturation: -0.12
+        )
+        let panelForeground = readableForeground(
+            preferred: darkestColor,
+            background: panelBackground
+        )
+        return ZStack(alignment: .bottom) {
+            primaryPhoto(size: size, cornerRadius: 0)
+
+            LinearGradient(
+                colors: [
+                    .clear,
+                    panelBackground.color.opacity(0.10),
+                    panelBackground.color.opacity(0.76)
+                ],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+
+            HStack(alignment: .bottom, spacing: max(10, size.width * 0.028)) {
+                VStack(alignment: .leading, spacing: max(4, size.height * 0.014)) {
+                    Text(ticketPayload.title)
+                        .font(fontStyle.font(
+                            size: max(12, size.width * 0.036) * textScale,
+                            weight: .bold
+                        ))
+                        .lineLimit(2)
+
+                    HStack(spacing: 7) {
+                        if let place = ticketPayload.place {
+                            Label(place, systemImage: "location.fill")
+                        }
+                        if let time = ticketPayload.captureTime {
+                            Label(time, systemImage: "calendar")
+                        }
+                    }
+                    .font(.system(size: max(6, size.width * 0.014), weight: .medium))
+                    .lineLimit(1)
+                    .foregroundStyle(panelForeground.color.opacity(0.70))
+
+                    Text(ticketPayload.ticketID)
+                        .font(.system(
+                            size: max(6, size.width * 0.013),
+                            weight: .semibold,
+                            design: .monospaced
+                        ))
+                        .foregroundStyle(panelForeground.color.opacity(0.58))
+                }
+
+                Spacer(minLength: 4)
+
+                ticketCode(
+                    availableSize: CGSize(
+                        width: size.width * (ticketCodeStyle == .barcode ? 0.30 : 0.30),
+                        height: size.height * (ticketCodeStyle == .barcode ? 0.22 : 0.50)
+                    ),
+                    foreground: panelForeground
+                )
+            }
+            .foregroundStyle(panelForeground.color)
+            .padding(max(14, size.width * 0.040))
+            .background {
+                RoundedRectangle(
+                    cornerRadius: max(14, size.width * 0.038),
+                    style: .continuous
+                )
+                .fill(panelBackground.color.opacity(isExporting ? 0.88 : 0.78))
+                .overlay {
+                    RoundedRectangle(
+                        cornerRadius: max(14, size.width * 0.038),
+                        style: .continuous
+                    )
+                    .stroke(panelForeground.color.opacity(0.18), lineWidth: 1)
+                }
+            }
+            .padding(max(10, size.width * 0.026))
+        }
+    }
+
+    @ViewBuilder
+    private func ticketCode(
+        availableSize: CGSize,
+        foreground: RGBColor
+    ) -> some View {
+        let codePixelSize = ticketCodeStyle == .barcode
+            ? CGSize(width: 1_200, height: 400)
+            : CGSize(width: 900, height: 900)
+        if let image = try? TicketCodeRenderer.image(
+            for: ticketCodeStyle,
+            payload: ticketPayload,
+            baseURLString: ticketAppClipBaseURL,
+            pixelSize: codePixelSize,
+            foregroundColor: UIColor(
+                red: foreground.red,
+                green: foreground.green,
+                blue: foreground.blue,
+                alpha: 1
+            ),
+            backgroundColor: nil
+        ) {
+            Image(uiImage: image)
+                .resizable()
+                .interpolation(.none)
+                .aspectRatio(
+                    ticketCodeStyle == .barcode
+                        ? codePixelSize.width / codePixelSize.height
+                        : 1,
+                    contentMode: .fit
+                )
+                .frame(
+                    maxWidth: availableSize.width,
+                    maxHeight: availableSize.height
+                )
+                .accessibilityLabel(
+                    ticketCodeStyle == .barcode
+                        ? "真实一维票根码"
+                        : "App Clip 验证二维码"
+                )
+        } else {
+            Image(systemName: "exclamationmark.triangle")
+                .foregroundStyle(.orange)
+                .frame(
+                    width: min(availableSize.width, 44),
+                    height: min(availableSize.height, 44)
+                )
+                .accessibilityLabel("票根编码生成失败")
+        }
+    }
+
+    private func ticketTearLine(height: CGFloat) -> some View {
+        VStack(spacing: max(3, height * 0.025)) {
+            ForEach(0..<12, id: \.self) { _ in
+                Circle()
+                    .fill(.white.opacity(0.66))
+                    .frame(
+                        width: max(3, height * 0.020),
+                        height: max(3, height * 0.020)
+                    )
+            }
+        }
+        .offset(x: max(2, height * 0.010))
+    }
+
+    private func ticketNotches(
+        size: CGSize,
+        inset: CGFloat,
+        background: Color
+    ) -> some View {
+        let diameter = max(14, size.height * 0.16)
+        return HStack {
+            Circle()
+                .fill(background)
+                .frame(width: diameter, height: diameter)
+                .offset(x: -diameter / 2)
+            Spacer()
+            Circle()
+                .fill(background)
+                .frame(width: diameter, height: diameter)
+                .offset(x: diameter / 2)
+        }
+        .frame(width: size.width - inset * 2 + diameter, height: diameter)
+    }
+
+    private var ticketPaletteDots: some View {
+        HStack(spacing: 5) {
+            ForEach(Array(colors.prefix(6).enumerated()), id: \.offset) { _, color in
+                Circle()
+                    .fill(color.color)
+                    .frame(width: 10, height: 10)
+                    .overlay(Circle().stroke(.white.opacity(0.42), lineWidth: 0.6))
+            }
+        }
+        .accessibilityLabel("照片的六种代表色")
+    }
+
+    private func ticketInfoLabel(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                .opacity(0.46)
+            Text(value)
+                .font(.system(size: 9, weight: .semibold))
+                .lineLimit(2)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func motionCard(size: CGSize) -> some View {
@@ -132,6 +540,28 @@ struct ArtworkCanvas: View {
             red: CGFloat(theme.foreground.red),
             green: CGFloat(theme.foreground.green),
             blue: CGFloat(theme.foreground.blue)
+        )
+        let gradientTheme = MotionCardGradientTheme.resolve(
+            palette: colors.map {
+                MotionCardColor(
+                    red: Double($0.red),
+                    green: Double($0.green),
+                    blue: Double($0.blue)
+                )
+            },
+            percentages: palettePercentages
+        )
+        let gradientColors = gradientTheme.colors.map {
+            Color(
+                red: $0.red,
+                green: $0.green,
+                blue: $0.blue
+            )
+        }
+        let gradientForeground = Color(
+            red: gradientTheme.foreground.red,
+            green: gradientTheme.foreground.green,
+            blue: gradientTheme.foreground.blue
         )
         if templateStyle == .immersive {
             return AnyView(
@@ -162,7 +592,15 @@ struct ArtworkCanvas: View {
         let headerFraction: CGFloat = templateStyle == .airy ? 0.34 : 0.43
         return AnyView(VStack(spacing: 0) {
             ZStack {
-                background.color
+                if motionCardHeaderStyle == .sampledGradient {
+                    LinearGradient(
+                        colors: gradientColors,
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                } else {
+                    background.color
+                }
 
                 VStack(spacing: 3) {
                     Text(copy.title)
@@ -174,7 +612,11 @@ struct ArtworkCanvas: View {
                             .font(.system(size: max(6, size.width * 0.017), weight: .medium))
                     }
                 }
-                .foregroundStyle(foreground.color)
+                .foregroundStyle(
+                    motionCardHeaderStyle == .sampledGradient
+                        ? gradientForeground
+                        : foreground.color
+                )
             }
             .frame(height: size.height * headerFraction)
 
@@ -681,6 +1123,38 @@ struct ArtworkCanvas: View {
                 y: transform.normalizedOffset.height * size.height
             )
             .clipped()
+    }
+}
+
+private struct TicketScallopedPanel: View {
+    let color: Color
+    let scallopCount: Int
+
+    var body: some View {
+        Canvas { context, size in
+            let count = max(1, scallopCount)
+            let step = size.height / CGFloat(count)
+            // Adjacent circles meet exactly, forming one uninterrupted
+            // perforated edge instead of separate bumps.
+            let radius = step * 0.50
+            let panelRect = CGRect(
+                x: 0,
+                y: 0,
+                width: size.width - radius,
+                height: size.height
+            )
+            context.fill(Path(panelRect), with: .color(color))
+            for index in 0..<count {
+                let centerY = (CGFloat(index) + 0.5) * step
+                let scallop = CGRect(
+                    x: size.width - radius * 2,
+                    y: centerY - radius,
+                    width: radius * 2,
+                    height: radius * 2
+                )
+                context.fill(Path(ellipseIn: scallop), with: .color(color))
+            }
+        }
     }
 }
 

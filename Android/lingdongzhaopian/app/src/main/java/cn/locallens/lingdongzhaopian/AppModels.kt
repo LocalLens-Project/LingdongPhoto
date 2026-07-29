@@ -54,15 +54,25 @@ enum class CreationMode(
         "手动涂抹或智能识别人脸、车牌、二维码与敏感文字",
         "让隐私留在画面之外\n手动涂抹或智能识别，安心分享每一张照片",
         Color(0xFF9ED6FF),
+    ),
+    TravelTicket(
+        "影像票根",
+        "让色彩、拍摄信息与可验证凭证共同封存一次旅程",
+        "把一张照片变成可以被扫描、被验证的旅行凭证",
+        Color(0xFFFAB87A),
     );
 
     val defaultRatio: ArtworkRatio
-        get() = if (this == Journal || this == SpectrumWallpaper) ArtworkRatio.NineSixteen else ArtworkRatio.ThreeFour
+        get() = when (this) {
+            Journal, SpectrumWallpaper -> ArtworkRatio.NineSixteen
+            TravelTicket -> ArtworkRatio.TwentyOneNine
+            else -> ArtworkRatio.ThreeFour
+        }
 }
 
 enum class ArtworkRatio(val label: String, val value: Float) {
     Original("原图", .75f), OneOne("1:1", 1f), ThreeFour("3:4", .75f), FourFive("4:5", .8f),
-    NineSixteen("9:16", 9f / 16f), SixteenNine("16:9", 16f / 9f);
+    NineSixteen("9:16", 9f / 16f), SixteenNine("16:9", 16f / 9f), TwentyOneNine("21:9", 21f / 9f);
 
     fun valueFor(bitmap: Bitmap?): Float = if (this == Original && bitmap != null && bitmap.height > 0) {
         (bitmap.width.toFloat() / bitmap.height.toFloat()).coerceIn(.35f, 2.4f)
@@ -70,6 +80,7 @@ enum class ArtworkRatio(val label: String, val value: Float) {
 }
 
 enum class ArtworkTemplateStyle(val label: String) { Classic("经典"), Airy("留白"), Immersive("沉浸") }
+enum class MotionCardHeaderStyle(val label: String) { Solid("纯色"), SampledGradient("取色渐变") }
 enum class JournalLayoutMode(val label: String) { Automatic("自动拼贴"), Magazine("杂志主图"), Filmstrip("纵向胶卷") }
 enum class PaletteLayoutMode(val label: String) { Floating("经典浮动"), Compact("紧凑横排") }
 enum class ArtworkFontStyle(val label: String) { Rounded("圆体"), Song("宋体"), Serif("衬线"), Monospaced("等宽") }
@@ -147,7 +158,49 @@ data class PhotoMetadata(
     val captureTimeMillis: Long? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    /**
+     * Always null today: the app ships without the INTERNET permission, and Android's `Geocoder`
+     * needs a network round trip to turn coordinates into a place name. The ticket helpers below
+     * mirror iOS so a future offline source can fill this in without touching them.
+     */
+    val placeName: String? = null,
 ) {
+    val hasLocation: Boolean get() = latitude != null && longitude != null
+
+    val locationText: String?
+        get() = if (latitude != null && longitude != null) {
+            "%.4f°, %.4f°".format(latitude, longitude)
+        } else null
+
+    val displayTitle: String get() = placeName ?: locationText ?: "记录这一刻"
+
+    val ticketCityName: String?
+        get() {
+            val first = placeName?.split("·")?.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }
+                ?: return null
+            return listOf("特别行政区", "自治州", "地区", "市").fold(first) { value, suffix ->
+                if (value.endsWith(suffix)) value.dropLast(suffix.length) else value
+            }
+        }
+
+    fun ticketCityLabel(style: TicketCityNameStyle): String? {
+        val city = ticketCityName?.takeIf { it.isNotEmpty() } ?: return null
+        return when (style) {
+            TicketCityNameStyle.Pinyin -> city
+                .split(Regex("\\s+"))
+                .filter { it.isNotEmpty() }
+                .joinToString(" ")
+                .uppercase()
+                .takeIf { it.isNotEmpty() }
+
+            TicketCityNameStyle.Chinese -> city
+                .filterNot { it.isWhitespace() }
+                .map(Char::toString)
+                .joinToString(" ")
+                .takeIf { it.isNotEmpty() }
+        }
+    }
+
     val captureTimeText: String
         get() = captureTimeMillis?.let {
             DateTimeFormatter.ofPattern("yyyy/MM/dd, HH:mm")
@@ -166,6 +219,16 @@ data class PhotoMetadata(
             }
             return values.joinToString(" · ").ifBlank { null }
         }
+
+    /** iOS splits the lens from the exposure numbers on a ticket; keep the same two lines here. */
+    val ticketLensLine: String? get() = lensModel?.trim()?.takeIf { it.isNotEmpty() }
+    val ticketCaptureSettingsLine: String?
+        get() = buildList {
+            aperture?.let { add("ƒ/${"%.1f".format(it)}") }
+            exposureTime?.let { add(if (it < 1) "1/${(1 / it).toInt()}s" else "${"%.1f".format(it)}s") }
+            iso?.let { add("ISO $it") }
+            focalLength?.let { add("${"%.1f".format(it)}mm") }
+        }.joinToString(" · ").ifBlank { null }
 }
 
 data class PhotoSemantic(val category: String = "日常瞬间", val labels: List<String> = emptyList())
@@ -177,6 +240,8 @@ data class SelectedPhoto(
     val motionVideoFile: File? = null,
     val sourceWidth: Int = bitmap.width,
     val sourceHeight: Int = bitmap.height,
+    /** SHA-256 prefix of the untouched source file, matching how iOS fingerprints a ticket. */
+    val contentSignature: Long = 0L,
 ) {
     val isMotionPhoto: Boolean get() = motionVideoFile?.isFile == true
 }
@@ -205,11 +270,23 @@ data class AppPreferences(
     val supportsMotionPhotos: Boolean = true,
     val paletteLayout: PaletteLayoutMode = PaletteLayoutMode.Floating,
     val templateStyle: ArtworkTemplateStyle = ArtworkTemplateStyle.Classic,
+    val motionCardHeaderStyle: MotionCardHeaderStyle = MotionCardHeaderStyle.Solid,
     val journalLayout: JournalLayoutMode = JournalLayoutMode.Automatic,
     val exportFormat: ExportFormat = ExportFormat.Jpeg,
     val exportResolution: ExportResolution = ExportResolution.Standard,
     val metadataPolicy: MetadataPolicy = MetadataPolicy.RemoveLocation,
     val exportDestination: ExportDestination = ExportDestination.PhotoLibrary,
+    val ticketCodeStyle: TicketCodeStyle = TicketCodeStyle.Barcode,
+    val ticketLayout: TicketLayoutStyle = TicketLayoutStyle.Classic,
+    val ticketShowCopy: Boolean = true,
+    val ticketShowDate: Boolean = true,
+    val ticketShowPlace: Boolean = false,
+    val ticketShowDevice: Boolean = true,
+    val ticketShowParameters: Boolean = true,
+    val ticketShowPalette: Boolean = true,
+    val ticketHeaderMode: TicketHeaderMode = TicketHeaderMode.Custom,
+    val ticketCustomHeader: String = "LINGDONG",
+    val ticketCityNameStyle: TicketCityNameStyle = TicketCityNameStyle.Pinyin,
 )
 
 data class AppUiState(
@@ -219,6 +296,8 @@ data class AppUiState(
     val palette: List<RGBColor> = RGBColor.fallback,
     val palettePercentages: List<Double> = List(6) { 0.0 },
     val artworkCopy: ArtworkCopy = ArtworkCopy(),
+    val ticketMessage: String = "",
+    val ticketSessionID: Long = 0L,
     val preferences: AppPreferences = AppPreferences(),
     val isLoading: Boolean = false,
     val loadingStatus: String = "",
@@ -240,10 +319,47 @@ data class AppUiState(
     val isMotionPlaying: Boolean = false,
     val isExporting: Boolean = false,
     val noticeAcknowledged: Boolean = false,
+    val updateLog102Acknowledged: Boolean = false,
 )
 
 fun AppUiState.bitmapAt(index: Int): Bitmap? =
     motionPreviewFrames[index] ?: photos.getOrNull(index)?.bitmap
+
+/** Public ticket contents derived from the current photo, palette and privacy switches. */
+val AppUiState.ticketPayload: TicketPayload
+    get() {
+        val preferences = preferences
+        val photo = photos.firstOrNull()
+        val metadata = photo?.metadata ?: PhotoMetadata()
+        val signature = photo?.contentSignature?.takeIf { it != 0L }
+            ?: (artworkCopy.title.hashCode().toLong() shl 32) xor palette.hashCode().toLong()
+        val entries = if (preferences.ticketShowPalette) {
+            palette.take(6).mapIndexed { index, color ->
+                TicketPaletteEntry(color.hex, palettePercentages.getOrElse(index) { 0.0 })
+            }
+        } else emptyList()
+        val headerTitle = when (preferences.ticketHeaderMode) {
+            TicketHeaderMode.Custom -> preferences.ticketCustomHeader.trim().takeIf { it.isNotEmpty() }
+            TicketHeaderMode.City -> metadata.ticketCityLabel(preferences.ticketCityNameStyle) ?: "LINGDONG"
+        }
+        return TicketPayload(
+            ticketID = TicketPayload.ticketIdentifier(signature),
+            fingerprint = TicketPayload.fingerprintText(signature),
+            headerTitle = headerTitle,
+            title = if (preferences.ticketShowCopy) artworkCopy.title else "一张影像票根",
+            subtitle = if (preferences.ticketShowCopy) artworkCopy.subtitle else null,
+            message = TicketPayload.normalizedMessage(ticketMessage),
+            captureTime = if (preferences.ticketShowDate) metadata.captureTimeText else null,
+            place = if (preferences.ticketShowPlace && (metadata.placeName != null || metadata.hasLocation)) {
+                metadata.displayTitle
+            } else null,
+            device = if (preferences.ticketShowDevice) metadata.deviceLine else null,
+            lens = if (preferences.ticketShowDevice) metadata.ticketLensLine else null,
+            captureSettings = if (preferences.ticketShowParameters) metadata.ticketCaptureSettingsLine else null,
+            palette = entries,
+            revealLayout = preferences.ticketLayout.revealLayout,
+        )
+    }
 
 fun <T> List<T>.moving(from: Int, to: Int): List<T> {
     if (from !in indices || to !in indices || from == to) return this

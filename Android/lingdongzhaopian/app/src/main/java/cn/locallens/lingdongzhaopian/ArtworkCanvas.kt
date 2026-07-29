@@ -81,15 +81,25 @@ fun ArtworkCanvas(
     onBubbleScale: (Float) -> Unit = {},
 ) {
     val corner = when (state.mode) {
-        CreationMode.BubbleStamp -> 0.dp
+        CreationMode.BubbleStamp, CreationMode.TravelTicket -> 0.dp
         CreationMode.SpectrumWallpaper -> 28.dp
         else -> 22.dp
     }
+    // The ticket keeps its own silhouette and must stay transparent outside it, so it never gets
+    // the shared translucent backdrop the other modes use.
+    val isTicket = state.mode == CreationMode.TravelTicket
     Box(
         modifier = modifier
             .testTag("artwork-${state.mode.name}")
-            .clip(RoundedCornerShape(if (exporting) 0.dp else corner))
-            .background(Color.White.copy(alpha = .12f)),
+            .then(
+                if (isTicket) {
+                    Modifier.clip(TicketArtworkShape(state.preferences.ticketLayout))
+                } else {
+                    Modifier
+                        .clip(RoundedCornerShape(if (exporting) 0.dp else corner))
+                        .background(Color.White.copy(alpha = .12f))
+                }
+            ),
     ) {
         when (state.mode) {
             CreationMode.MotionCard -> MotionCardCanvas(state, onCycleFont, onAdjustTextScale)
@@ -98,6 +108,7 @@ fun ArtworkCanvas(
             CreationMode.BubbleStamp -> BubbleStampCanvas(state, onCycleFont, onAdjustTextScale, onBubbleScale)
             CreationMode.SpectrumWallpaper -> SpectrumWallpaperCanvas(state)
             CreationMode.PrivacyMosaic -> PrivacyMosaicCanvas(state, exporting, onTogglePrivacyMask)
+            CreationMode.TravelTicket -> TravelTicketCanvas(state, exporting)
         }
     }
 }
@@ -126,8 +137,22 @@ private fun MotionCardCanvas(state: AppUiState, onCycleFont: (Int) -> Unit, onAd
         }
         ArtworkTemplateStyle.Classic, ArtworkTemplateStyle.Airy -> Column(Modifier.fillMaxSize()) {
             val header = if (state.preferences.templateStyle == ArtworkTemplateStyle.Airy) .34f else .43f
+            val sampled = state.preferences.motionCardHeaderStyle == MotionCardHeaderStyle.SampledGradient
+            val gradient = remember(state.palette, state.palettePercentages) {
+                MotionCardGradientResolver.resolve(state.palette, state.palettePercentages)
+            }
+            val headerForeground = if (sampled) gradient.foreground.color else theme.foreground.color
             Box(
-                Modifier.fillMaxWidth().weight(header).background(theme.background.color),
+                Modifier
+                    .fillMaxWidth()
+                    .weight(header)
+                    .then(
+                        if (sampled) {
+                            Modifier.background(Brush.verticalGradient(gradient.colors.map { it.color }))
+                        } else {
+                            Modifier.background(theme.background.color)
+                        }
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Column(
@@ -136,7 +161,7 @@ private fun MotionCardCanvas(state: AppUiState, onCycleFont: (Int) -> Unit, onAd
                 ) {
                     Text(
                         state.artworkCopy.title,
-                        color = theme.foreground.color,
+                        color = headerForeground,
                         fontSize = (12 * state.textScale).sp,
                         lineHeight = (15 * state.textScale).sp,
                         fontWeight = FontWeight.SemiBold,
@@ -146,7 +171,7 @@ private fun MotionCardCanvas(state: AppUiState, onCycleFont: (Int) -> Unit, onAd
                     )
                     Text(
                         state.photos.firstOrNull()?.metadata?.captureTimeText ?: "记录这一刻",
-                        color = theme.foreground.color.copy(alpha = .92f),
+                        color = headerForeground.copy(alpha = .92f),
                         fontSize = 8.sp,
                     )
                 }
@@ -710,7 +735,7 @@ internal fun coverPhotoPlacement(
 }
 
 @Composable
-private fun CoverPhoto(bitmap: Bitmap, transform: JournalTransform, modifier: Modifier) {
+internal fun CoverPhoto(bitmap: Bitmap, transform: JournalTransform, modifier: Modifier) {
     val paint = remember(bitmap) {
         Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply { isDither = true }
     }

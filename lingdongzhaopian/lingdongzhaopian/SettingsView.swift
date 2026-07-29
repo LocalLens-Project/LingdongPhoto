@@ -11,6 +11,7 @@ struct SettingsView: View {
     @Binding var useCustomCameraWatermarks: Bool
     @Binding var gentleBackground: Bool
     @Binding var templateStyle: ArtworkTemplateStyle
+    @Binding var motionCardHeaderStyle: MotionCardHeaderStyle
     @Binding var journalLayout: JournalLayoutMode
     @ObservedObject var cameraWatermarkLibrary: CameraWatermarkLibrary
 
@@ -47,7 +48,7 @@ struct SettingsView: View {
                         privacyOptions
 
                         VStack(spacing: 10) {
-                            Text("版本 1.0.1 (Build 1024)")
+                            Text("版本 1.0.2 (Build 1028)")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
 
@@ -173,6 +174,24 @@ struct SettingsView: View {
         settingsSection("灵动卡片操作技巧") {
             VStack(spacing: 0) {
                 templateRow
+                sectionDivider
+                SettingRow(
+                    symbol: motionCardHeaderStyle.symbol,
+                    title: "顶部背景",
+                    subtitle: templateStyle == .immersive
+                        ? "沉浸模板没有独立顶部区域；切换为经典或留白模板后生效。"
+                        : "取色渐变会从照片代表色生成平滑过渡，并自动选择清晰的文字颜色。"
+                ) {
+                    Picker("顶部背景", selection: $motionCardHeaderStyle) {
+                        ForEach(MotionCardHeaderStyle.allCases) { style in
+                            Text(style.rawValue).tag(style)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .tint(.blue)
+                    .disabled(templateStyle == .immersive)
+                }
                 sectionDivider
                 ratioRow
                 sectionDivider

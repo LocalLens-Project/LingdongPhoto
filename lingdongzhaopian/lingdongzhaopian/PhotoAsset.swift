@@ -37,6 +37,43 @@ struct PhotoMetadata: Equatable {
         return String(format: "%.4f°, %.4f°", latitude, longitude)
     }
 
+    var ticketCityName: String? {
+        guard hasLocation,
+              let firstComponent = placeName?
+                .components(separatedBy: "·")
+                .first?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+              !firstComponent.isEmpty else {
+            return nil
+        }
+        let suffixes = ["特别行政区", "自治州", "地区", "市"]
+        return suffixes.reduce(firstComponent) { value, suffix in
+            value.hasSuffix(suffix)
+                ? String(value.dropLast(suffix.count))
+                : value
+        }
+    }
+
+    func ticketCityLabel(style: TicketCityNameStyle) -> String? {
+        guard let city = ticketCityName, !city.isEmpty else { return nil }
+        switch style {
+        case .pinyin:
+            let latin = city
+                .applyingTransform(.toLatin, reverse: false)?
+                .applyingTransform(.stripDiacritics, reverse: false)
+                ?? city
+            let words = latin
+                .components(separatedBy: .whitespacesAndNewlines)
+                .filter { !$0.isEmpty }
+            return words.isEmpty ? nil : words.joined(separator: " ").uppercased()
+        case .chinese:
+            let characters = city
+                .filter { !$0.isWhitespace }
+                .map(String.init)
+            return characters.isEmpty ? nil : characters.joined(separator: " ")
+        }
+    }
+
     var captureTimeText: String {
         guard let captureDate else { return "拍摄时间未记录" }
         var calendar = Calendar(identifier: .gregorian)

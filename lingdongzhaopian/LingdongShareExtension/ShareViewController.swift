@@ -766,6 +766,7 @@ private enum ShareCreationMode: String, CaseIterable, Identifiable {
     case bubbleStamp
     case spectrumWallpaper
     case privacyMosaic
+    case travelTicket
 
     var id: String { rawValue }
     var title: String {
@@ -776,6 +777,7 @@ private enum ShareCreationMode: String, CaseIterable, Identifiable {
         case .bubbleStamp: "气泡印章"
         case .spectrumWallpaper: "色谱壁纸"
         case .privacyMosaic: "隐私马赛克"
+        case .travelTicket: "影像票根"
         }
     }
     var symbol: String {
@@ -786,6 +788,7 @@ private enum ShareCreationMode: String, CaseIterable, Identifiable {
         case .bubbleStamp: "seal"
         case .spectrumWallpaper: "rectangle.on.rectangle"
         case .privacyMosaic: "eye.slash"
+        case .travelTicket: "ticket"
         }
     }
 }
