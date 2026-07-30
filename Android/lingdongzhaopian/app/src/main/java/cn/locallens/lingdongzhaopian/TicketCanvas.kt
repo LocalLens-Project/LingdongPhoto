@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.max
@@ -270,20 +272,125 @@ private fun VerticalTravelTicket(state: AppUiState) {
         -.30f,
     )
     val foreground = readableForeground(state.darkestTicketColor, background)
+    val systemFontScale = LocalDensity.current.fontScale.coerceAtLeast(.1f)
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val width = maxWidth
         val height = maxHeight
+        val heightToWidth = if (width.value > 0f) height.value / width.value else 1f
+        val ultraCompact = heightToWidth < .62f
+        val compact = heightToWidth < .96f
+        val showsVerificationQR = state.preferences.ticketCodeStyle == TicketCodeStyle.VerificationQR
+
+        // "Original" can produce a landscape 4:3, 16:9 or even 21:9 canvas. The old fixed 52/48
+        // split left too little room for metadata, especially when a square QR code was selected.
+        // Reserve the information panel from the ticket's own aspect ratio instead of the device
+        // screen, then scale every internal element from that panel's actual height.
+        val photoFraction = when {
+            ultraCompact -> .38f
+            compact && showsVerificationQR -> .43f
+            compact -> .47f
+            else -> .52f
+        }
+        val panelHeight = height * (1f - photoFraction)
+        val panelPadding = when {
+            ultraCompact -> maxOf(5.dp, width * .018f)
+            compact -> maxOf(7.dp, width * .030f)
+            else -> maxOf(12.dp, width * .050f)
+        }
+        val panelContentHeight = (panelHeight - panelPadding * 2f).coerceAtLeast(1.dp)
+        val titleScale = state.textScale.coerceAtMost(
+            when {
+                ultraCompact -> 1.08f
+                compact -> 1.22f
+                else -> 1.55f
+            }
+        )
+        val titleSize = when {
+            ultraCompact -> maxOf(7f, width.value * .028f)
+            compact -> maxOf(9f, width.value * .042f)
+            else -> maxOf(11f, width.value * .050f)
+        } * titleScale
+        val subtitleSize = when {
+            ultraCompact -> maxOf(5.5f, width.value * .018f)
+            compact -> maxOf(6.5f, width.value * .022f)
+            else -> maxOf(7f, width.value * .025f)
+        }
+        val titleMaxLines = if (compact) 1 else 2
+        val subtitleMaxLines = if (compact) 1 else 2
+        val titleSpacing = when {
+            ultraCompact -> 1.dp
+            compact -> 2.dp
+            else -> 5.dp
+        }
+        val rowSpacing = when {
+            ultraCompact -> 5.dp
+            compact -> 7.dp
+            else -> 10.dp
+        }
+        val codeMaxWidth = width * when {
+            ultraCompact -> .19f
+            compact -> .24f
+            else -> .30f
+        }
+        val codeMaxHeight = if (showsVerificationQR) {
+            panelContentHeight * when {
+                ultraCompact -> .40f
+                compact -> .43f
+                else -> .48f
+            }
+        } else {
+            minOf(height * .10f, panelContentHeight * .34f)
+        }
+        val infoTitleSize = when {
+            ultraCompact -> 5f
+            compact -> 6f
+            else -> 7f
+        }
+        val infoValueSize = when {
+            ultraCompact -> 6.5f
+            compact -> 7.5f
+            else -> 9f
+        }
+        val infoLineHeight = when {
+            ultraCompact -> 7.5f
+            compact -> 9f
+            else -> 11f
+        }
+        val infoMaxLines = if (ultraCompact) 1 else 2
+        val infoSpacing = when {
+            ultraCompact -> 1.dp
+            compact -> 2.dp
+            else -> 3.dp
+        }
+        val paletteDotSize = when {
+            ultraCompact -> 6.dp
+            compact -> 8.dp
+            else -> 10.dp
+        }
+        val ticketIDSize = when {
+            ultraCompact -> 5.5f
+            compact -> 6.5f
+            else -> maxOf(7f, width.value * .024f)
+        }
+        val photoInset = when {
+            ultraCompact -> maxOf(4.dp, width * .018f)
+            compact -> maxOf(6.dp, width * .026f)
+            else -> maxOf(9.dp, width * .040f)
+        }
+
         Column(Modifier.fillMaxSize()) {
-            Box(Modifier.fillMaxWidth().height(height * .52f)) {
+            Box(Modifier.fillMaxWidth().height(height * photoFraction)) {
                 ArtworkPhotoLayer(state, Modifier.fillMaxSize())
                 Text(
                     payload.ticketID,
                     color = Color.White.copy(alpha = .90f),
-                    fontSize = maxOf(7f, width.value * .024f).sp,
+                    // Artwork typography is part of the exported design and must not grow with the
+                    // user's Android accessibility font scale.
+                    fontSize = (ticketIDSize / systemFontScale).sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(maxOf(9.dp, width * .040f)),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(photoInset),
                 )
             }
 
@@ -292,29 +399,33 @@ private fun VerticalTravelTicket(state: AppUiState) {
                     .fillMaxWidth()
                     .weight(1f)
                     .background(background.color)
-                    .padding(maxOf(12.dp, width * .050f)),
-                verticalArrangement = Arrangement.spacedBy(maxOf(8.dp, height * .014f)),
+                    .padding(panelPadding),
+                verticalArrangement = Arrangement.SpaceBetween,
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(rowSpacing),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(titleSpacing)) {
                         Text(
                             payload.title,
                             color = foreground.color,
-                            fontSize = maxOf(11f, width.value * .050f * state.textScale).sp,
-                            lineHeight = maxOf(13f, width.value * .058f * state.textScale).sp,
+                            fontSize = (titleSize / systemFontScale).sp,
+                            lineHeight = (titleSize * 1.16f / systemFontScale).sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = state.ticketFontFamily,
-                            maxLines = 2,
+                            maxLines = titleMaxLines,
                             overflow = TextOverflow.Ellipsis,
                         )
                         payload.subtitle?.let {
                             Text(
                                 it,
                                 color = foreground.color.copy(alpha = .60f),
-                                fontSize = maxOf(7f, width.value * .025f).sp,
-                                lineHeight = maxOf(9f, width.value * .030f).sp,
+                                fontSize = (subtitleSize / systemFontScale).sp,
+                                lineHeight = (subtitleSize * 1.22f / systemFontScale).sp,
                                 fontWeight = FontWeight.Medium,
-                                maxLines = 2,
+                                maxLines = subtitleMaxLines,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
@@ -324,21 +435,39 @@ private fun VerticalTravelTicket(state: AppUiState) {
                         payload = payload,
                         style = state.preferences.ticketCodeStyle,
                         foreground = foreground,
-                        maxWidth = width * .30f,
-                        maxHeight = if (state.preferences.ticketCodeStyle == TicketCodeStyle.Barcode) {
-                            height * .10f
-                        } else width * .30f,
+                        maxWidth = codeMaxWidth,
+                        maxHeight = codeMaxHeight,
                     )
                 }
 
                 HorizontalDivider(color = foreground.color.copy(alpha = .18f))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TicketInfoLabel("DATE", payload.captureTime ?: "未记录", foreground.color, Modifier.weight(1f))
-                    TicketInfoLabel("CAMERA", payload.device ?: "未公开", foreground.color, Modifier.weight(1f))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(rowSpacing)) {
+                    TicketInfoLabel(
+                        title = "DATE",
+                        value = payload.captureTime ?: "未记录",
+                        foreground = foreground.color,
+                        modifier = Modifier.weight(1f),
+                        titleFontSize = (infoTitleSize / systemFontScale).sp,
+                        valueFontSize = (infoValueSize / systemFontScale).sp,
+                        valueLineHeight = (infoLineHeight / systemFontScale).sp,
+                        maxLines = infoMaxLines,
+                        spacing = infoSpacing,
+                    )
+                    TicketInfoLabel(
+                        title = "CAMERA",
+                        value = payload.device ?: "未公开",
+                        foreground = foreground.color,
+                        modifier = Modifier.weight(1f),
+                        titleFontSize = (infoTitleSize / systemFontScale).sp,
+                        valueFontSize = (infoValueSize / systemFontScale).sp,
+                        valueLineHeight = (infoLineHeight / systemFontScale).sp,
+                        maxLines = infoMaxLines,
+                        spacing = infoSpacing,
+                    )
                 }
 
-                TicketPaletteDots(state.ticketColors)
+                TicketPaletteDots(state.ticketColors, paletteDotSize)
             }
         }
     }
@@ -494,34 +623,49 @@ private fun TicketScallopedPanel(color: Color, scallopCount: Int, modifier: Modi
 }
 
 @Composable
-private fun TicketInfoLabel(title: String, value: String, foreground: Color, modifier: Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+private fun TicketInfoLabel(
+    title: String,
+    value: String,
+    foreground: Color,
+    modifier: Modifier,
+    titleFontSize: TextUnit = 7.sp,
+    valueFontSize: TextUnit = 9.sp,
+    valueLineHeight: TextUnit = 11.sp,
+    maxLines: Int = 2,
+    spacing: Dp = 3.dp,
+) {
+    Column(
+        modifier,
+        verticalArrangement = Arrangement.spacedBy(spacing),
+    ) {
         Text(
             title,
             color = foreground.copy(alpha = .46f),
-            fontSize = 7.sp,
+            fontSize = titleFontSize,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
         )
         Text(
             value,
             color = foreground,
-            fontSize = 9.sp,
-            lineHeight = 11.sp,
+            fontSize = valueFontSize,
+            lineHeight = valueLineHeight,
             fontWeight = FontWeight.SemiBold,
-            maxLines = 2,
+            maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
 @Composable
-private fun TicketPaletteDots(colors: List<RGBColor>) {
-    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+private fun TicketPaletteDots(colors: List<RGBColor>, dotSize: Dp = 10.dp) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(maxOf(3.dp, dotSize * .50f)),
+    ) {
         colors.take(6).forEach { color ->
             Box(
                 Modifier
-                    .size(10.dp)
+                    .size(dotSize)
                     .background(color.color, CircleShape)
                     .border(.6.dp, Color.White.copy(alpha = .42f), CircleShape)
             )

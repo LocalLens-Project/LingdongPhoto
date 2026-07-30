@@ -35,7 +35,7 @@ android {
         targetSdk = 36
         // Keep the Android package code monotonic so previous releases can update in place.
         // The user-facing release build number for version 1.0.2 starts again at Build 1.
-        versionCode = 4
+        versionCode = 5
         versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
