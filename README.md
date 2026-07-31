@@ -2,7 +2,7 @@
 
 一款面向 iOS 与 Android 的本地照片创作工具。iOS 版本使用 SwiftUI，Android 版本使用 Kotlin 与 Jetpack Compose；两个版本都可以从照片中提取感知色彩、识别画面内容、读取真实拍摄信息，并生成卡片、色盘、手帐、印章、壁纸、隐私遮挡与可扫描验证的影像票根。两个版本的主应用都可以在本机扫描二维码并查看票根公开信息，iOS 还提供无需安装完整应用的 App Clip 验证入口。iOS 可以从系统照片操作列表或快捷指令进入处理流程，Android 可以通过系统照片选择器或分享菜单导入单张及多张照片。
 
-**App Store 正式版：** [下载“灵动照片”](https://apps.apple.com/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
+**App Store 正式版：** [下载“灵动照片”](https://apps.apple.com/cn/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
 
 > **Android 安装包：** [下载已签名 APK](https://locallens.cn/LingdongPhoto-Android.apk)
 
