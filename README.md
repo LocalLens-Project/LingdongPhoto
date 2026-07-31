@@ -4,8 +4,6 @@
 
 **App Store 正式版：** [下载“灵动照片”](https://apps.apple.com/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
 
-> **iOS 审核状态：** 1.0.2 版本已提交 App Store 审核，当前正在等待 Apple 审核结果；上方链接暂为当前已发布版本。
-
 > **Android 安装包：** [下载已签名 APK](https://locallens.cn/LingdongPhoto-Android.apk)
 
 > 完全免费，无订阅、无内购、无广告。照片识别、色彩分析与作品渲染均在设备上完成。
