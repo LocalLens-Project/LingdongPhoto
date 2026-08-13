@@ -1,6 +1,6 @@
 # 灵动照片
 
-一款面向 iOS 与 Android 的本地照片创作工具。iOS 版本使用 SwiftUI，Android 版本使用 Kotlin 与 Jetpack Compose；两个版本都可以从照片中提取感知色彩、识别画面内容、读取真实拍摄信息，并生成卡片、色盘、手帐、印章、壁纸、隐私遮挡与可扫描验证的影像票根。两个版本的主应用都可以在本机扫描二维码并查看票根公开信息，iOS 还提供无需安装完整应用的 App Clip 验证入口。iOS 可以从系统照片操作列表或快捷指令进入处理流程，Android 可以通过系统照片选择器或分享菜单导入单张及多张照片。
+一款面向 iOS 与 Android 的本地照片创作工具。iOS 版本使用 SwiftUI，Android 版本使用 Kotlin 与 Jetpack Compose；两个版本都可以从照片中提取感知色彩、识别画面内容、读取真实拍摄信息，生成卡片、色盘、手帐、印章、壁纸、隐私遮挡、可扫描验证的影像票根与多页影像相簿，并通过“色彩关系”比较两张照片的共同色、对照色与连接色阶。iOS 还可以将照片转化为铅笔、炭笔或水彩风格的影像素描。两个版本的主应用都可以在本机扫描二维码并查看票根公开信息，iOS 还提供无需安装完整应用的 App Clip 验证入口。iOS 可以从系统照片操作列表或快捷指令进入处理流程，Android 可以通过系统照片选择器或分享菜单导入单张及多张照片。
 
 **App Store 正式版：** [下载“灵动照片”](https://apps.apple.com/cn/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
 
@@ -46,33 +46,57 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 
 ### 模式切换与界面
 
-- 未添加照片时可左右滑动浏览七种创作模式，每种模式均显示专属图标；最后一页可直接进入票根扫描
-- 载入照片后可通过主界面顶部的模式面板切换创作模式，并保留当前照片及其本机分析结果
+- 未添加照片时可左右滑动浏览七种创作模式，以及独立的色彩关系、影像相簿与票根扫描入口
+- 载入照片后可通过主界面顶部的模式面板切换创作模式，并保留当前照片及其本机分析结果；同一面板也可进入色彩关系、影像相簿或票根扫描
 - 提供灵动卡片、琉璃色盘、一键手帐、气泡印章、色谱壁纸、隐私马赛克和影像票根七种创作模式
 
 ### 灵动卡片
 
 - 顶部背景支持“纯色”和“取色渐变”；取色渐变会根据照片代表色生成平滑过渡，并自动选择清晰的深色或浅色文字
+- 可在照片上拖动、缩放选框进行局部取色，也可随时恢复整张照片取色
 
 ### 影像票根
 
 - 将照片、标题、拍摄信息、代表色与票根凭证组合成可保存和分享的静态 PNG 作品
 - 提供横向经典、纵向旅行和极简凭证三种票根版式；横向票根支持横屏预览与编辑
+- 横向经典版式提供紧凑、标准和海报三档宽度
+- 竖屏编辑时可框选照片中的指定区域，单独提取票根背景与色盘所用颜色
 - 支持经典一维码与验证二维码，可分别控制是否公开文案、拍摄时间、地点、设备与镜头、拍摄参数和照片色盘
-- “预览与公开信息”可填写最多 80 字的票根寄语；寄语会写入验证二维码，并显示在扫码后的票根详情中
+- 扫码内容提供标准模式与时光胶囊两种叙事风格；时光胶囊会显示照片距今的时间，并可选择“写给未来的我”或“分享给朋友”视角
+- “预览与公开信息”可填写最多 80 字的票根寄语；寄语会写入验证二维码，并显示在扫码后的票根详情或时光胶囊中
 - 导出票根时若寄语为空，应用会先询问是补充寄语还是直接导出；选择补充后完成输入，再进入导出界面
 - “影像票根编码”页面可预览验证结果，并将一维码或二维码单独保存到系统相册、文件或系统分享面板
-- 验证页面可显示票根编号、照片指纹、票根寄语，以及创作者选择公开的文案、代表色和拍摄信息；二维码不包含原始照片、相册标识、文件路径或设备序列号
+- 可使用 Android Keystore 中的 P-256 设备密钥为二维码公开信息添加设备封印；验证端会区分硬件保护、软件保护、未封印和封印失效状态
+- 验证页面可显示票根编号、照片指纹、设备封印、票根寄语，以及创作者选择公开的文案、代表色和拍摄信息；二维码不包含原始照片、相册标识、文件路径或设备序列号
 
 ### 扫描验证
 
 - 通过相机在本机识别并解析验证二维码；Android 与 iOS 生成的票根二维码可以跨平台验证
+- 本机校验二维码公开信息的设备签名，并明确提示内容完整、未封印或签名失效
 - 扫描过程不会拍照、保存相机画面或读取系统相册；无效二维码会在扫描界面直接提示
+
+### 影像相簿
+
+- 提供旅行、家庭、儿童、动物和自定义五类主题，以及 15 套相簿模板
+- 支持 A5 竖版、方形相簿与 A4 横版三种成书尺寸
+- 可加入普通照片或灵动作品，编辑相簿名称、副标题和页面文字，并添加、复制、删除或调整内容页顺序
+- 支持整本跨页预览；空白图片位会保持留白，大幅打印清晰度不足时会在导出前提示
+- 可生成逐页电子版 PDF，或生成包含 3 mm 出血的印刷 PDF
+
+### 色彩关系
+
+- 一次选择两张照片，使用 OKLab 感知色彩和带权色盘匹配比较两组颜色
+- 提供“共鸣、对照、过渡”三种观察方式，展示相近色、差异最大的配色与连续连接色阶
+- 根据照片方向自动采用双横图上下排列、双竖图左右排列或横竖混合布局，并完整显示照片
+- 复用琉璃色盘的 AGSL 液态玻璃折射效果；色条保持“左侧来自图 1、右侧来自图 2”的阅读顺序
+- 显示色彩亲近、明暗距离和冷暖距离，并根据两张照片的实际色彩关系生成对应文案
+- 可保存对比图或包含文案与指标的完整作品；对比图可隐藏 01、02，支持最高 2400 像素宽的高清导出与最长边最高 8192 像素的原图级导出
+- Motion Photo 在此功能中仅按系统提供的静态画面读取、取色与导出，不读取或保留动态视频部分
 
 ### 照片导入与画幅
 
 - 支持系统照片选择器，也可以从其他应用的分享菜单接收单张或多张照片
-- 支持原图、1:1、3:4、4:5、9:16、16:9 与 21:9 七种画幅，以及卡片、手帐、印章和票根的多种模板
+- 支持原图、1:1、3:4、4:5、4:3、9:16、16:9 与 21:9 八种画幅，以及卡片、手帐、印章和票根的多种模板
 - 影像票根会根据所选版式自动切换适合的横向或纵向画幅
 
 ### 琉璃色盘
@@ -96,7 +120,7 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 
 最初只是想看看，这类看起来精致的照片小工具究竟有多复杂，于是参考公开可见的产品交互，用 SwiftUI 从零做了一次学习性质的复刻。没有使用或反编译任何第三方应用的源代码、素材与私有资源。
 
-写着写着，项目已经不再只是“照着做一个界面”：它加入了 OKLab 感知色彩、加权 K-Means、色彩占比、Apple Vision 本机识图、分类文案库、真实 EXIF、Live Photo 动态导出、多图手帐、隐私马赛克、可验证影像票根、主应用扫码、App Clip、照片操作扩展、App Shortcuts、导出中心和可编辑交互。Android 版本随后使用 Kotlin 与 Jetpack Compose 独立实现同一套核心创作流程，并使用 ML Kit 与 Motion Photo 适配 Android 平台能力。
+写着写着，项目已经不再只是“照着做一个界面”：它加入了 OKLab 感知色彩、加权 K-Means、色彩占比、双照片色彩关系、Apple Vision 本机识图、分类文案库、真实 EXIF、Live Photo 动态导出、多图手帐、隐私马赛克、影像素描、可验证影像票根、设备封印、主应用扫码、App Clip、多页影像相簿、照片操作扩展、App Shortcuts、导出中心和可编辑交互。Android 版本随后使用 Kotlin 与 Jetpack Compose 独立实现同一套核心创作流程，并使用 ML Kit 与 Motion Photo 适配 Android 平台能力。
 
 至于价格，市面上确实有功能相近的小工具采用 **¥12/月** 或 **¥168 买断**。定价当然是每位开发者的自由，只是对这种体量的工具，我更愿意把实现过程公开，让感兴趣的人能看懂、修改和继续完善。
 
@@ -110,9 +134,9 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 
 ### 模式切换与界面
 
-- 未添加照片时可左右滑动浏览七种创作模式；每个模式显示与模式面板一致的专属图标
-- 初始界面最后一页提供“扫描验证票根”，无需先选择照片即可打开相机扫码
-- 载入照片后可通过主界面顶部的模式按钮，在七种创作模式之间直接切换，也可从同一面板进入票根扫描
+- 未添加照片时可左右滑动浏览八种原有创作模式，以及独立的色彩关系、影像相簿与票根扫描入口；每个入口均显示专属图标
+- 初始界面提供“色彩关系”“影像相簿”和“扫描验证票根”，无需先载入主编辑器即可比较两张照片、装订相簿或打开相机扫码
+- 载入照片后可通过主界面顶部的模式按钮，在原有八种创作模式之间直接切换，也可从同一面板进入色彩关系、影像相簿或票根扫描
 - 切换模式时保留当前照片及其本机分析结果，无需重新选择图片
 - 模式选择面板使用半透明液态玻璃材质，可隐约看到下方作品，并自动跟随系统深色或浅色模式
 
@@ -123,6 +147,7 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 - 根据主体色及其画面占比生成协调的同色系文字区
 - 自动选择深色或浅色文字，标题与小字的目标对比度不低于 7:1
 - 顶部背景支持“纯色”和“取色渐变”；取色渐变会根据照片代表色生成平滑过渡，并自动保证文字清晰度
+- 经典和留白模板可在照片上拖动、缩放选框进行局部取色，也可随时恢复整张照片取色
 - 经典、留白、沉浸三种作品模板
 - 支持拖拽构图、双指缩放
 - 点击文字直接编辑
@@ -131,7 +156,7 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 
 ### 更多画幅与模板
 
-- 支持原图、1:1、3:4、4:5、9:16、16:9 与 21:9 七种画幅
+- 支持原图、1:1、3:4、4:5、4:3、9:16、16:9 与 21:9 八种画幅
 - “原图”会跟随照片的实际比例
 - 灵动卡片和气泡印章可切换经典、留白、沉浸模板
 - 一键手帐可切换自动拼贴、杂志主图、纵向胶卷模板
@@ -188,26 +213,55 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 > [!IMPORTANT]
 > 智能识别仅作为辅助，可能出现遗漏或误判。涉及身份证件、账号、地址等高敏感内容时，请在导出前逐项检查，并使用手动涂抹补充遮挡。
 
+### 影像素描
+
+- 将照片转化为铅笔素描、炭笔速写或水彩绘画，预览与导出均在设备本机完成
+- 可调节效果强度、笔触粗细和原片色彩保留比例，并选择是否叠加纸张纹理
+- 每种风格提供独立的默认参数，可随时重置后继续调整
+
 ### 影像票根
 
 - 将照片、标题、拍摄信息、代表色与票根凭证组合成可保存和分享的作品
 - 提供横向经典、纵向旅行和极简凭证三种版式；横向票根支持右横屏预览与编辑
+- 横向经典版式提供紧凑、标准和海报三档宽度
+- 竖屏编辑时可框选照片中的指定区域，单独提取票根背景与色盘所用颜色
 - 票面主标题可自定义，也可从照片位置识别城市，并选择拼音或中文显示
 - 支持经典一维码和验证二维码：一维码展示可扫描的票根编号，验证二维码用于打开票根公开信息
 - 可分别控制是否公开文案、拍摄时间、地点、设备与镜头、拍摄参数和照片色盘；地点默认关闭
-- “预览与公开信息”可填写最多 80 字的票根寄语；寄语会写入验证二维码，并显示在扫码后的票根详情中
+- 扫码内容提供标准模式与时光胶囊两种叙事风格；时光胶囊会显示照片距今的时间，并可选择“写给未来的我”或“分享给朋友”视角
+- “预览与公开信息”可填写最多 80 字的票根寄语；寄语会写入验证二维码，并显示在扫码后的票根详情或时光胶囊中
 - 导出票根时若寄语为空，应用会先询问是补充寄语还是直接导出；选择补充后完成输入，再进入导出界面
 - “影像票根编码”页面可预览扫码后的验证界面，并将一维码或二维码单独保存到系统相册、“文件”或系统分享面板
+- 可使用 iPhone 安全隔区中的 P-256 设备密钥为二维码公开信息添加设备封印；模拟器签名会明确标记为测试状态
 - 验证二维码不包含原始照片、相册标识、文件路径或设备序列号
 - 影像票根以静态 PNG 作品输出，不生成 Live Photo 动态版本
+- 导出时，支持灵动岛的 iPhone 会将灵动岛作为出票口并配合震动呈现出票动画，其他机型则正常等待保存
 
 ### 扫描验证与 App Clip
 
 - 主应用通过“扫描验证票根”调用系统相机识别二维码，并在设备本机解析票根内容
 - 扫描过程不会拍照、保存相机画面或读取系统相册；无效二维码会在扫描页直接提示
-- 验证页面可显示票根编号、照片指纹、票根寄语、创作者公开的文案、代表色和拍摄信息
+- 验证页面可显示票根编号、照片指纹、设备封印、票根寄语、创作者公开的文案、代表色和拍摄信息，并明确提示内容完整、未封印或签名失效
 - 未安装完整应用时，可使用 iPhone 相机扫描验证二维码并通过 App Clip 查看相同的公开内容
 - App Clip 只读取二维码携带的票根公开信息，不请求相册、位置或通知权限；首次获取 App Clip 时需要使用 Apple 提供的系统服务
+
+### 影像相簿
+
+- 提供旅行、家庭、儿童、动物和自定义五类主题，以及 15 套相簿模板
+- 支持 A5 竖版、方形相簿与 A4 横版三种成书尺寸
+- 可加入普通照片或灵动作品，替换与调整图片、编辑文字和字体，并添加、复制、删除或调整内容页顺序
+- 支持整本跨页预览；空白图片位会保持留白，大幅打印清晰度不足时会在导出前提示
+- 可生成逐页电子版 PDF，或生成包含 3 mm 出血的印刷 PDF
+
+### 色彩关系
+
+- 一次选择两张照片，使用 OKLab 感知色彩和带权色盘匹配比较两组颜色
+- 提供“共鸣、对照、过渡”三种观察方式，分别展示相近色、差异最大的配色与两张照片之间的连续连接色阶
+- 根据照片方向自动采用双横图上下排列、双竖图左右排列或横竖混合布局，优先完整显示照片
+- 显示色彩亲近、明暗距离和冷暖距离；关系文案还会综合明度、冷暖、彩度、中性色比例、色相跨度和共同色覆盖范围
+- 液态玻璃色带中的每一组颜色均保持“左侧来自图 1、右侧来自图 2”的阅读顺序，并按整行自动选择黑色或白色标签
+- 可保存仅含两张照片与玻璃色带的对比图，也可保存包含当前观察方式、关系文案和指标的完整分析作品；对比图可选择是否显示 01、02 标记，并提供最高 2400 像素宽的高清导出与最长边最高 8192 像素的原图级导出
+- 照片分析、关系文案与作品渲染均在设备本机完成；同一组照片会得到稳定结果
 
 ### 导出中心
 
@@ -219,7 +273,7 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 
 ### 系统照片操作与快捷指令
 
-- 在系统照片的纵向操作列表中选择“用灵动照片打开”，可在液态玻璃扩展界面选择六种创作模式并继续到主应用
+- 在系统照片的纵向操作列表中选择“用灵动照片打开”，可在扩展界面选择六种创作模式并继续到主应用
 - 扩展会显示实况或静态标记，界面背景、面板和按钮自动跟随系统深色或浅色模式
 - 主应用与扩展通过 App Group 传递最多 5 张照片、所选模式和 Live Photo 配对视频
 - 提供“提取照片色彩”“净化照片元数据”“生成色谱壁纸”三个 App Shortcut，均可在不打开主应用的情况下完成本机处理
@@ -281,6 +335,7 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 - iOS 主应用与照片操作扩展通过 App Group 交接内容；Android 只读取照片选择器或分享菜单中由用户主动授予的内容 URI
 - iOS 中由用户导入的相机品牌 PNG 图标只保存在应用本机，不会上传；应用本身不内置或提供相机品牌素材
 - iOS 与 Android 的票根验证二维码只写入创作者主动选择公开的字段，不包含原始照片、相册标识、文件路径或设备序列号
+- 设备封印只对二维码中的公开信息进行本机签名；私钥保存在 iPhone 安全隔区或 Android Keystore 中，不会写入二维码或上传
 - iOS 与 Android 主应用只在用户进入“扫描验证票根”时请求相机权限，二维码与相机画面均在本机处理
 - App Clip 只解析二维码携带的公开票根数据；首次打开时由 Apple 系统服务负责获取轻应用，项目作者不接收二维码内容
 - 仅在用户操作保存时写入系统相册
@@ -435,12 +490,24 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 │   │   ├── ShareExtension-Info.plist
 │   │   ├── ShareExtension.entitlements
 │   │   ├── Signing.xcconfig
-│   │   └── Signing.local.example.xcconfig
+│   │   ├── Signing.local.example.xcconfig
+│   │   ├── TicketActivity-Info.plist
+│   │   ├── TicketClipActivity-Info.plist
+│   │   └── TicketClipActivity.entitlements
 │   ├── LingdongShareExtension/
 │   │   └── ShareViewController.swift
+│   ├── LingdongTicketActivity/
+│   │   └── TicketPrintLiveActivityWidget.swift
 │   ├── LingdongTicketClip/
 │   │   ├── LingdongTicketClipApp.swift
 │   │   └── TicketClipRootView.swift
+│   ├── LingdongTicketClipActivity/
+│   │   └── TicketClipLiveActivityWidget.swift
+│   ├── SharedActivity/
+│   │   ├── TicketPrintActivityAttributes.swift
+│   │   ├── TicketRevealActivityAttributes.swift
+│   │   ├── TicketRevealLiveActivityController.swift
+│   │   └── TicketRevealLiveActivityWidget.swift
 │   ├── SharedTicket/
 │   │   ├── TicketCodeRenderer.swift
 │   │   ├── TicketPayload.swift
@@ -455,6 +522,12 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 │   │       └── lingdongzhaopian.xcscheme
 │   └── lingdongzhaopian/
 │       ├── AppModel.swift
+│       ├── AlbumEditor.swift
+│       ├── AlbumModels.swift
+│       ├── AlbumPreview.swift
+│       ├── AlbumRenderer.swift
+│       ├── AlbumStore.swift
+│       ├── AlbumViews.swift
 │       ├── ArtworkCanvas.swift
 │       ├── ArtworkExporter.swift
 │       ├── Assets.xcassets/
@@ -462,6 +535,10 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 │       ├── CaptureDeviceDescriptor.swift
 │       ├── CaptureDeviceModelCatalog.swift
 │       ├── ContentView.swift
+│       ├── ColorRelationshipAnalyzer.swift
+│       ├── ColorRelationshipFeatureView.swift
+│       ├── ColorRelationshipLiquidGlass.swift
+│       ├── ColorRelationshipModels.swift
 │       ├── DisplayImageNormalizer.swift
 │       ├── ExportCenter.swift
 │       ├── JournalEditorControls.swift
@@ -474,12 +551,19 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 │       ├── PhotoPickerBridge.swift
 │       ├── PhotoShortcuts.swift
 │       ├── PrivacyMosaic.swift
+│       ├── PublicGoodsCommitmentView.swift
+│       ├── RelationshipArtworkView.swift
+│       ├── RelationshipCopywriter.swift
 │       ├── SettingsView.swift
 │       ├── ShareHandoff.swift
+│       ├── SketchStudio.swift
+│       ├── StyleTransferEngine.swift
 │       ├── TicketArtworkAlphaMask.swift
+│       ├── TicketDeviceSealService.swift
 │       ├── TicketEditorControls.swift
+│       ├── TicketPrintExperience.swift
+│       ├── TicketPrintLiveActivityController.swift
 │       ├── TicketQRScanner.swift
-│       ├── Version102UpdateView.swift
 │       └── lingdongzhaopianApp.swift
 └── Android/
     └── lingdongzhaopian/
@@ -487,8 +571,12 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
         │   └── src/main/
         │       ├── AndroidManifest.xml
         │       └── java/cn/locallens/lingdongzhaopian/
+        │           ├── AlbumModels.kt
+        │           ├── AlbumStudio.kt
         │           ├── AppModels.kt
         │           ├── ArtworkCanvas.kt
+        │           ├── ColorRelationshipModels.kt
+        │           ├── ColorRelationshipScreen.kt
         │           ├── ExportManager.kt
         │           ├── GlassComponents.kt
         │           ├── LingdongViewModel.kt
@@ -503,6 +591,7 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
         │           ├── SettingsAndDialogs.kt
         │           ├── TicketCanvas.kt
         │           ├── TicketCodeRenderer.kt
+        │           ├── TicketDeviceSealService.kt
         │           ├── TicketPayload.kt
         │           ├── TicketScanner.kt
         │           ├── TicketStudio.kt
@@ -533,6 +622,8 @@ AGPL 源代码许可证不授予对应用名称“灵动照片”、项目名称
 
 ## 免责声明
 
-本项目为独立、学习性质的重新实现，与任何同类商业应用及其开发者没有从属、授权或合作关系。请勿提交不属于自己的第三方代码、图标、截图、品牌名称或受版权保护的素材。
+本项目由 LocalLens Project 发起并以开源方式维护。LocalLens Project 是 **Wenzhou Dulan Network Technology Co., Ltd.** 旗下专注于本地优先软件的项目。截至目前，**Wenzhou Dulan Network Technology Co., Ltd. 为本项目的完全维护者**，负责本项目的持续开发、维护与发布。
+
+本项目与任何同类商业应用及其开发者没有从属、授权或合作关系。请勿提交不属于自己的第三方代码、图标、截图、品牌名称或受版权保护的素材。
 
 如果你喜欢这个项目，点一个 Star 就很好。钱留着买杯咖啡，或者去拍下一张照片。

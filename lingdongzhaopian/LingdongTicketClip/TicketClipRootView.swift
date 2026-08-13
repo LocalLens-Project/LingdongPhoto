@@ -3,31 +3,60 @@
 
 import SwiftUI
 
-struct TicketClipRootView: View {
-    private enum ClipState {
+@MainActor
+final class TicketClipLaunchModel: ObservableObject {
+    enum ClipState {
         case waiting
-        case verified(TicketPayload)
+        case verified(VerifiedTicket)
         case failed(String)
     }
 
-    @State private var state: ClipState = .waiting
+    @Published private(set) var state: ClipState = .waiting
+
+    func consumeLaunchContext() async {
+        if let value = ProcessInfo.processInfo.environment["_XCAppClipURL"],
+           let url = URL(string: value) {
+            consume(url)
+        }
+    }
+
+    func consume(_ url: URL) {
+        do {
+            let ticket = try TicketEnvelope.decodeVerified(from: url)
+            if case let .verified(currentTicket) = state,
+               currentTicket == ticket {
+                return
+            }
+            state = .verified(ticket)
+        } catch {
+            state = .failed(
+                (error as? LocalizedError)?.errorDescription
+                    ?? "票根内容无法读取，请让发送者重新生成二维码。"
+            )
+        }
+    }
+}
+
+struct TicketClipRootView: View {
+    @ObservedObject var launchModel: TicketClipLaunchModel
 
     var body: some View {
         Group {
-            switch state {
+            switch launchModel.state {
             case .waiting:
                 landing
-            case let .verified(payload):
-                TicketVerificationView(payload: payload)
+            case let .verified(ticket):
+                TicketVerificationView(ticket: ticket)
             case let .failed(message):
                 TicketVerificationErrorView(message: message)
             }
         }
-        .task(consumeLaunchContext)
-        .onOpenURL(perform: consume)
+        .statusBarHidden(true)
+        .task(launchModel.consumeLaunchContext)
+        .onOpenURL(perform: launchModel.consume)
         .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
             guard let url = activity.webpageURL else { return }
-            consume(url)
+            launchModel.consume(url)
         }
     }
 
@@ -103,40 +132,5 @@ struct TicketClipRootView: View {
             .padding(28)
         }
         .preferredColorScheme(.dark)
-    }
-
-    @MainActor
-    private func consumeLaunchContext() async {
-        let arguments = ProcessInfo.processInfo.arguments
-
-#if DEBUG
-        if arguments.contains("--ticket-demo") {
-            state = .verified(.sample)
-            return
-        }
-#endif
-
-        if let value = arguments.first(where: { $0.hasPrefix("--ticket-url=") }),
-           let url = URL(string: String(value.dropFirst("--ticket-url=".count))) {
-            consume(url)
-            return
-        }
-
-        if let value = ProcessInfo.processInfo.environment["_XCAppClipURL"],
-           let url = URL(string: value) {
-            consume(url)
-        }
-    }
-
-    @MainActor
-    private func consume(_ url: URL) {
-        do {
-            state = .verified(try TicketEnvelope.decode(from: url))
-        } catch {
-            state = .failed(
-                (error as? LocalizedError)?.errorDescription
-                    ?? "票根内容无法读取，请让发送者重新生成二维码。"
-            )
-        }
     }
 }

@@ -67,6 +67,13 @@ private nonisolated final class LiveAudioWriterContext: @unchecked Sendable {
 }
 
 enum ArtworkExporter {
+    static func preparePhotoLibraryAccess() async throws {
+        let authorization = await addAuthorization()
+        guard authorization == .authorized || authorization == .limited else {
+            throw ArtworkExportError.permissionDenied
+        }
+    }
+
 #if DEBUG
     static func debugJPEGData(
         _ image: UIImage,
@@ -672,10 +679,7 @@ enum ArtworkExporter {
         format: ArtworkExportFormat,
         metadataPolicy: ArtworkMetadataPolicy
     ) async throws {
-        let authorization = await addAuthorization()
-        guard authorization == .authorized || authorization == .limited else {
-            throw ArtworkExportError.permissionDenied
-        }
+        try await preparePhotoLibraryAccess()
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             PHPhotoLibrary.shared().performChanges {

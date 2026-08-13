@@ -1,7 +1,12 @@
 package cn.locallens.lingdongzhaopian
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -44,7 +49,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.outlined.QrCodeScanner
@@ -55,6 +59,9 @@ import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Compare
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -86,10 +93,12 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -101,10 +110,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -115,6 +128,7 @@ fun MainScreen(
     viewModel: LingdongViewModel,
     onExport: (androidx.compose.ui.geometry.Rect) -> Unit,
     onExportTicketCode: (TicketCodeStyle, ExportDestination) -> Unit = { _, _ -> },
+    onExportRelationship: (androidx.compose.ui.geometry.Rect, ExportDimensions, String) -> Unit = { _, _, _ -> },
     onTicketLandscapeChanged: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -122,11 +136,15 @@ fun MainScreen(
     var settingsShown by remember { mutableStateOf(false) }
     var exportShown by remember { mutableStateOf(false) }
     var copyEditorShown by remember { mutableStateOf(false) }
+    var motionCardSamplerShown by remember { mutableStateOf(false) }
+    var ticketSamplerShown by remember { mutableStateOf(false) }
     var modeSelectionShown by remember { mutableStateOf(false) }
     var ticketStudioShown by remember { mutableStateOf(false) }
     var ticketMessagePromptShown by remember { mutableStateOf(false) }
     var ticketMessageEditorShown by remember { mutableStateOf(false) }
     var scannerShown by remember { mutableStateOf(false) }
+    var albumShown by remember { mutableStateOf(false) }
+    var relationshipShown by remember { mutableStateOf(false) }
     var replacementIndex by remember { mutableStateOf<Int?>(null) }
     var canvasBounds by remember { mutableStateOf(androidx.compose.ui.geometry.Rect.Zero) }
     var skippedTicketMessageForCurrentPhoto by remember(state.ticketSessionID) { mutableStateOf(false) }
@@ -170,15 +188,23 @@ fun MainScreen(
         // records the whole view tree, so the ambient wash steps aside for that one frame.
         val hidesAmbient = state.isExporting && state.mode == CreationMode.TravelTicket
         if (!hidesAmbient) {
-            AmbientBackground(if (!state.noticeAcknowledged || state.photos.isEmpty()) RGBColor.intro else state.palette)
+            AmbientBackground(if (!state.publicGoodsAcknowledged || state.photos.isEmpty()) RGBColor.intro else state.activePalette)
         }
-        if (state.noticeAcknowledged) {
-            if (state.photos.isEmpty()) {
+        if (state.publicGoodsAcknowledged) {
+            if (relationshipShown) {
+                ColorRelationshipScreen(
+                    onOpenModeSelection = { modeSelectionShown = true },
+                    onClose = { relationshipShown = false },
+                    onExport = onExportRelationship,
+                )
+            } else if (state.photos.isEmpty()) {
                 IntroScreen(
                     state,
                     viewModel,
                     onPick = { openPicker() },
                     onScanTicket = { scannerShown = true },
+                    onOpenAlbum = { albumShown = true },
+                    onOpenRelationship = { relationshipShown = true },
                 )
             } else {
                 val showsLandscapeTicket = state.mode == CreationMode.TravelTicket &&
@@ -206,6 +232,8 @@ fun MainScreen(
                         onModeSelection = { modeSelectionShown = true },
                         onEnterTicketLandscape = { onTicketLandscapeChanged(true) },
                         onEditCopy = { copyEditorShown = true },
+                        onOpenMotionCardSampler = { motionCardSamplerShown = true },
+                        onOpenTicketSampler = { ticketSamplerShown = true },
                         onOpenTicketStudio = { ticketStudioShown = true },
                         onCanvasBounds = { canvasBounds = it },
                         onReplaceJournal = { index -> replacementIndex = index; singlePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
@@ -215,10 +243,13 @@ fun MainScreen(
         }
     }
 
-    if (!state.noticeAcknowledged) {
-        FreeNoticeDialog(viewModel::acknowledgeNotice)
-    } else if (!state.updateLog102Acknowledged) {
-        Version102UpdateDialog(viewModel::acknowledgeUpdateLog102)
+    if (!state.publicGoodsAcknowledged) {
+        PublicGoodsCommitmentDialog(
+            showsUpdateNext = !state.updateLog200Acknowledged,
+            onDismiss = viewModel::acknowledgePublicGoods,
+        )
+    } else if (!state.updateLog200Acknowledged) {
+        Version200UpdateDialog(viewModel::acknowledgeUpdateLog200)
     }
 
     if (settingsShown) {
@@ -242,7 +273,10 @@ fun MainScreen(
     if (modeSelectionShown) {
         ModeSelectionSheet(
             selectedMode = state.mode,
-            onSelect = { viewModel.setMode(it); modeSelectionShown = false },
+            relationshipSelected = relationshipShown,
+            onSelect = { relationshipShown = false; viewModel.setMode(it); modeSelectionShown = false },
+            onOpenAlbum = { modeSelectionShown = false; albumShown = true },
+            onOpenRelationship = { modeSelectionShown = false; relationshipShown = true },
             onScanTicket = { modeSelectionShown = false; scannerShown = true },
             onDismiss = { modeSelectionShown = false },
         )
@@ -262,6 +296,9 @@ fun MainScreen(
     if (scannerShown) {
         TicketScannerDialog { scannerShown = false }
     }
+    if (albumShown) {
+        AlbumStudioDialog { albumShown = false }
+    }
     if (copyEditorShown) {
         CopyEditorDialog(
             state = state,
@@ -272,6 +309,44 @@ fun MainScreen(
             onBubbleScale = viewModel::setBubbleScale,
             onDismiss = { copyEditorShown = false },
         )
+    }
+    if (motionCardSamplerShown) {
+        state.photos.firstOrNull()?.bitmap?.let { bitmap ->
+            MotionCardColorSamplerDialog(
+                bitmap = bitmap,
+                initialSelection = state.motionCardSamplingRect,
+                headerStyle = state.preferences.motionCardHeaderStyle,
+                description = "拖动选框选择取色范围，拖动四角可调整大小。此范围只影响灵动卡片顶部背景。",
+                onApply = { rect, result ->
+                    viewModel.applyMotionCardSampling(rect, result)
+                    motionCardSamplerShown = false
+                },
+                onReset = {
+                    viewModel.resetMotionCardSampling()
+                    motionCardSamplerShown = false
+                },
+                onDismiss = { motionCardSamplerShown = false },
+            )
+        }
+    }
+    if (ticketSamplerShown) {
+        state.photos.firstOrNull()?.bitmap?.let { bitmap ->
+            MotionCardColorSamplerDialog(
+                bitmap = bitmap,
+                initialSelection = state.ticketSamplingRect,
+                headerStyle = MotionCardHeaderStyle.Solid,
+                description = "拖动选框选择取色范围，拖动四角可调整大小。此范围会用于影像票根的背景与色盘。",
+                onApply = { rect, result ->
+                    viewModel.applyTicketSampling(rect, result)
+                    ticketSamplerShown = false
+                },
+                onReset = {
+                    viewModel.resetTicketSampling()
+                    ticketSamplerShown = false
+                },
+                onDismiss = { ticketSamplerShown = false },
+            )
+        }
     }
     if (ticketMessagePromptShown) {
         AlertDialog(
@@ -314,6 +389,301 @@ fun MainScreen(
     }
     if (exportShown) {
         ExportCenterDialog(state, viewModel::setPreferences, onExport = { onExport(canvasBounds) }) { exportShown = false }
+    }
+}
+
+@Composable
+private fun MotionCardSamplingControls(
+    hasSelection: Boolean,
+    onOpen: () -> Unit,
+    onReset: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        GlassContainer(
+            Modifier.weight(1f).height(44.dp).clickable(onClick = onOpen),
+            cornerRadius = 22.dp,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                Icon(Icons.Default.TouchApp, null, Modifier.size(18.dp), tint = Color.Black.copy(alpha = .72f))
+                Text(
+                    if (hasSelection) "调整取色范围" else "局部取色",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Black.copy(alpha = .78f),
+                )
+            }
+        }
+        if (hasSelection) {
+            GlassContainer(
+                Modifier.height(44.dp).clickable(onClick = onReset),
+                cornerRadius = 22.dp,
+            ) {
+                Text(
+                    "恢复整图",
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Black.copy(alpha = .68f),
+                )
+            }
+        }
+    }
+}
+
+private enum class SamplerCorner { TopLeft, TopRight, BottomLeft, BottomRight }
+
+@Composable
+private fun MotionCardColorSamplerDialog(
+    bitmap: Bitmap,
+    initialSelection: NormalizedColorSampleRect?,
+    headerStyle: MotionCardHeaderStyle,
+    description: String,
+    onApply: (NormalizedColorSampleRect, PaletteResult) -> Unit,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var selection by remember(bitmap, initialSelection) {
+        mutableStateOf(initialSelection ?: NormalizedColorSampleRect(.15f, .20f, .70f, .60f))
+    }
+    var preview by remember(bitmap) { mutableStateOf<PaletteResult?>(null) }
+    var photoSize by remember { mutableStateOf(IntSize.Zero) }
+    val density = LocalDensity.current
+
+    LaunchedEffect(bitmap, selection) {
+        delay(120)
+        preview = withContext(Dispatchers.Default) { extractLocalPalette(bitmap, selection) }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Column(Modifier.fillMaxSize().padding(top = 12.dp, bottom = 14.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = onDismiss) { Text("取消") }
+                    Text(
+                        "局部取色",
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    TextButton(
+                        onClick = {
+                            val result = preview ?: extractLocalPalette(bitmap, selection)
+                            onApply(selection, result)
+                        },
+                    ) { Text("应用", fontWeight = FontWeight.Bold) }
+                }
+                Text(
+                    description,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = .58f),
+                    fontSize = 12.sp,
+                    lineHeight = 18.sp,
+                    textAlign = TextAlign.Center,
+                )
+
+                BoxWithConstraints(
+                    Modifier.fillMaxWidth().weight(1f).padding(horizontal = 18.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val aspect = bitmap.width.toFloat() / bitmap.height.coerceAtLeast(1)
+                    val photoWidth = minOf(maxWidth, maxHeight * aspect)
+                    val photoHeight = photoWidth / aspect
+                    Box(
+                        Modifier
+                            .width(photoWidth)
+                            .height(photoHeight)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(Color.Black)
+                            .onSizeChanged { photoSize = it },
+                    ) {
+                        Image(bitmap.asImageBitmap(), null, Modifier.fillMaxSize())
+                        if (photoSize.width > 0 && photoSize.height > 0) {
+                            Canvas(Modifier.fillMaxSize()) {
+                                val left = selection.left * size.width
+                                val top = selection.top * size.height
+                                val right = selection.right * size.width
+                                val bottom = selection.bottom * size.height
+                                val shade = Color.Black.copy(alpha = .52f)
+                                drawRect(shade, topLeft = Offset.Zero, size = androidx.compose.ui.geometry.Size(size.width, top))
+                                drawRect(shade, topLeft = Offset(0f, bottom), size = androidx.compose.ui.geometry.Size(size.width, size.height - bottom))
+                                drawRect(shade, topLeft = Offset(0f, top), size = androidx.compose.ui.geometry.Size(left, bottom - top))
+                                drawRect(shade, topLeft = Offset(right, top), size = androidx.compose.ui.geometry.Size(size.width - right, bottom - top))
+                                drawRect(
+                                    Color.White,
+                                    topLeft = Offset(left, top),
+                                    size = androidx.compose.ui.geometry.Size(right - left, bottom - top),
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                        width = 2.dp.toPx(),
+                                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 7f)),
+                                    ),
+                                )
+                            }
+
+                            val selectionWidth = with(density) { (selection.width * photoSize.width).toDp() }
+                            val selectionHeight = with(density) { (selection.height * photoSize.height).toDp() }
+                            val selectionX = with(density) { (selection.left * photoSize.width).toDp() }
+                            val selectionY = with(density) { (selection.top * photoSize.height).toDp() }
+                            Box(
+                                Modifier
+                                    .offset(selectionX, selectionY)
+                                    .size(selectionWidth, selectionHeight)
+                                    .pointerInput(photoSize) {
+                                        detectDragGestures { change, drag ->
+                                            change.consume()
+                                            selection = moveSampleRect(
+                                                selection,
+                                                drag.x / photoSize.width,
+                                                drag.y / photoSize.height,
+                                            )
+                                        }
+                                    },
+                            )
+                            SamplerCorner.entries.forEach { corner ->
+                                val pointX = when (corner) {
+                                    SamplerCorner.TopLeft, SamplerCorner.BottomLeft -> selection.left
+                                    SamplerCorner.TopRight, SamplerCorner.BottomRight -> selection.right
+                                }
+                                val pointY = when (corner) {
+                                    SamplerCorner.TopLeft, SamplerCorner.TopRight -> selection.top
+                                    SamplerCorner.BottomLeft, SamplerCorner.BottomRight -> selection.bottom
+                                }
+                                Box(
+                                    Modifier
+                                        .offset(
+                                            x = with(density) { (pointX * photoSize.width).toDp() - 12.dp },
+                                            y = with(density) { (pointY * photoSize.height).toDp() - 12.dp },
+                                        )
+                                        .size(24.dp)
+                                        .background(Color.White, CircleShape)
+                                        .border(1.dp, Color.Black.copy(alpha = .22f), CircleShape)
+                                        .pointerInput(corner, photoSize) {
+                                            detectDragGestures { change, drag ->
+                                                change.consume()
+                                                selection = resizeSampleRect(
+                                                    selection,
+                                                    corner,
+                                                    drag.x / photoSize.width,
+                                                    drag.y / photoSize.height,
+                                                )
+                                            }
+                                        },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                LocalPalettePreview(preview, headerStyle, Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp))
+
+                Button(
+                    onClick = onReset,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp).height(46.dp),
+                    shape = RoundedCornerShape(23.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .08f),
+                        contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .76f),
+                    ),
+                ) { Text("恢复整张照片取色", fontWeight = FontWeight.SemiBold) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocalPalettePreview(result: PaletteResult?, headerStyle: MotionCardHeaderStyle, modifier: Modifier = Modifier) {
+    if (result == null) {
+        Box(modifier.height(62.dp), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+        }
+        return
+    }
+    val colors = result.colors.ifEmpty { RGBColor.fallback }
+    val theme = remember(colors, result.percentages) { MotionCardThemeResolver.resolve(colors, result.percentages) }
+    val gradient = remember(colors, result.percentages) { MotionCardGradientResolver.resolve(colors, result.percentages) }
+    Row(
+        modifier
+            .height(62.dp)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = .06f), RoundedCornerShape(16.dp))
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(11.dp))
+                .then(
+                    if (headerStyle == MotionCardHeaderStyle.SampledGradient) {
+                        Modifier.background(Brush.horizontalGradient(gradient.colors.map { it.color }))
+                    } else Modifier.background(theme.background.color)
+                ),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            colors.take(4).forEach { color -> Box(Modifier.size(15.dp).background(color.color, CircleShape)) }
+        }
+    }
+}
+
+private fun moveSampleRect(rect: NormalizedColorSampleRect, dx: Float, dy: Float): NormalizedColorSampleRect =
+    rect.copy(
+        left = (rect.left + dx).coerceIn(0f, 1f - rect.width),
+        top = (rect.top + dy).coerceIn(0f, 1f - rect.height),
+    )
+
+private fun resizeSampleRect(
+    rect: NormalizedColorSampleRect,
+    corner: SamplerCorner,
+    dx: Float,
+    dy: Float,
+): NormalizedColorSampleRect {
+    val minimum = .12f
+    var left = rect.left
+    var top = rect.top
+    var right = rect.right
+    var bottom = rect.bottom
+    when (corner) {
+        SamplerCorner.TopLeft -> {
+            left = (left + dx).coerceIn(0f, right - minimum)
+            top = (top + dy).coerceIn(0f, bottom - minimum)
+        }
+        SamplerCorner.TopRight -> {
+            right = (right + dx).coerceIn(left + minimum, 1f)
+            top = (top + dy).coerceIn(0f, bottom - minimum)
+        }
+        SamplerCorner.BottomLeft -> {
+            left = (left + dx).coerceIn(0f, right - minimum)
+            bottom = (bottom + dy).coerceIn(top + minimum, 1f)
+        }
+        SamplerCorner.BottomRight -> {
+            right = (right + dx).coerceIn(left + minimum, 1f)
+            bottom = (bottom + dy).coerceIn(top + minimum, 1f)
+        }
+    }
+    return NormalizedColorSampleRect(left, top, right - left, bottom - top)
+}
+
+private fun extractLocalPalette(bitmap: Bitmap, rect: NormalizedColorSampleRect): PaletteResult {
+    val left = (rect.left.coerceIn(0f, 1f) * bitmap.width).roundToInt().coerceIn(0, bitmap.width - 1)
+    val top = (rect.top.coerceIn(0f, 1f) * bitmap.height).roundToInt().coerceIn(0, bitmap.height - 1)
+    val right = (rect.right.coerceIn(0f, 1f) * bitmap.width).roundToInt().coerceIn(left + 1, bitmap.width)
+    val bottom = (rect.bottom.coerceIn(0f, 1f) * bitmap.height).roundToInt().coerceIn(top + 1, bitmap.height)
+    val crop = Bitmap.createBitmap(bitmap, left, top, right - left, bottom - top)
+    return try {
+        PaletteExtractor.extract(crop)
+    } finally {
+        if (crop !== bitmap && !crop.isRecycled) crop.recycle()
     }
 }
 
@@ -362,9 +732,13 @@ private fun IntroScreen(
     viewModel: LingdongViewModel,
     onPick: () -> Unit,
     onScanTicket: () -> Unit,
+    onOpenAlbum: () -> Unit,
+    onOpenRelationship: () -> Unit,
 ) {
-    // One page per mode plus a trailing scan page, which needs no photo at all.
-    val pageCount = CreationMode.entries.size + 1
+    val albumPage = CreationMode.entries.size
+    val relationshipPage = albumPage + 1
+    val scanPage = albumPage + 2
+    val pageCount = CreationMode.entries.size + 3
     val pagerState = rememberPagerState(initialPage = state.mode.ordinal, pageCount = { pageCount })
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.distinctUntilChanged().collect { page ->
@@ -382,18 +756,23 @@ private fun IntroScreen(
     HorizontalPager(pagerState, Modifier.fillMaxSize()) { page ->
         val mode = CreationMode.entries.getOrNull(page)
         IntroPage(
-            title = mode?.title ?: "扫描验证票根",
-            subtitle = mode?.introSubtitle ?: "打开相机扫描影像票根上的验证二维码\n无需先添加照片",
-            icon = mode?.let(::modeIcon) ?: Icons.Outlined.QrCodeScanner,
-            accent = mode?.accent ?: Color(0xFFABE0FF),
+            title = when (page) { albumPage -> "影像相簿"; relationshipPage -> "色彩关系"; scanPage -> "扫描验证票根"; else -> mode?.title.orEmpty() },
+            subtitle = when (page) {
+                albumPage -> "把散落的影像装订成书\n整本预览后导出可打印 PDF"
+                relationshipPage -> "选择两张照片\n看看色彩如何在它们之间相遇"
+                scanPage -> "打开相机扫描影像票根上的验证二维码\n无需先添加照片"
+                else -> mode?.introSubtitle.orEmpty()
+            },
+            icon = when (page) { albumPage -> Icons.Default.GridView; relationshipPage -> Icons.Outlined.Compare; scanPage -> Icons.Outlined.QrCodeScanner; else -> mode?.let(::modeIcon) ?: Icons.Default.GridView },
+            accent = when (page) { albumPage -> Color(0xFFA8D7B6); relationshipPage -> Color(0xFFD9B0A9); scanPage -> Color(0xFFABE0FF); else -> mode?.accent ?: Color.White },
             showsBadge = mode == CreationMode.Journal,
-            actionIcon = if (mode == null) Icons.Outlined.QrCodeScanner else Icons.Default.Add,
-            actionDescription = if (mode == null) "扫描验证票根" else "为${mode.title}选择照片",
+            actionIcon = when (page) { albumPage -> Icons.Default.GridView; relationshipPage -> Icons.Outlined.Compare; scanPage -> Icons.Outlined.QrCodeScanner; else -> Icons.Default.Add },
+            actionDescription = when (page) { albumPage -> "打开影像相簿"; relationshipPage -> "打开色彩关系"; scanPage -> "扫描验证票根"; else -> "为${mode?.title.orEmpty()}选择照片" },
             isBusy = mode != null && state.isLoading,
             loadingStatus = if (mode != null) state.loadingStatus else "",
             selectedPage = pagerState.currentPage,
             pageCount = pageCount,
-            onAction = if (mode == null) onScanTicket else onPick,
+            onAction = when (page) { albumPage -> onOpenAlbum; relationshipPage -> onOpenRelationship; scanPage -> onScanTicket; else -> onPick },
         )
     }
 }
@@ -467,6 +846,8 @@ private fun EditorScreen(
     onModeSelection: () -> Unit,
     onEnterTicketLandscape: () -> Unit,
     onEditCopy: () -> Unit,
+    onOpenMotionCardSampler: () -> Unit,
+    onOpenTicketSampler: () -> Unit,
     onOpenTicketStudio: () -> Unit,
     onCanvasBounds: (androidx.compose.ui.geometry.Rect) -> Unit,
     onReplaceJournal: (Int) -> Unit,
@@ -478,13 +859,22 @@ private fun EditorScreen(
         val reserve = when (state.mode) {
             CreationMode.PrivacyMosaic -> 330.dp
             CreationMode.Journal -> 245.dp
-            CreationMode.TravelTicket -> 200.dp
+            CreationMode.TravelTicket -> 270.dp
+            CreationMode.MotionCard -> if (state.preferences.templateStyle == ArtworkTemplateStyle.Immersive) 128.dp else 184.dp
             else -> 128.dp
         }
         val canvasWidth = when (state.mode) {
             CreationMode.SpectrumWallpaper -> minOf(maxWidth - 96.dp, maxWidth * .686f)
             else -> minOf(availableWidth, (maxHeight - reserve) * ratio)
-        }.coerceAtLeast(if (maxWidth > 340.dp) 280.dp else maxWidth - 24.dp)
+        }.coerceAtLeast(
+            when {
+                state.mode == CreationMode.MotionCard && state.preferences.templateStyle != ArtworkTemplateStyle.Immersive -> {
+                    if (maxWidth > 340.dp) 260.dp else maxWidth - 48.dp
+                }
+                maxWidth > 340.dp -> 280.dp
+                else -> maxWidth - 24.dp
+            }
+        )
         val canvasHeight = canvasWidth / ratio
         val showsMotionPlayback = state.mode != CreationMode.PrivacyMosaic &&
             state.mode != CreationMode.TravelTicket &&
@@ -563,6 +953,22 @@ private fun EditorScreen(
                 onAdjustTextScale = { delta -> haptics.performHapticFeedback(HapticFeedbackType.LongPress); viewModel.adjustTextScale(delta) },
                 onBubbleScale = viewModel::setBubbleScale,
             )
+            if (state.mode == CreationMode.MotionCard && state.preferences.templateStyle != ArtworkTemplateStyle.Immersive) {
+                MotionCardSamplingControls(
+                    hasSelection = state.motionCardSamplingRect != null,
+                    onOpen = onOpenMotionCardSampler,
+                    onReset = viewModel::resetMotionCardSampling,
+                    modifier = Modifier.width(canvasWidth).padding(top = 12.dp),
+                )
+            }
+            if (isTicket) {
+                MotionCardSamplingControls(
+                    hasSelection = state.ticketSamplingRect != null,
+                    onOpen = onOpenTicketSampler,
+                    onReset = viewModel::resetTicketSampling,
+                    modifier = Modifier.width(canvasWidth).padding(top = 10.dp),
+                )
+            }
             if (state.mode == CreationMode.PrivacyMosaic) {
                 PrivacyControls(state, viewModel, Modifier.padding(horizontal = 18.dp, vertical = 12.dp))
             }
@@ -573,6 +979,7 @@ private fun EditorScreen(
                 TicketEditorControls(
                     state = state,
                     onLayout = viewModel::setTicketLayout,
+                    onWidth = viewModel::setTicketCanvasWidth,
                     onCodeStyle = viewModel::setTicketCodeStyle,
                     onOpenStudio = onOpenTicketStudio,
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
@@ -726,6 +1133,7 @@ private fun LandscapeTicketEditor(
                 TicketEditorControls(
                     state = state,
                     onLayout = viewModel::setTicketLayout,
+                    onWidth = viewModel::setTicketCanvasWidth,
                     onCodeStyle = viewModel::setTicketCodeStyle,
                     onOpenStudio = onOpenTicketStudio,
                     modifier = Modifier.width(controlsWidth),
@@ -1138,68 +1546,25 @@ private fun JournalControls(state: AppUiState, viewModel: LingdongViewModel, onR
 }
 
 @Composable
-private fun FreeNoticeDialog(onDismiss: () -> Unit) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Box(
-            Modifier.fillMaxSize().padding(horizontal = 24.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 330.dp).shadow(26.dp, RoundedCornerShape(32.dp)),
-                shape = RoundedCornerShape(32.dp),
-                color = Color(0xFFF9F9F7),
-                tonalElevation = 0.dp,
-            ) {
-                Column(
-                    Modifier
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.White, Color(0xFFF4F4F1)),
-                            )
-                        )
-                        .padding(26.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(17.dp),
-                ) {
-                    Box(
-                        Modifier
-                            .size(68.dp)
-                            .background(Color.Black.copy(alpha = .055f), CircleShape)
-                            .border(1.dp, Color.White, CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Default.Check, null, Modifier.size(34.dp), tint = Color.Black.copy(alpha = .82f))
-                    }
-                    Text("灵动照片 · 完全免费", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF171717))
-                    Text(
-                        "本应用不收取任何订阅或功能费用。\n谨防付费下载、代购或订阅骗局。",
-                        color = Color.Black.copy(alpha = .58f),
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 21.sp,
-                    )
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = CircleShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF171717), contentColor = Color.White),
-                    ) {
-                        Text("我知道了", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
-}
+private fun PublicGoodsCommitmentDialog(
+    showsUpdateNext: Boolean,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
 
-@Composable
-private fun Version102UpdateDialog(onDismiss: () -> Unit) {
+    fun copyValue(label: String, value: String, success: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(label, value))
+        Toast.makeText(context, success, Toast.LENGTH_SHORT).show()
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false,
+        ),
     ) {
         Box(
             Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 24.dp),
@@ -1225,20 +1590,20 @@ private fun Version102UpdateDialog(onDismiss: () -> Unit) {
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                             Text(
-                                "灵动照片 1.0.2",
+                                "灵动照片 · 开源项目",
                                 color = Color.Black.copy(alpha = .52f),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                "让照片成为可以分享的票根",
+                                "致力于纯粹的数字公共品",
                                 color = Color(0xFF171717),
                                 fontSize = 27.sp,
                                 lineHeight = 34.sp,
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
-                                "这次更新带来了影像票根、扫码验证、取色渐变。",
+                                "透明、开放，并以长期维护为目标。",
                                 color = Color.Black.copy(alpha = .58f),
                                 fontSize = 14.sp,
                                 lineHeight = 21.sp,
@@ -1248,18 +1613,177 @@ private fun Version102UpdateDialog(onDismiss: () -> Unit) {
                         Column(verticalArrangement = Arrangement.spacedBy(17.dp)) {
                             UpdateLogItem(
                                 number = 1,
-                                title = "影像票根与扫描验证票根",
-                                detail = "可以将照片制作成具有旅行纪念感的影像票根，提供横向经典、纵向旅行和极简凭证等版式，并可自定义展示文字、拍摄信息、配色及验证二维码。通过“扫描验证票根”，可读取二维码并查看对应的票根信息。",
+                                title = "开放，而非设立围墙",
+                                detail = "灵动照片不仅是一款照片创作工具，也是一个透明、开放、持续维护的开源项目。项目不依靠出售用户数据或设置付费墙维持运行。",
                             )
                             UpdateLogItem(
                                 number = 2,
-                                title = "动态照片卡片新增“取色渐变”",
-                                detail = "顶部背景可根据照片的代表色自动生成渐变效果，并自动调整文字显示效果，让卡片色彩与照片更加协调。",
+                                title = "持续的维护与托管",
+                                detail = "Wenzhou Dulan Network Technology Co., Ltd. 为项目持续提供资金、研发资源与托管支持，让团队可以专注于长期维护、隐私保护与体验改进，减少短期商业变现对产品方向的影响。",
                             )
                             UpdateLogItem(
                                 number = 3,
-                                title = "更直观的模式浏览",
-                                detail = "未添加照片时，每个创作模式都会显示对应的专属图标；左右滑动即可浏览，并可从主界面最后一页直接进入“扫描验证票根”。",
+                                title = "本地处理与开源守护",
+                                detail = "项目源代码持续公开；照片识别、色彩分析与作品渲染均在设备本地完成。稳定的资源支持保障长期迭代，开源机制守护用户的知情权与创作自由。",
+                            )
+                            PublicGoodsContactRow(
+                                icon = Icons.Outlined.People,
+                                title = "QQ 用户交流群",
+                                value = "群号 1050047342",
+                                detail = "遇到问题或想交流时欢迎加入",
+                            ) { copyValue("QQ 用户交流群", "1050047342", "群号已复制，请在 QQ 中搜索添加") }
+                            PublicGoodsContactRow(
+                                icon = Icons.Outlined.Email,
+                                title = "客服邮箱",
+                                value = "help@locallens.cn",
+                                detail = "有问题或建议可随时邮件联系",
+                            ) { copyValue("客服邮箱", "help@locallens.cn", "邮箱已复制") }
+                        }
+                    }
+
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF9F9F7))
+                            .padding(start = 22.dp, end = 22.dp, top = 10.dp, bottom = 16.dp),
+                    ) {
+                        Button(
+                            onClick = onDismiss,
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF171717),
+                                contentColor = Color.White,
+                            ),
+                        ) {
+                            Text(
+                                if (showsUpdateNext) "查看更新内容" else "开始使用",
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PublicGoodsContactRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    value: String,
+    detail: String,
+    onCopy: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.Black.copy(alpha = .045f))
+            .clickable(onClick = onCopy)
+            .padding(14.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(13.dp),
+    ) {
+        Icon(icon, null, Modifier.size(24.dp), tint = Color.Black.copy(alpha = .76f))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, color = Color(0xFF171717), fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text("$value · $detail", color = Color.Black.copy(alpha = .57f), fontSize = 12.sp, lineHeight = 18.sp)
+        }
+        Text("复制", color = Color(0xFF007AFF), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun Version200UpdateDialog(onDismiss: () -> Unit) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false,
+        ),
+    ) {
+        Box(
+            Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(.88f)
+                    .widthIn(max = 520.dp)
+                    .shadow(28.dp, RoundedCornerShape(32.dp)),
+                shape = RoundedCornerShape(32.dp),
+                color = Color(0xFFF9F9F7),
+                tonalElevation = 0.dp,
+            ) {
+                Column(Modifier.fillMaxSize()) {
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(start = 24.dp, end = 24.dp, top = 27.dp, bottom = 18.dp),
+                        verticalArrangement = Arrangement.spacedBy(22.dp),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Text(
+                                "灵动照片 2.0.0（Build 202608）",
+                                color = Color.Black.copy(alpha = .52f),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                "让每一张照片拥有更多表达",
+                                color = Color(0xFF171717),
+                                fontSize = 27.sp,
+                                lineHeight = 34.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                "本次更新新增灵动卡片与影像票根局部取色、影像票根时光胶囊文案、横向票根宽度选择、影像相簿与色彩关系功能，并带来部分界面优化与稳定性提升。Android 端影像素描因机型众多、适配较难，暂缓上线，可随时关注官网与 GitHub。",
+                                color = Color.Black.copy(alpha = .58f),
+                                fontSize = 14.sp,
+                                lineHeight = 21.sp,
+                            )
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(17.dp)) {
+                            UpdateLogItem(
+                                number = 1,
+                                title = "灵动卡片与影像票根新增“局部取色”",
+                                detail = "可框选照片中的指定区域单独提取颜色，生成更精准的背景与色盘效果，也可以随时调整选区或恢复整图取色。",
+                            )
+                            UpdateLogItem(
+                                number = 2,
+                                title = "影像票根新增“时光胶囊”文案",
+                                detail = "扫描票根时可选择“时光胶囊”叙事风格，并区分“写给未来的我”与“分享给朋友”两种视角。",
+                            )
+                            UpdateLogItem(
+                                number = 3,
+                                title = "横向票根新增宽度选择",
+                                detail = "横向经典版式新增紧凑、标准、海报三档宽度，适配日常分享与收藏展示等不同场景。",
+                            )
+                            UpdateLogItem(
+                                number = 4,
+                                title = "新增“影像相簿”功能",
+                                detail = "选择模板与成书尺寸，加入普通照片或灵动作品，整本预览后可直接生成可打印 PDF 文件。",
+                            )
+                            UpdateLogItem(
+                                number = 5,
+                                title = "新增“色彩关系”功能",
+                                detail = "一次选择两张照片，从共鸣、对照与过渡三种方式观察共同色、色彩距离和连接色阶。支持自适应双图布局、液态玻璃色带，以及高清或原图级对比图与完整作品导出。Motion Photo 在此功能中只读取系统提供的静态画面。",
+                            )
+                            UpdateLogItem(
+                                number = 6,
+                                title = "影像素描暂缓上线",
+                                detail = "Android 端影像素描因机型众多、适配较难，暂缓上线，可随时关注官网与 GitHub。",
+                            )
+                            UpdateLogItem(
+                                number = 7,
+                                title = "部分界面优化与稳定性提升",
+                                detail = "优化部分界面细节与交互体验，修复若干已知问题，提升整体运行稳定性。",
                             )
                         }
                     }
@@ -1279,7 +1803,7 @@ private fun Version102UpdateDialog(onDismiss: () -> Unit) {
                                 contentColor = Color.White,
                             ),
                         ) {
-                            Text("开始体验 1.0.2", fontWeight = FontWeight.Bold)
+                            Text("下一步", fontWeight = FontWeight.Bold)
                         }
                     }
                 }

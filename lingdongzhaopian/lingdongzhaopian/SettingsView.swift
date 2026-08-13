@@ -2,8 +2,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
+    private static let maintenanceStatementText =
+        "💖 本开源项目由 Wenzhou Dulan Network Technology Co., Ltd. 倾力维护与托管。"
+    private static let maintenanceStatementFirstLine =
+        "💖 本开源项目由 Wenzhou Dulan Network Technology"
+    private static let maintenanceStatementContinuation =
+        "Co., Ltd. 倾力维护与托管。"
+
+    private static let sourceRepositoryURL = URL(
+        string: "https://github.com/LocalLens-Project/LingdongPhoto"
+    )!
+
+    @Environment(\.openURL) private var openURL
     @Binding var ratio: ArtworkRatio
     @Binding var showHexValues: Bool
     @Binding var showDeviceInfo: Bool
@@ -25,6 +38,12 @@ struct SettingsView: View {
     @AppStorage("showMissingCaptureTime") private var showMissingCaptureTime = true
     @AppStorage("showPalettePercentages") private var showPalettePercentages = true
     @State private var cameraWatermarkManagerPresented = false
+    @State private var workManagerPresented = false
+    @State private var sourceRepositoryConfirmationPresented = false
+    @State private var qqGroupCopied = false
+    @State private var emailCopied = false
+    @State private var savedWorkCount = 0
+    @State private var savedWorkByteCount: Int64 = 0
 
     var body: some View {
         NavigationStack {
@@ -38,8 +57,10 @@ struct SettingsView: View {
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 28) {
-                        freeSection
+                        maintenanceStatement
+                        qqGroupSection
                         interfaceOptions
+                        storageAndWorks
                         paletteOptions
                         motionTips
                         stampTips
@@ -48,7 +69,7 @@ struct SettingsView: View {
                         privacyOptions
 
                         VStack(spacing: 10) {
-                            Text("版本 1.0.2 (Build 1028)")
+                            Text("版本 2.0.0 (Build 202601)")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
 
@@ -76,36 +97,171 @@ struct SettingsView: View {
                 )
                 .toolbar(.hidden, for: .navigationBar)
             }
+            .navigationDestination(isPresented: $workManagerPresented) {
+                LingdongWorkManagerView(onLibraryChanged: refreshWorkArchiveSummary)
+            }
             .toolbar(.hidden, for: .navigationBar)
+            .onAppear(perform: refreshWorkArchiveSummary)
+            .alert("将在默认浏览器中打开", isPresented: $sourceRepositoryConfirmationPresented) {
+                Button("取消", role: .cancel) {}
+                Button("确认打开") {
+                    openURL(Self.sourceRepositoryURL)
+                }
+            } message: {
+                Text("即将前往灵动照片的 GitHub 开源地址。本应用不会进行任何联网，网页内容将由系统默认浏览器加载。")
+            }
         }
     }
 
-    private var freeSection: some View {
-        settingsSection("免费承诺") {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 10) {
-                    Text("灵动照片")
-                        .font(.title3.bold())
-                    Text("完全免费")
-                        .font(.caption.bold())
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .overlay(Capsule().stroke(.primary.opacity(0.65), lineWidth: 1))
+    private var maintenanceStatement: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ViewThatFits(in: .horizontal) {
+                Text(Self.maintenanceStatementText)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+
+                VStack(spacing: 2) {
+                    Text(Self.maintenanceStatementFirstLine)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Text(Self.maintenanceStatementContinuation)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
-
-                Text("无试用期、无订阅、无内购、无隐藏收费")
-                    .font(.subheadline)
-
-                Text("永久免费 · 谨防被骗")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(.black, in: Capsule())
-                    .accessibilityLabel("本应用完全免费，谨防被骗")
             }
-            .padding(18)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 4)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Self.maintenanceStatementText)
+
+            Button {
+                sourceRepositoryConfirmationPresented = true
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "chevron.left.forwardslash.chevron.right")
+                        .font(.system(size: 18, weight: .semibold))
+                        .frame(width: 30)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("开源地址")
+                            .font(.subheadline.weight(.semibold))
+                        Text("github.com/LocalLens-Project/LingdongPhoto")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 18)
+                .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
+                .background(.background, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("打开灵动照片 GitHub 开源地址")
+            .accessibilityHint("确认后将在系统默认浏览器中打开；本应用不会联网")
         }
+    }
+
+    private var qqGroupSection: some View {
+        VStack(spacing: 0) {
+            Button {
+                UIPasteboard.general.string = "1050047342"
+                withAnimation(.snappy) {
+                    qqGroupCopied = true
+                }
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(2))
+                    withAnimation(.snappy) {
+                        qqGroupCopied = false
+                    }
+                }
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "person.3.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .frame(width: 30)
+                        .foregroundStyle(Color.primary)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("用户交流群")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.primary)
+                        Text(qqGroupCopied ? "群号已复制，请在 QQ 中搜索添加" : "QQ 群：1050047342")
+                            .font(.caption)
+                            .foregroundStyle(qqGroupCopied ? .green : Color(UIColor.secondaryLabel))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: qqGroupCopied ? "checkmark.circle.fill" : "doc.on.clipboard")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(qqGroupCopied ? .green : Color(UIColor.tertiaryLabel))
+                }
+                .padding(.horizontal, 18)
+                .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
+                .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("复制 QQ 用户交流群号")
+            .accessibilityHint("群号 1050047342 将被复制到剪贴板")
+
+            Button {
+                UIPasteboard.general.string = "help@locallens.cn"
+                withAnimation(.snappy) {
+                    emailCopied = true
+                }
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(2))
+                    withAnimation(.snappy) {
+                        emailCopied = false
+                    }
+                }
+            } label: {
+                HStack(spacing: 14) {
+                    Image(systemName: "envelope.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .frame(width: 30)
+                        .foregroundStyle(Color.primary)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("客服邮箱")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.primary)
+                        Text(emailCopied ? "邮箱已复制" : "help@locallens.cn")
+                            .font(.caption)
+                            .foregroundStyle(emailCopied ? .green : Color(UIColor.secondaryLabel))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: emailCopied ? "checkmark.circle.fill" : "doc.on.clipboard")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(emailCopied ? .green : Color(UIColor.tertiaryLabel))
+                }
+                .padding(.horizontal, 18)
+                .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
+                .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("复制客服邮箱地址")
+            .accessibilityHint("邮箱 help@locallens.cn 将被复制到剪贴板")
+        }
+        .background(Color(UIColor.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private var paletteOptions: some View {
@@ -168,6 +324,41 @@ struct SettingsView: View {
                 value: $showAppTitle
             )
         }
+    }
+
+    private var storageAndWorks: some View {
+        settingsSection("存储与作品") {
+            Button {
+                workManagerPresented = true
+            } label: {
+                SettingRow(
+                    symbol: "photo.stack",
+                    title: "管理已保存的作品",
+                    subtitle: savedWorkSummary
+                ) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.tertiary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("查看、选择或删除应用内保存的作品")
+        }
+    }
+
+    private var savedWorkSummary: String {
+        guard savedWorkCount > 0 else { return "暂无应用内保存的作品" }
+        return "共 \(savedWorkCount) 件 · \(Self.formattedByteCount(savedWorkByteCount))"
+    }
+
+    private func refreshWorkArchiveSummary() {
+        savedWorkCount = LingdongWorkArchive.records().count
+        savedWorkByteCount = LingdongWorkArchive.storageByteCount()
+    }
+
+    private static func formattedByteCount(_ byteCount: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: byteCount, countStyle: .file)
     }
 
     private var motionTips: some View {
@@ -465,5 +656,254 @@ struct SettingRow<Trailing: View>: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 15)
+    }
+}
+
+private struct LingdongWorkManagerView: View {
+    let onLibraryChanged: () -> Void
+
+    @State private var records: [LingdongWorkRecord] = []
+    @State private var selectedIDs: Set<UUID> = []
+    @State private var isSelecting = false
+    @State private var previewRecord: LingdongWorkRecord?
+    @State private var deleteConfirmationPresented = false
+    @State private var deleteErrorMessage: String?
+    @State private var storageByteCount: Int64 = 0
+
+    var body: some View {
+        Group {
+            if records.isEmpty {
+                emptyState
+            } else {
+                workLibrary
+            }
+        }
+        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
+        .navigationTitle("已保存的作品")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if !records.isEmpty {
+                    Button(isSelecting ? "完成" : "选择") {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            isSelecting.toggle()
+                            if !isSelecting {
+                                selectedIDs.removeAll()
+                            }
+                        }
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if isSelecting, !records.isEmpty {
+                selectionBar
+            }
+        }
+        .task { reload() }
+        .sheet(item: $previewRecord) { record in
+            LingdongWorkPreviewView(record: record)
+        }
+        .alert(
+            "删除选中的 \(selectedIDs.count) 件作品？",
+            isPresented: $deleteConfirmationPresented
+        ) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive, action: deleteSelection)
+        } message: {
+            Text("只会删除灵动照片应用内保存的作品，不会删除系统相册中的图片，也不会影响已经加入影像相簿的副本。")
+        }
+        .alert("无法删除作品", isPresented: deleteErrorPresented) {
+            Button("好", role: .cancel) {}
+        } message: {
+            Text(deleteErrorMessage ?? "作品库暂时无法更新，请稍后重试。")
+        }
+    }
+
+    private var workLibrary: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("\(records.count) 件作品")
+                        .font(.headline)
+                    Spacer()
+                    Text(Self.formattedByteCount(storageByteCount))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
+                LingdongWorkGrid(
+                    records: records,
+                    selectedIDs: selectedIDs,
+                    showsSelection: isSelecting,
+                    onSelect: handleSelection
+                )
+
+                Text("这里保存的是应用内作品副本。删除不会影响系统相册，也不会影响已经复制到影像相簿中的内容。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 18)
+            .padding(.bottom, isSelecting ? 20 : 34)
+        }
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label("暂无已保存的作品", systemImage: "photo.stack")
+        } description: {
+            Text("从创作页面成功保存作品后，它会自动出现在这里。")
+        }
+    }
+
+    private var selectionBar: some View {
+        HStack(spacing: 14) {
+            Button(allRecordsAreSelected ? "取消全选" : "全选") {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    if allRecordsAreSelected {
+                        selectedIDs.removeAll()
+                    } else {
+                        selectedIDs = Set(records.map(\.id))
+                    }
+                }
+            }
+            .font(.subheadline.weight(.semibold))
+
+            Spacer()
+
+            Button(role: .destructive) {
+                deleteConfirmationPresented = true
+            } label: {
+                Label(
+                    selectedIDs.isEmpty ? "删除" : "删除 \(selectedIDs.count) 件",
+                    systemImage: "trash"
+                )
+                .font(.subheadline.weight(.bold))
+            }
+            .disabled(selectedIDs.isEmpty)
+        }
+        .padding(.horizontal, 20)
+        .frame(height: 62)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) { Divider() }
+    }
+
+    private var allRecordsAreSelected: Bool {
+        !records.isEmpty && selectedIDs.count == records.count
+    }
+
+    private var deleteErrorPresented: Binding<Bool> {
+        Binding(
+            get: { deleteErrorMessage != nil },
+            set: { if !$0 { deleteErrorMessage = nil } }
+        )
+    }
+
+    private func handleSelection(_ record: LingdongWorkRecord) {
+        if isSelecting {
+            withAnimation(.easeInOut(duration: 0.14)) {
+                if selectedIDs.contains(record.id) {
+                    selectedIDs.remove(record.id)
+                } else {
+                    selectedIDs.insert(record.id)
+                }
+            }
+            UISelectionFeedbackGenerator().selectionChanged()
+        } else {
+            previewRecord = record
+        }
+    }
+
+    private func deleteSelection() {
+        do {
+            let deletedCount = try LingdongWorkArchive.delete(ids: selectedIDs)
+            selectedIDs.removeAll()
+            reload()
+            if records.isEmpty {
+                isSelecting = false
+            }
+            onLibraryChanged()
+            if deletedCount > 0 {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        } catch {
+            deleteErrorMessage = error.localizedDescription
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+    }
+
+    private func reload() {
+        records = LingdongWorkArchive.records()
+        storageByteCount = LingdongWorkArchive.storageByteCount()
+        selectedIDs.formIntersection(records.map(\.id))
+    }
+
+    private static func formattedByteCount(_ byteCount: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: byteCount, countStyle: .file)
+    }
+}
+
+private struct LingdongWorkPreviewView: View {
+    let record: LingdongWorkRecord
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    Group {
+                        if let image = LingdongWorkArchive.image(for: record, thumbnail: false) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                        } else {
+                            ContentUnavailableView(
+                                "作品文件不可用",
+                                systemImage: "photo.badge.exclamationmark",
+                                description: Text("原始作品可能已被系统或其他操作移除。")
+                            )
+                            .frame(minHeight: 320)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .background(Color.black.opacity(0.045))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(record.kindTitle)
+                            .font(.headline)
+                        Text(
+                            record.createdAt,
+                            format: .dateTime
+                                .locale(Locale(identifier: "zh_Hans_CN"))
+                                .year()
+                                .month(.wide)
+                                .day()
+                                .hour()
+                                .minute()
+                        )
+                        Text("\(record.pixelWidth) × \(record.pixelHeight) 像素")
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(18)
+            }
+            .background(Color(uiColor: .systemGroupedBackground))
+            .navigationTitle("作品预览")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成") { dismiss() }
+                }
+            }
+        }
     }
 }

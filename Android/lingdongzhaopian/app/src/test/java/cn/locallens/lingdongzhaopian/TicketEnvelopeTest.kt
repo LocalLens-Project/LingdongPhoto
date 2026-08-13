@@ -5,6 +5,12 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import java.math.BigInteger
+import java.security.KeyPairGenerator
+import java.security.Signature
+import java.security.interfaces.ECPublicKey
+import java.security.spec.ECGenParameterSpec
+import java.io.File
 import java.util.zip.Inflater
 
 class TicketEnvelopeTest {
@@ -118,5 +124,48 @@ class TicketEnvelopeTest {
         assertEquals(12, TicketPayload.ticketIdentifier(signature).length)
         assertEquals(16, TicketPayload.fingerprintText(signature).length)
         assertEquals(7L, TicketPayload.contentSignature(null, fallback = 7L))
+    }
+
+    @Test
+    fun signedTicketVerifiesAndSignatureTamperingIsVisible() {
+        val keyPair = KeyPairGenerator.getInstance("EC").run {
+            initialize(ECGenParameterSpec("secp256r1"))
+            generateKeyPair()
+        }
+        val publicKey = keyPair.public as ECPublicKey
+        fun BigInteger.fixed(size: Int): ByteArray {
+            val raw = toByteArray()
+            val unsigned = if (raw.size > size && raw.first() == 0.toByte()) raw.drop(1).toByteArray() else raw
+            return ByteArray(size - unsigned.size) + unsigned
+        }
+        val signer = TicketEnvelopeSigner { data ->
+            val publicData = byteArrayOf(0x04) +
+                publicKey.w.affineX.fixed(32) +
+                publicKey.w.affineY.fixed(32)
+            val signature = Signature.getInstance("SHA256withECDSA").run {
+                initSign(keyPair.private)
+                update(TicketEnvelopeSignature.signingData(
+                    data,
+                    publicData,
+                    TicketSealOrigin.AndroidSoftware,
+                ))
+                sign()
+            }
+            TicketEnvelopeSignature(
+                publicKey = publicData,
+                signature = signature,
+                origin = TicketSealOrigin.AndroidSoftware,
+            )
+        }
+
+        val url = TicketEnvelope.invocationURL(TicketPayload.sample, signer = signer)
+        File("/tmp/xplat").mkdirs()
+        File("/tmp/xplat/android-sealed-url.txt").writeText(url)
+        assertTrue(TicketEnvelope.decodeVerified(url).sealValidation is TicketSealValidation.Valid)
+
+        val signatureStart = url.indexOf("&s=") + 3
+        val replacement = if (url[signatureStart] == 'A') 'B' else 'A'
+        val tampered = url.replaceRange(signatureStart, signatureStart + 1, replacement.toString())
+        assertTrue(TicketEnvelope.decodeVerified(tampered).sealValidation is TicketSealValidation.Invalid)
     }
 }

@@ -6,8 +6,13 @@ import SwiftUI
 struct TicketEditorControls: View {
     @Binding var layout: TicketLayoutStyle
     @Binding var codeStyle: TicketCodeStyle
+    @Binding var widthMode: TicketCanvasWidthMode
     var isLandscape = false
     let onOpenStudio: () -> Void
+
+    private var showWidthPicker: Bool {
+        layout == .classic
+    }
 
     @ViewBuilder
     var body: some View {
@@ -15,6 +20,10 @@ struct TicketEditorControls: View {
             VStack(spacing: 8) {
                 layoutPicker
                     .frame(maxWidth: .infinity)
+
+                if showWidthPicker {
+                    widthPicker
+                }
 
                 HStack(spacing: 8) {
                     ForEach(TicketCodeStyle.allCases) { item in
@@ -39,32 +48,67 @@ struct TicketEditorControls: View {
                 variant: .clear
             )
         } else {
-            portraitControls
+            VStack(spacing: 8) {
+                HStack(spacing: 8) {
+                    layoutPicker
+
+                    ForEach(TicketCodeStyle.allCases) { item in
+                        codeButton(item)
+                    }
+
+                    Button(action: onOpenStudio) {
+                        controlLabel(
+                            symbol: "eye",
+                            title: "预览与公开信息"
+                        )
+                    }
+                    .buttonStyle(LiquidPressButtonStyle())
+                    .accessibilityLabel("预览编码并设置公开信息")
+                }
+
+                if showWidthPicker {
+                    widthPicker
+                }
+            }
+            .padding(8)
+            .liquidGlass(
+                in: RoundedRectangle(cornerRadius: 24, style: .continuous),
+                interactive: true,
+                variant: .clear
+            )
         }
     }
 
-    private var portraitControls: some View {
+    private var widthPicker: some View {
         HStack(spacing: 8) {
-            layoutPicker
-
-            ForEach(TicketCodeStyle.allCases) { item in
-                codeButton(item)
+            ForEach(TicketCanvasWidthMode.allCases) { item in
+                widthButton(item)
             }
-
-            Button(action: onOpenStudio) {
-                controlLabel(
-                    symbol: "eye",
-                    title: "预览与公开信息"
-                )
-            }
-            .buttonStyle(LiquidPressButtonStyle())
-            .accessibilityLabel("预览编码并设置公开信息")
         }
-        .padding(8)
-        .liquidGlass(
-            in: RoundedRectangle(cornerRadius: 24, style: .continuous),
-            interactive: true,
-            variant: .clear
+    }
+
+    private func widthButton(_ item: TicketCanvasWidthMode) -> some View {
+        Button {
+            withAnimation(.snappy) {
+                widthMode = item
+            }
+        } label: {
+            Text(item.rawValue)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 43)
+                .background {
+                    if item == widthMode {
+                        Capsule()
+                            .fill(.primary.opacity(0.12))
+                    }
+                }
+                .contentShape(Capsule())
+        }
+        .buttonStyle(LiquidPressButtonStyle())
+        .accessibilityLabel(
+            "\(item.rawValue)\(item == widthMode ? "，当前选择" : "")"
         )
     }
 
@@ -133,6 +177,7 @@ struct TicketEditorControls: View {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .lineLimit(1)
+                .minimumScaleFactor(0.55)
         }
         .foregroundStyle(.primary)
         .padding(.horizontal, 12)
@@ -153,10 +198,13 @@ struct TicketCodeStudioView: View {
     @Binding var showDevice: Bool
     @Binding var showParameters: Bool
     @Binding var showPalette: Bool
+    @Binding var deviceSealEnabled: Bool
     @Binding var message: String
     @Binding var headerMode: TicketHeaderMode
     @Binding var customHeader: String
     @Binding var cityNameStyle: TicketCityNameStyle
+    @Binding var narrativeStyle: TicketNarrativeStyle
+    @Binding var narrativePerspective: TicketNarrativePerspective
 
     let detectedCityName: String?
     let payload: TicketPayload
@@ -166,12 +214,91 @@ struct TicketCodeStudioView: View {
     let onShare: (TicketCodeStyle) -> Void
 
     @State private var verificationPreviewPresented = false
+    @State private var verificationPreviewTicket: VerifiedTicket?
+    @State private var sealErrorMessage = ""
+    @State private var sealErrorPresented = false
+    @FocusState private var focusedField: TicketEditorFocus?
+    @State private var keyboardHeight: CGFloat = 0
+
+    private enum TicketEditorFocus { case message, header }
+
+    private var signer: TicketEnvelopeSigning? {
+        deviceSealEnabled ? TicketDeviceSealService.shared : nil
+    }
+
+    private var isEmotional: Bool { narrativeStyle == .emotional }
+    private var isSelfPerspective: Bool { narrativePerspective == .self }
+
+    private var publicInfoTitle: String {
+        isEmotional ? "时光胶囊信息" : "票根公开信息"
+    }
+
+    private var messageSectionTitle: String {
+        if isEmotional {
+            return isSelfPerspective ? "写给过去的备忘" : "创作者留下的寄语"
+        }
+        return "票根寄语"
+    }
+
+    private var messagePlaceholder: String {
+        if isEmotional {
+            return isSelfPerspective
+                ? "给未来的自己留一句话…"
+                : "写一句想让扫描者看到的话…"
+        }
+        return "写下一句想和这张照片一起留下的话"
+    }
+
+    private var messageHint: String {
+        if isEmotional {
+            return isSelfPerspective
+                ? "这段备忘会随票根一起封存，扫描时可以看到。最多 80 个字符。"
+                : "这段寄语会随票根一起封存，扫描时可以看到。最多 80 个字符。"
+        }
+        return "寄语属于公开信息，使用验证二维码时，任何扫描者都可以看到。最多 80 个字符。"
+    }
+
+    private var verificationPreviewLabel: String {
+        isEmotional ? "预览时光胶囊效果" : "预览扫描后的验证界面"
+    }
+
+    private var codeStyleSubtitle: String {
+        if isEmotional {
+            return codeStyle == .barcode ? "保存与分享" : "扫码回忆"
+        }
+        return codeStyle == .barcode ? "保存与分享" : "扫码验证"
+    }
+
+    private var sealToggleTitle: String {
+        isEmotional ? "给时光胶囊加上设备封印" : "给票根加上设备封印"
+    }
+
+    private var sealToggleSubtitle: String {
+        isEmotional
+            ? "防止胶囊里的信息在生成后被悄悄改写"
+            : "防止二维码里的公开信息在生成后被悄悄改写"
+    }
+
+    private var sealClosedExplanation: String {
+        if isEmotional {
+            return "已关闭。胶囊仍可查看，但扫描者无法确认信息生成后有没有被改动。"
+        }
+        return "已关闭。票根仍可查看，但扫描者无法确认公开信息生成后有没有被改动。"
+    }
+
+    private var sealOpenExplanation: String {
+        if isEmotional {
+            return "开启后，这台 iPhone 会用安全隔区里的专属密钥给胶囊信息盖章。照片不会写入二维码，也不会上传。"
+        }
+        return "开启后，这台 iPhone 会用安全隔区里的专属密钥给公开信息盖章。照片不会写入二维码，也不会上传。"
+    }
 
     private var codeImage: UIImage? {
         try? TicketCodeRenderer.image(
             for: codeStyle,
             payload: payload,
             baseURLString: baseURLString,
+            signer: signer,
             pixelSize: codeStyle == .barcode
                 ? CGSize(width: 1_200, height: 300)
                 : CGSize(width: 900, height: 900),
@@ -194,8 +321,10 @@ struct TicketCodeStudioView: View {
 
                             VStack(spacing: 18) {
                                 explanation
+                                narrativeOptions
                                 headerOptions
                                 messageOptions
+                                deviceSealOptions
                                 privacyOptions
                                 exportActions
                             }
@@ -204,27 +333,32 @@ struct TicketCodeStudioView: View {
                         .frame(maxWidth: .infinity, alignment: .top)
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
-                        .padding(.bottom, 26)
+                        .padding(.bottom, 26 + keyboardHeight)
                     }
                     .scrollIndicators(.hidden)
+                    .scrollDismissesKeyboard(.interactively)
                 } else {
                     ScrollView {
                         VStack(spacing: 22) {
                             codePicker
                             codePreview
                             explanation
+                            narrativeOptions
                             headerOptions
                             messageOptions
+                            deviceSealOptions
                             privacyOptions
                             exportActions
                         }
                         .padding(.horizontal, 18)
                         .padding(.top, 6)
-                        .padding(.bottom, 34)
+                        .padding(.bottom, 34 + keyboardHeight)
                     }
                     .scrollIndicators(.hidden)
+                    .scrollDismissesKeyboard(.interactively)
                 }
             }
+            .ignoresSafeArea(.keyboard)
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("影像票根编码")
             .navigationBarTitleDisplayMode(.inline)
@@ -235,14 +369,53 @@ struct TicketCodeStudioView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            if focusedField != nil {
+                HStack {
+                    Spacer()
+                    Button("收起键盘") {
+                        focusedField = nil
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.secondary.opacity(0.12), in: Capsule())
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 8)
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                keyboardHeight = keyboardFrame.height
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
+        }
         .tint(Color(uiColor: .systemBlue))
         .sheet(isPresented: $verificationPreviewPresented) {
             TicketVerificationView(
-                payload: payload,
+                ticket: verificationPreviewTicket ?? .unsigned(payload),
                 onClose: { verificationPreviewPresented = false }
             )
             .presentationDragIndicator(.hidden)
         }
+        .alert("无法生成设备封印", isPresented: $sealErrorPresented) {
+            Button("好", role: .cancel) {}
+        } message: {
+            Text(sealErrorMessage)
+        }
+#if DEBUG
+        .task {
+            guard ProcessInfo.processInfo.arguments.contains("--ticket-preview") else {
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(450))
+            openVerificationPreview()
+        }
+#endif
     }
 
     private var codePicker: some View {
@@ -269,11 +442,7 @@ struct TicketCodeStudioView: View {
                             }
                             Text(item.title)
                                 .font(.subheadline.weight(.bold))
-                            Text(
-                                item == .barcode
-                                    ? "保存与分享"
-                                    : "扫码验证"
-                            )
+                            Text(codeStyleSubtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         }
@@ -347,9 +516,9 @@ struct TicketCodeStudioView: View {
 
             if codeStyle == .verificationQR {
                 Button {
-                    verificationPreviewPresented = true
+                    openVerificationPreview()
                 } label: {
-                    Label("预览扫描后的验证界面", systemImage: "appclip")
+                    Label(verificationPreviewLabel, systemImage: "appclip")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 46)
@@ -394,9 +563,133 @@ struct TicketCodeStudioView: View {
         )
     }
 
+    private var narrativeOptions: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("扫码后的叙事风格")
+                .font(.headline)
+
+            VStack(spacing: 10) {
+                ForEach(TicketNarrativeStyle.allCases) { style in
+                    Button {
+                        withAnimation(.snappy) {
+                            narrativeStyle = style
+                        }
+                    } label: {
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: style.symbol)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(
+                                    narrativeStyle == style
+                                        ? Color.accentColor
+                                        : Color.secondary
+                                )
+                                .frame(width: 30)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(style.title)
+                                    .font(.subheadline.weight(.bold))
+                                Text(style.description)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            Spacer()
+
+                            if narrativeStyle == style {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(
+                                    narrativeStyle == style
+                                        ? Color.accentColor.opacity(0.10)
+                                        : Color(uiColor: .tertiarySystemGroupedBackground)
+                                )
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(
+                                    narrativeStyle == style
+                                        ? Color.accentColor.opacity(0.6)
+                                        : Color.primary.opacity(0.06),
+                                    lineWidth: narrativeStyle == style ? 1.4 : 1
+                                )
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if narrativeStyle == .emotional {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("叙事视角")
+                        .font(.subheadline.weight(.semibold))
+
+                    ForEach(TicketNarrativePerspective.allCases) { perspective in
+                        Button {
+                            withAnimation(.snappy) {
+                                narrativePerspective = perspective
+                            }
+                        } label: {
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: perspective.symbol)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(
+                                        narrativePerspective == perspective
+                                            ? Color.accentColor
+                                            : Color.secondary
+                                    )
+                                    .frame(width: 26)
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(perspective.title)
+                                        .font(.subheadline.weight(.semibold))
+                                    Text(perspective.description)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+
+                                Spacer()
+
+                                if narrativePerspective == perspective {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(Color.accentColor)
+                                }
+                            }
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(
+                                        narrativePerspective == perspective
+                                            ? Color.accentColor.opacity(0.08)
+                                            : Color(uiColor: .tertiarySystemGroupedBackground)
+                                    )
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(18)
+        .background(
+            Color(uiColor: .secondarySystemGroupedBackground),
+            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+        )
+        .animation(.snappy, value: narrativeStyle)
+    }
+
     private var privacyOptions: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("票根公开信息")
+            Text(publicInfoTitle)
                 .font(.headline)
                 .padding(.bottom, 12)
 
@@ -430,10 +723,80 @@ struct TicketCodeStudioView: View {
         )
     }
 
+    private var deviceSealOptions: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 13) {
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundStyle(.blue)
+                    .frame(width: 30)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(sealToggleTitle)
+                        .font(.subheadline.weight(.bold))
+                    Text(sealToggleSubtitle)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer()
+
+                Toggle("", isOn: $deviceSealEnabled)
+                    .labelsHidden()
+                    .accessibilityLabel("设备封印")
+            }
+
+            Text(deviceSealExplanation)
+                .font(.caption)
+                .foregroundStyle(
+                    TicketDeviceSealService.shared.capability == .unavailable
+                        ? .orange
+                        : .secondary
+                )
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(18)
+        .background(
+            Color(uiColor: .secondarySystemGroupedBackground),
+            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+        )
+    }
+
+    private var deviceSealExplanation: String {
+        let capability = TicketDeviceSealService.shared.capability
+        if !deviceSealEnabled {
+            return sealClosedExplanation
+        }
+        switch capability {
+        case .secureEnclave:
+            return sealOpenExplanation
+        case .simulatorTest:
+            return "模拟器没有安全隔区；这里会显示“模拟器测试签名”，只用于确认 iOS、Android 与 App Clip 的验真流程。iPhone 真机会改用安全隔区。"
+        case .unavailable:
+            return "这台设备当前无法使用安全隔区。请关闭设备封印后再生成二维码。"
+        }
+    }
+
+    private func openVerificationPreview() {
+        do {
+            let url = try TicketEnvelope.invocationURL(
+                for: payload,
+                baseURLString: baseURLString,
+                signer: signer
+            )
+            verificationPreviewTicket = try TicketEnvelope.decodeVerified(from: url)
+            verificationPreviewPresented = true
+        } catch {
+            sealErrorMessage = error.localizedDescription
+            sealErrorPresented = true
+        }
+    }
+
     private var messageOptions: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("票根寄语")
+                Text(messageSectionTitle)
                     .font(.headline)
                 Spacer()
                 Text("\(message.count)/\(TicketPayload.messageCharacterLimit)")
@@ -443,7 +806,7 @@ struct TicketCodeStudioView: View {
 
             ZStack(alignment: .topLeading) {
                 if message.isEmpty {
-                    Text("写下一句想和这张照片一起留下的话")
+                    Text(messagePlaceholder)
                         .font(.body)
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 5)
@@ -461,6 +824,7 @@ struct TicketCodeStudioView: View {
                 ))
                 .scrollContentBackground(.hidden)
                 .frame(minHeight: 92)
+                .focused($focusedField, equals: .message)
             }
             .padding(8)
             .background(
@@ -468,7 +832,7 @@ struct TicketCodeStudioView: View {
                 in: RoundedRectangle(cornerRadius: 15, style: .continuous)
             )
 
-            Text("寄语属于公开信息，使用验证二维码时，任何扫描者都可以看到。最多 80 个字符。")
+            Text(messageHint)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -496,6 +860,7 @@ struct TicketCodeStudioView: View {
                 TextField("可输入标题，也可以留空", text: $customHeader)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
+                    .focused($focusedField, equals: .header)
                     .padding(.horizontal, 13)
                     .frame(height: 44)
                     .background(
@@ -606,9 +971,18 @@ struct TicketMessageEditorSheet: View {
 
     let onSave: (String) -> Void
     @State private var draft: String
+    let narrativeStyle: TicketNarrativeStyle
+    let narrativePerspective: TicketNarrativePerspective
 
-    init(message: String, onSave: @escaping (String) -> Void) {
+    init(
+        message: String,
+        narrativeStyle: TicketNarrativeStyle,
+        narrativePerspective: TicketNarrativePerspective,
+        onSave: @escaping (String) -> Void
+    ) {
         self.onSave = onSave
+        self.narrativeStyle = narrativeStyle
+        self.narrativePerspective = narrativePerspective
         _draft = State(
             initialValue: String(
                 message.prefix(TicketPayload.messageCharacterLimit)
@@ -620,17 +994,45 @@ struct TicketMessageEditorSheet: View {
         TicketPayload.normalizedMessage(draft)
     }
 
+    private var isEmotional: Bool { narrativeStyle == .emotional }
+    private var isSelfPerspective: Bool { narrativePerspective == .self }
+
+    private var editorHint: String {
+        if isEmotional {
+            return isSelfPerspective
+                ? "这段备忘会随票根一起封存，扫描时可以看到。"
+                : "这段寄语会随票根一起封存，扫描时可以看到。"
+        }
+        return "寄语会写入票根的公开信息，使用验证二维码时，任何扫描者都可以看到。"
+    }
+
+    private var editorPlaceholder: String {
+        if isEmotional {
+            return isSelfPerspective
+                ? "给未来的自己留一句话…"
+                : "写一句想让扫描者看到的话…"
+        }
+        return "写下一句想和这张照片一起留下的话"
+    }
+
+    private var editorTitle: String {
+        if isEmotional {
+            return isSelfPerspective ? "写给过去的备忘" : "创作者留下的寄语"
+        }
+        return "补充寄语"
+    }
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 14) {
-                Text("寄语会写入票根的公开信息，使用验证二维码时，任何扫描者都可以看到。")
+                Text(editorHint)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 ZStack(alignment: .topLeading) {
                     if draft.isEmpty {
-                        Text("写下一句想和这张照片一起留下的话")
+                        Text(editorPlaceholder)
                             .foregroundStyle(.tertiary)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 9)
@@ -655,7 +1057,7 @@ struct TicketMessageEditorSheet: View {
                 Spacer(minLength: 0)
             }
             .padding(20)
-            .navigationTitle("补充寄语")
+            .navigationTitle(editorTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -678,5 +1080,188 @@ struct TicketMessageEditorSheet: View {
                 draft = String(value.prefix(TicketPayload.messageCharacterLimit))
             }
         }
+    }
+}
+
+struct TicketNarrativePromptView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let onSelect: (TicketNarrativeStyle, TicketNarrativePerspective) -> Void
+    let onDismiss: () -> Void
+
+    @State private var selectedStyle: TicketNarrativeStyle = .emotional
+    @State private var selectedPerspective: TicketNarrativePerspective = .self
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("选择风格")
+                    .font(.title2.weight(.bold))
+                Spacer()
+                Button {
+                    onDismiss()
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 28, weight: .light))
+                        .foregroundStyle(Color.secondary.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 20)
+            .padding(.bottom, 8)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("选择扫码后的叙事风格")
+                            .font(.title3.weight(.semibold))
+                        Text("这将决定他人扫描票根后看到的呈现方式")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    VStack(spacing: 12) {
+                        ForEach(TicketNarrativeStyle.allCases) { style in
+                            Button {
+                                withAnimation(.snappy) {
+                                    selectedStyle = style
+                                }
+                            } label: {
+                                HStack(alignment: .top, spacing: 14) {
+                                    Image(systemName: style.symbol)
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundStyle(
+                                            selectedStyle == style
+                                                ? Color.accentColor
+                                                : Color.secondary
+                                        )
+                                        .frame(width: 36, height: 36)
+                                        .background(
+                                            selectedStyle == style
+                                                ? Color.accentColor.opacity(0.12)
+                                                : Color.secondary.opacity(0.10),
+                                            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        )
+
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(style.title)
+                                            .font(.headline)
+                                        Text(style.description)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+
+                                    Spacer()
+
+                                    if selectedStyle == style {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(Color.accentColor)
+                                    }
+                                }
+                                .padding(16)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background {
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .fill(
+                                            selectedStyle == style
+                                                ? Color.accentColor.opacity(0.06)
+                                                : Color(uiColor: .tertiarySystemGroupedBackground)
+                                        )
+                                }
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .stroke(
+                                            selectedStyle == style
+                                                ? Color.accentColor.opacity(0.5)
+                                                : Color.primary.opacity(0.05),
+                                            lineWidth: selectedStyle == style ? 1.4 : 1
+                                        )
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    if selectedStyle == .emotional {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("选择叙事视角")
+                                .font(.headline)
+
+                            ForEach(TicketNarrativePerspective.allCases) { perspective in
+                                Button {
+                                    withAnimation(.snappy) {
+                                        selectedPerspective = perspective
+                                    }
+                                } label: {
+                                    HStack(alignment: .top, spacing: 12) {
+                                        Image(systemName: perspective.symbol)
+                                            .font(.system(size: 18, weight: .semibold))
+                                            .foregroundStyle(
+                                                selectedPerspective == perspective
+                                                    ? Color.accentColor
+                                                    : Color.secondary
+                                            )
+                                            .frame(width: 30)
+
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(perspective.title)
+                                                .font(.subheadline.weight(.semibold))
+                                            Text(perspective.description)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+
+                                        Spacer()
+
+                                        if selectedPerspective == perspective {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundStyle(Color.accentColor)
+                                        }
+                                    }
+                                    .padding(14)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background {
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .fill(
+                                                selectedPerspective == perspective
+                                                    ? Color.accentColor.opacity(0.06)
+                                                    : Color(uiColor: .tertiarySystemGroupedBackground)
+                                            )
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 4)
+                .padding(.bottom, 12)
+            }
+            .scrollIndicators(.hidden)
+
+            Divider()
+                .padding(.horizontal, 24)
+
+            Button {
+                onSelect(selectedStyle, selectedPerspective)
+                dismiss()
+            } label: {
+                Text("使用此风格")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
+        }
+        .background(Color(uiColor: .systemGroupedBackground))
     }
 }

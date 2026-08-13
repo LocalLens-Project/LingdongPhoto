@@ -1,6 +1,7 @@
 package cn.locallens.lingdongzhaopian
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
@@ -42,5 +43,13 @@ class CrossPlatformTicketBridgeTest {
         assertEquals(expected.captureSettings, payload.captureSettings)
         assertEquals(expected.revealLayout, payload.revealLayout)
         assertEquals(expected.palette, payload.palette)
+    }
+
+    @Test
+    fun verifiesASealedTicketProducedByIOS() {
+        val file = File(directory, "ios-sealed-url.txt")
+        assumeTrue("Sealed Swift harness output missing", file.isFile)
+        val ticket = TicketEnvelope.decodeVerified(file.readText().trim())
+        assertTrue(ticket.sealValidation is TicketSealValidation.Valid)
     }
 }

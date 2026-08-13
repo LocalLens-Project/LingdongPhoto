@@ -30,6 +30,8 @@ struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
     @Binding var isPresented: Bool
     let selectionLimit: Int
     let colorScheme: ColorScheme
+    var assetRepresentationMode: PHPickerConfiguration.AssetRepresentationMode = .current
+    var usesOrderedSelection = false
     let onSelection: ([PhotoPickerSelection]) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -40,7 +42,10 @@ struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
         var configuration = PHPickerConfiguration()
         configuration.filter = .images
         configuration.selectionLimit = max(1, selectionLimit)
-        configuration.preferredAssetRepresentationMode = .current
+        configuration.preferredAssetRepresentationMode = assetRepresentationMode
+        if usesOrderedSelection {
+            configuration.selection = .ordered
+        }
 
         let picker = PHPickerViewController(configuration: configuration)
         picker.delegate = context.coordinator

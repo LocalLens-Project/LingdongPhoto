@@ -12,6 +12,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
     case spectrumWallpaper
     case privacyMosaic
     case travelTicket
+    case sketch
 
     var id: String { rawValue }
 
@@ -24,6 +25,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .spectrumWallpaper: "色谱壁纸"
         case .privacyMosaic: "隐私马赛克"
         case .travelTicket: "影像票根"
+        case .sketch: "影像素描"
         }
     }
 
@@ -36,6 +38,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .spectrumWallpaper: "拒绝千篇一律，每一次亮屏都是你的专属艺术创作"
         case .privacyMosaic: "手动涂抹或智能识别人脸、车牌、二维码与敏感文字"
         case .travelTicket: "让色彩、拍摄信息与可验证凭证共同封存一次旅程"
+        case .sketch: "把照片变成铅笔素描、炭笔速写或水彩绘画"
         }
     }
 
@@ -55,6 +58,8 @@ enum CreationMode: String, CaseIterable, Identifiable {
             "让隐私留在画面之外\n手动涂抹或智能识别，安心分享每一张照片"
         case .travelTicket:
             "把一张照片变成可以被扫描、被验证的旅行凭证"
+        case .sketch:
+            "在纸张质感上重绘影像\n铅笔、炭笔与水彩，三种笔意随手切换"
         }
     }
 
@@ -67,6 +72,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .spectrumWallpaper: "rectangle.on.rectangle"
         case .privacyMosaic: "eye.slash"
         case .travelTicket: "ticket"
+        case .sketch: "pencil.and.ruler"
         }
     }
 
@@ -79,6 +85,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
         case .spectrumWallpaper: Color(red: 0.86, green: 1.00, blue: 0.83)
         case .privacyMosaic: Color(red: 0.62, green: 0.84, blue: 1.00)
         case .travelTicket: Color(red: 0.98, green: 0.72, blue: 0.48)
+        case .sketch: Color(red: 0.88, green: 0.84, blue: 0.74)
         }
     }
 
@@ -88,7 +95,7 @@ enum CreationMode: String, CaseIterable, Identifiable {
             .nineSixteen
         case .travelTicket:
             .twentyOneNine
-        case .motionCard, .colorPalette, .bubbleStamp, .privacyMosaic:
+        case .motionCard, .colorPalette, .bubbleStamp, .privacyMosaic, .sketch:
             .threeFour
         }
     }
@@ -99,6 +106,7 @@ enum ArtworkRatio: String, CaseIterable, Identifiable {
     case oneOne = "1:1"
     case threeFour = "3:4"
     case fourFive = "4:5"
+    case fourThree = "4:3"
     case nineSixteen = "9:16"
     case sixteenNine = "16:9"
     case twentyOneNine = "21:9"
@@ -110,6 +118,7 @@ enum ArtworkRatio: String, CaseIterable, Identifiable {
         case .original, .threeFour: 3.0 / 4.0
         case .oneOne: 1
         case .fourFive: 4.0 / 5.0
+        case .fourThree: 4.0 / 3.0
         case .nineSixteen: 9.0 / 16.0
         case .sixteenNine: 16.0 / 9.0
         case .twentyOneNine: 21.0 / 9.0

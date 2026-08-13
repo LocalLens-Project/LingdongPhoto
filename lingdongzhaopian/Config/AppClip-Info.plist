@@ -27,6 +27,8 @@
 		<key>NSAppClipRequestLocationConfirmation</key>
 		<false/>
 	</dict>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>TicketAppClipBaseURL</key>
 	<string>https://appclip.apple.com/id?p=$(APP_CLIP_BUNDLE_IDENTIFIER)</string>
 	<key>UIApplicationSceneManifest</key>

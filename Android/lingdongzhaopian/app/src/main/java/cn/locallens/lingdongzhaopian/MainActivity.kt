@@ -69,6 +69,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     viewModel = viewModel,
                     onExport = { bounds -> exportArtwork(findComposeRoot(), bounds) },
                     onExportTicketCode = { style, destination -> exportTicketCode(style, destination) },
+                    onExportRelationship = { bounds, dimensions, name ->
+                        exportRelationship(findComposeRoot(), bounds, dimensions, name)
+                    },
                     onTicketLandscapeChanged = { landscape ->
                         requestedOrientation = if (landscape) {
                             ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
@@ -134,8 +137,14 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         lifecycleScope.launch {
             val exported = runCatching {
                 withContext(Dispatchers.Default) {
-                    val bitmap = TicketCodeRenderer.exportCard(style, viewModel.state.value.ticketPayload)
                     val state = viewModel.state.value
+                    val bitmap = TicketCodeRenderer.exportCard(
+                        style,
+                        state.ticketPayload,
+                        signer = if (state.preferences.ticketDeviceSealEnabled) {
+                            TicketDeviceSealService
+                        } else null,
+                    )
                     ExportManager.encode(
                         this@MainActivity,
                         bitmap,
@@ -185,6 +194,26 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private fun findComposeRoot(): View {
         val content = findViewById<ViewGroup>(android.R.id.content)
         return content.getChildAt(0) ?: content
+    }
+
+    private fun exportRelationship(
+        view: View,
+        bounds: androidx.compose.ui.geometry.Rect,
+        dimensions: ExportDimensions,
+        name: String,
+    ) {
+        lifecycleScope.launch {
+            val exported = runCatching {
+                val bitmap = ExportManager.renderArtwork(view, bounds, dimensions)
+                withContext(Dispatchers.IO) { ExportManager.encodePng(this@MainActivity, bitmap, name) }
+                    .also { bitmap.recycle() }
+            }.getOrElse {
+                Toast.makeText(this@MainActivity, "生成色彩关系作品失败：${it.message ?: "请稍后重试"}", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            val saved = withContext(Dispatchers.IO) { ExportManager.saveToPhotoLibrary(this@MainActivity, exported) }
+            Toast.makeText(this@MainActivity, if (saved) "已保存到照片" else "保存失败", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun exportArtwork(view: View, bounds: androidx.compose.ui.geometry.Rect) {

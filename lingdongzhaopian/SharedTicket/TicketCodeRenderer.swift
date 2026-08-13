@@ -12,6 +12,7 @@ enum TicketCodeRenderer {
         for style: TicketCodeStyle,
         payload: TicketPayload,
         baseURLString: String = TicketEnvelope.configuredBaseURLString,
+        signer: TicketEnvelopeSigning? = nil,
         pixelSize: CGSize,
         foregroundColor: UIColor = .black,
         backgroundColor: UIColor? = nil
@@ -27,7 +28,8 @@ enum TicketCodeRenderer {
         case .verificationQR:
             let url = try TicketEnvelope.invocationURL(
                 for: payload,
-                baseURLString: baseURLString
+                baseURLString: baseURLString,
+                signer: signer
             )
             return try qrImage(
                 value: url.absoluteString,
@@ -38,10 +40,27 @@ enum TicketCodeRenderer {
         }
     }
 
+    static func verificationImage(
+        for ticket: VerifiedTicket,
+        pixelSize: CGSize,
+        foregroundColor: UIColor = .black,
+        backgroundColor: UIColor? = nil
+    ) throws -> UIImage {
+        let url = try ticket.sourceURL
+            ?? TicketEnvelope.invocationURL(for: ticket.payload)
+        return try qrImage(
+            value: url.absoluteString,
+            pixelSize: pixelSize,
+            foregroundColor: foregroundColor,
+            backgroundColor: backgroundColor
+        )
+    }
+
     static func exportCard(
         for style: TicketCodeStyle,
         payload: TicketPayload,
-        baseURLString: String = TicketEnvelope.configuredBaseURLString
+        baseURLString: String = TicketEnvelope.configuredBaseURLString,
+        signer: TicketEnvelopeSigning? = nil
     ) throws -> UIImage {
         let canvasSize = style == .barcode
             ? CGSize(width: 1_600, height: 920)
@@ -70,6 +89,7 @@ enum TicketCodeRenderer {
             for: style,
             payload: payload,
             baseURLString: baseURLString,
+            signer: signer,
             pixelSize: codeSize,
             foregroundColor: codeColor,
             backgroundColor: nil

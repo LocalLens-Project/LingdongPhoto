@@ -99,7 +99,7 @@ private fun TicketScannerScreen(onCancel: () -> Unit) {
     }
     var feedback by remember { mutableStateOf<String?>(null) }
     var processing by remember { mutableStateOf(false) }
-    var verified by remember { mutableStateOf<TicketPayload?>(null) }
+    var verified by remember { mutableStateOf<VerifiedTicket?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -117,9 +117,9 @@ private fun TicketScannerScreen(onCancel: () -> Unit) {
         }
     }
 
-    val payload = verified
-    if (payload != null) {
-        TicketVerificationScreen(payload, onCancel)
+    val ticket = verified
+    if (ticket != null) {
+        TicketVerificationScreen(ticket, onCancel)
         return
     }
 
@@ -132,7 +132,7 @@ private fun TicketScannerScreen(onCancel: () -> Unit) {
                     feedback = "这不是可验证的灵动照片票根"
                     return@CameraPreview
                 }
-                runCatching { TicketEnvelope.decode(value) }
+                runCatching { TicketEnvelope.decodeVerified(value) }
                     .onSuccess { verified = it }
                     // A ticket-shaped code that fails to open deserves the specific reason,
                     // e.g. a newer format or contents that were edited after generation.

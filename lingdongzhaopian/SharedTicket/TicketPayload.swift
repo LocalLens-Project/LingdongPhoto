@@ -59,9 +59,115 @@ enum TicketLayoutStyle: String, CaseIterable, Identifiable {
     }
 }
 
+enum TicketCanvasWidthMode: String, CaseIterable, Identifiable {
+    case compact = "紧凑"
+    case standard = "标准"
+    case poster = "海报"
+
+    var id: String { rawValue }
+
+    var symbol: String {
+        switch self {
+        case .compact: "rectangle.lefthalf.inset.filled"
+        case .standard: "rectangle"
+        case .poster: "photo"
+        }
+    }
+
+    var aspectRatio: CGFloat {
+        switch self {
+        case .compact: 21.0 / 9.0
+        case .standard: 16.0 / 9.0
+        case .poster: 4.0 / 3.0
+        }
+    }
+}
+
 enum TicketRevealLayout: String, Codable, Equatable {
     case classic = "c"
     case vertical = "v"
+}
+
+enum TicketRevealWidthMode: String, Codable, Equatable {
+    case compact = "c"
+    case standard = "s"
+    case poster = "p"
+
+    var portraitAspectRatio: CGFloat {
+        switch self {
+        case .compact: 21.0 / 9.0
+        case .standard: 16.0 / 9.0
+        case .poster: 4.0 / 3.0
+        }
+    }
+}
+
+enum TicketSealOrigin: String, Equatable {
+    case appleSecureEnclave = "apple-se"
+    case androidHardware = "android-hw"
+    case androidSoftware = "android-sw"
+    case simulatorTest = "sim-test"
+    case unknown
+
+    init(wireValue: String) {
+        self = Self(rawValue: wireValue) ?? .unknown
+    }
+
+    var isHardwareBacked: Bool {
+        self == .appleSecureEnclave || self == .androidHardware
+    }
+}
+
+struct TicketEnvelopeSignature: Equatable {
+    static let algorithm = "ES256"
+    private static let domain = "LingdongPhoto/TicketSeal/v1"
+
+    let publicKey: Data
+    let signature: Data
+    let origin: TicketSealOrigin
+
+    static func signingData(
+        payloadData: Data,
+        publicKey: Data,
+        origin: TicketSealOrigin
+    ) -> Data {
+        var data = Data("\(domain)\0\(algorithm)\0\(origin.rawValue)\0".utf8)
+        data.append(publicKey)
+        data.append(0)
+        data.append(payloadData)
+        return data
+    }
+}
+
+protocol TicketEnvelopeSigning {
+    func signature(for payloadData: Data) throws -> TicketEnvelopeSignature
+}
+
+enum TicketSealValidation: Equatable {
+    case unsigned
+    case valid(origin: TicketSealOrigin, keyID: String)
+    case invalid(origin: TicketSealOrigin, keyID: String?)
+
+    var isValid: Bool {
+        if case .valid = self { return true }
+        return false
+    }
+}
+
+struct VerifiedTicket: Equatable, Identifiable {
+    let payload: TicketPayload
+    let sealValidation: TicketSealValidation
+    let sourceURL: URL?
+
+    var id: String { payload.id }
+
+    static func unsigned(_ payload: TicketPayload) -> VerifiedTicket {
+        VerifiedTicket(
+            payload: payload,
+            sealValidation: .unsigned,
+            sourceURL: nil
+        )
+    }
 }
 
 extension TicketLayoutStyle {
@@ -70,6 +176,16 @@ extension TicketLayoutStyle {
         case .classic: .classic
         case .vertical: .vertical
         case .minimal: nil
+        }
+    }
+}
+
+extension TicketCanvasWidthMode {
+    var revealWidthMode: TicketRevealWidthMode {
+        switch self {
+        case .compact: .compact
+        case .standard: .standard
+        case .poster: .poster
         }
     }
 }
@@ -122,6 +238,10 @@ struct TicketPayload: Codable, Equatable, Identifiable {
     let captureSettings: String?
     let palette: [TicketPaletteEntry]
     let revealLayout: TicketRevealLayout?
+    let revealWidthMode: TicketRevealWidthMode?
+    let style: String?
+    let narrative: String?
+    let sealedAt: String?
 
     private enum CodingKeys: String, CodingKey {
         case version = "v"
@@ -138,6 +258,10 @@ struct TicketPayload: Codable, Equatable, Identifiable {
         case captureSettings = "e"
         case palette = "a"
         case revealLayout = "r"
+        case revealWidthMode = "w"
+        case style = "x"
+        case narrative = "n"
+        case sealedAt = "q"
     }
 
     var id: String { ticketID }
@@ -156,7 +280,11 @@ struct TicketPayload: Codable, Equatable, Identifiable {
         lens: String?,
         captureSettings: String?,
         palette: [TicketPaletteEntry],
-        revealLayout: TicketRevealLayout? = nil
+        revealLayout: TicketRevealLayout? = nil,
+        revealWidthMode: TicketRevealWidthMode? = nil,
+        style: String? = nil,
+        narrative: String? = nil,
+        sealedAt: String? = nil
     ) {
         self.version = version
         self.ticketID = ticketID
@@ -172,6 +300,10 @@ struct TicketPayload: Codable, Equatable, Identifiable {
         self.captureSettings = captureSettings
         self.palette = Array(palette.prefix(6))
         self.revealLayout = revealLayout
+        self.revealWidthMode = revealWidthMode
+        self.style = style
+        self.narrative = narrative
+        self.sealedAt = sealedAt
     }
 
     static func normalizedMessage(_ value: String?) -> String? {
@@ -221,8 +353,17 @@ struct TicketPayload: Codable, Equatable, Identifiable {
                 TicketPaletteEntry(hex: "#F0D8B8", percentage: 9.2),
                 TicketPaletteEntry(hex: "#879B9B", percentage: 6.9)
             ],
-            revealLayout: .classic
+            revealLayout: .classic,
+            revealWidthMode: .compact,
+            sealedAt: "2026/07/26, 10:24"
         )
+    }
+
+    var isEmotionalStyle: Bool { style == "e" }
+
+    var isSelfNarrative: Bool {
+        guard let narrative else { return true }
+        return narrative == "self"
     }
 
     func compacted(level: Int) -> TicketPayload {
@@ -248,7 +389,11 @@ struct TicketPayload: Codable, Equatable, Identifiable {
                 lens: trimmed(lens, limit: 64),
                 captureSettings: trimmed(captureSettings, limit: 64),
                 palette: palette,
-                revealLayout: revealLayout
+                revealLayout: revealLayout,
+                revealWidthMode: revealWidthMode,
+                style: style,
+                narrative: narrative,
+                sealedAt: sealedAt
             )
         case 1:
             return TicketPayload(
@@ -264,7 +409,11 @@ struct TicketPayload: Codable, Equatable, Identifiable {
                 lens: trimmed(lens, limit: 36),
                 captureSettings: trimmed(captureSettings, limit: 40),
                 palette: palette,
-                revealLayout: revealLayout
+                revealLayout: revealLayout,
+                revealWidthMode: revealWidthMode,
+                style: style,
+                narrative: narrative,
+                sealedAt: sealedAt
             )
         default:
             return TicketPayload(
@@ -280,7 +429,11 @@ struct TicketPayload: Codable, Equatable, Identifiable {
                 lens: nil,
                 captureSettings: trimmed(captureSettings, limit: 32),
                 palette: palette,
-                revealLayout: revealLayout
+                revealLayout: revealLayout,
+                revealWidthMode: revealWidthMode,
+                style: style,
+                narrative: narrative,
+                sealedAt: sealedAt
             )
         }
     }
@@ -307,6 +460,10 @@ enum TicketEnvelopeError: LocalizedError, Equatable {
 enum TicketEnvelope {
     static let payloadKey = "t"
     static let checksumKey = "c"
+    static let sealAlgorithmKey = "a"
+    static let sealPublicKey = "k"
+    static let sealSignatureKey = "s"
+    static let sealOriginKey = "o"
     private static let maximumURLLength = 2_000
     private static let compressedPayloadMarker: UInt8 = 0x5A
     private static let plainPayloadMarker: UInt8 = 0x4A
@@ -324,7 +481,8 @@ enum TicketEnvelope {
 
     static func invocationURL(
         for payload: TicketPayload,
-        baseURLString: String = configuredBaseURLString
+        baseURLString: String = configuredBaseURLString,
+        signer: TicketEnvelopeSigning? = nil
     ) throws -> URL {
         guard var components = URLComponents(string: baseURLString),
               components.scheme?.lowercased() == "https",
@@ -335,10 +493,37 @@ enum TicketEnvelope {
         for level in 0...2 {
             let candidate = payload.compacted(level: level)
             let encoded = try encodedPayload(candidate)
+            let signature = try signer?.signature(for: encoded.payloadData)
             var queryItems = components.queryItems ?? []
-            queryItems.removeAll { $0.name == payloadKey || $0.name == checksumKey }
+            let reservedKeys = Set([
+                payloadKey,
+                checksumKey,
+                sealAlgorithmKey,
+                sealPublicKey,
+                sealSignatureKey,
+                sealOriginKey
+            ])
+            queryItems.removeAll { reservedKeys.contains($0.name) }
             queryItems.append(URLQueryItem(name: payloadKey, value: encoded.token))
             queryItems.append(URLQueryItem(name: checksumKey, value: encoded.checksum))
+            if let signature {
+                queryItems.append(URLQueryItem(
+                    name: sealAlgorithmKey,
+                    value: TicketEnvelopeSignature.algorithm
+                ))
+                queryItems.append(URLQueryItem(
+                    name: sealPublicKey,
+                    value: signature.publicKey.base64URLEncodedString()
+                ))
+                queryItems.append(URLQueryItem(
+                    name: sealSignatureKey,
+                    value: signature.signature.base64URLEncodedString()
+                ))
+                queryItems.append(URLQueryItem(
+                    name: sealOriginKey,
+                    value: signature.origin.rawValue
+                ))
+            }
             components.queryItems = queryItems
             if let url = components.url,
                url.absoluteString.utf8.count <= maximumURLLength {
@@ -349,6 +534,10 @@ enum TicketEnvelope {
     }
 
     static func decode(from url: URL) throws -> TicketPayload {
+        try decodeVerified(from: url).payload
+    }
+
+    static func decodeVerified(from url: URL) throws -> VerifiedTicket {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             throw TicketEnvelopeError.invalidURL
         }
@@ -369,7 +558,11 @@ enum TicketEnvelope {
         guard payload.version == TicketPayload.currentVersion else {
             throw TicketEnvelopeError.unsupportedVersion
         }
-        return payload
+        return VerifiedTicket(
+            payload: payload,
+            sealValidation: sealValidation(for: items, payloadData: payloadData),
+            sourceURL: url
+        )
     }
 
     static func barcodeValue(for payload: TicketPayload) -> String {
@@ -386,7 +579,7 @@ enum TicketEnvelope {
 
     private static func encodedPayload(
         _ payload: TicketPayload
-    ) throws -> (token: String, checksum: String) {
+    ) throws -> (token: String, checksum: String, payloadData: Data) {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         guard let data = try? encoder.encode(payload) else {
@@ -401,8 +594,66 @@ enum TicketEnvelope {
         }
         return (
             envelopeData.base64URLEncodedString(),
-            checksumValue(for: envelopeData)
+            checksumValue(for: envelopeData),
+            data
         )
+    }
+
+    private static func sealValidation(
+        for items: [URLQueryItem],
+        payloadData: Data
+    ) -> TicketSealValidation {
+        let values = items.reduce(into: [String: String]()) { result, item in
+            guard result[item.name] == nil, let value = item.value else { return }
+            result[item.name] = value
+        }
+        let reserved = [
+            sealAlgorithmKey,
+            sealPublicKey,
+            sealSignatureKey,
+            sealOriginKey
+        ]
+        guard reserved.contains(where: { values[$0] != nil }) else {
+            return .unsigned
+        }
+
+        let origin = TicketSealOrigin(
+            wireValue: values[sealOriginKey] ?? TicketSealOrigin.unknown.rawValue
+        )
+        guard values[sealAlgorithmKey] == TicketEnvelopeSignature.algorithm,
+              let publicKeyValue = values[sealPublicKey],
+              let signatureValue = values[sealSignatureKey],
+              let publicKeyData = Data(base64URLEncoded: publicKeyValue),
+              let signatureData = Data(base64URLEncoded: signatureValue) else {
+            return .invalid(origin: origin, keyID: nil)
+        }
+
+        let keyID = sealKeyID(for: publicKeyData)
+        do {
+            let publicKey = try P256.Signing.PublicKey(
+                x963Representation: publicKeyData
+            )
+            let signature = try P256.Signing.ECDSASignature(
+                derRepresentation: signatureData
+            )
+            let signingData = TicketEnvelopeSignature.signingData(
+                payloadData: payloadData,
+                publicKey: publicKeyData,
+                origin: origin
+            )
+            return publicKey.isValidSignature(signature, for: signingData)
+                ? .valid(origin: origin, keyID: keyID)
+                : .invalid(origin: origin, keyID: keyID)
+        } catch {
+            return .invalid(origin: origin, keyID: keyID)
+        }
+    }
+
+    private static func sealKeyID(for publicKey: Data) -> String {
+        SHA256.hash(data: publicKey)
+            .prefix(6)
+            .map { String(format: "%02X", $0) }
+            .joined()
     }
 
     private static func decodedPayloadData(from envelopeData: Data) -> Data? {
@@ -529,5 +780,145 @@ extension Color {
         } else {
             self = Color(red: 0.18, green: 0.39, blue: 0.24)
         }
+    }
+}
+
+enum TicketNarrativeStyle: String, CaseIterable, Identifiable {
+    case standard = "s"
+    case emotional = "e"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .standard: "标准模式"
+        case .emotional: "时光胶囊"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .standard:
+            "扫描后显示照片指纹、设备封印等技术信息"
+        case .emotional:
+            "扫描后显示时光跨度与情感化文案，适合留念与分享"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .standard: "checkmark.shield"
+        case .emotional: "clock.arrow.circlepath"
+        }
+    }
+}
+
+enum TicketNarrativePerspective: String, CaseIterable, Identifiable {
+    case `self` = "self"
+    case shared = "shared"
+
+    static var defaultRawValue: String { "self" }
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .self: "写给未来的我"
+        case .shared: "分享给朋友"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .self:
+            "用私域口吻呈现，适合自己收藏、偶尔回看"
+        case .shared:
+            "用温暖中性的口吻呈现，适合分享到朋友圈或发给朋友"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .self: "person.text.rectangle"
+        case .shared: "person.2.text.rectangle"
+        }
+    }
+}
+
+enum TicketTimeCalculator {
+    private static let formatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd, HH:mm"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
+        return formatter
+    }()
+
+    static func daysSinceCapture(_ captureTime: String?) -> Int? {
+        guard let captureTime,
+              let date = formatter.date(from: captureTime) else {
+            return nil
+        }
+        let calendar = Calendar.current
+        let now = Date()
+        let components = calendar.dateComponents([.day], from: date, to: now)
+        return components.day
+    }
+
+    static func daysBetweenCaptureAndSeal(
+        captureTime: String?,
+        sealedAt: String?
+    ) -> Int? {
+        guard let captureTime, let sealedAt,
+              let captureDate = formatter.date(from: captureTime),
+              let sealDate = formatter.date(from: sealedAt) else {
+            return nil
+        }
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.day], from: captureDate, to: sealDate)
+        return components.day
+    }
+
+    static func formattedTimeSinceCapture(_ captureTime: String?) -> String? {
+        guard let days = daysSinceCapture(captureTime) else { return nil }
+        return formattedDayCount(days)
+    }
+
+    static func formattedTimeSinceSeal(_ sealedAt: String?) -> String? {
+        guard let sealedAt,
+              let date = formatter.date(from: sealedAt) else {
+            return nil
+        }
+        let calendar = Calendar.current
+        let now = Date()
+        let components = calendar.dateComponents([.day], from: date, to: now)
+        guard let days = components.day else { return nil }
+        return formattedDayCount(days)
+    }
+
+    private static func formattedDayCount(_ days: Int) -> String {
+        if days <= 0 {
+            return "今天"
+        } else if days == 1 {
+            return "昨天"
+        } else if days < 30 {
+            return "\(days) 天前"
+        } else if days < 365 {
+            let months = days / 30
+            return "\(months) 个月前"
+        } else {
+            let years = days / 365
+            let remainingDays = days % 365
+            if remainingDays < 30 {
+                return "\(years) 年前"
+            } else {
+                let months = remainingDays / 30
+                return "\(years) 年 \(months) 个月前"
+            }
+        }
+    }
+
+    static func nowFormatted() -> String {
+        formatter.string(from: Date())
     }
 }

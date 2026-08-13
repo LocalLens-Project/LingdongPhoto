@@ -3,7 +3,15 @@ package cn.locallens.lingdongzhaopian
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URI
+import java.math.BigInteger
+import java.security.AlgorithmParameters
+import java.security.KeyFactory
 import java.security.MessageDigest
+import java.security.Signature
+import java.security.spec.ECGenParameterSpec
+import java.security.spec.ECParameterSpec
+import java.security.spec.ECPoint
+import java.security.spec.ECPublicKeySpec
 import java.util.zip.Deflater
 import java.util.zip.Inflater
 
@@ -37,10 +45,73 @@ enum class TicketLayoutStyle(val label: String) {
         get() = if (this == Vertical) ArtworkRatio.ThreeFour else ArtworkRatio.TwentyOneNine
 }
 
+enum class TicketCanvasWidthMode(val label: String, val ratio: ArtworkRatio) {
+    Compact("紧凑", ArtworkRatio.TwentyOneNine),
+    Standard("标准", ArtworkRatio.SixteenNine),
+    Poster("海报", ArtworkRatio.FourThree),
+}
+
+enum class TicketNarrativeStyle(val label: String, val description: String, val wireValue: String) {
+    Standard("标准模式", "扫描后显示照片指纹、设备封印等技术信息", "s"),
+    Emotional("时光胶囊", "扫描后显示时光跨度与情感化文案，适合留念与分享", "e"),
+}
+
+enum class TicketNarrativePerspective(val label: String, val description: String, val wireValue: String) {
+    Self("写给未来的我", "用私域口吻呈现，适合自己收藏、偶尔回看", "self"),
+    Shared("分享给朋友", "用温暖中性的口吻呈现，适合分享到朋友圈或发给朋友", "shared"),
+}
+
 enum class TicketHeaderMode(val label: String) { Custom("自定义"), City("照片城市") }
 enum class TicketCityNameStyle(val label: String) { Pinyin("拼音"), Chinese("中文") }
 
 data class TicketPaletteEntry(val hex: String, val percentage: Double)
+
+enum class TicketSealOrigin(val wireValue: String, val hardwareBacked: Boolean) {
+    AppleSecureEnclave("apple-se", true),
+    AndroidHardware("android-hw", true),
+    AndroidSoftware("android-sw", false),
+    SimulatorTest("sim-test", false),
+    Unknown("unknown", false);
+
+    companion object {
+        fun fromWire(value: String?): TicketSealOrigin =
+            entries.firstOrNull { it.wireValue == value } ?: Unknown
+    }
+}
+
+data class TicketEnvelopeSignature(
+    val publicKey: ByteArray,
+    val signature: ByteArray,
+    val origin: TicketSealOrigin,
+) {
+    companion object {
+        const val ALGORITHM = "ES256"
+        private const val DOMAIN = "LingdongPhoto/TicketSeal/v1"
+
+        fun signingData(
+            payloadData: ByteArray,
+            publicKey: ByteArray,
+            origin: TicketSealOrigin,
+        ): ByteArray =
+            "$DOMAIN\u0000$ALGORITHM\u0000${origin.wireValue}\u0000".toByteArray(Charsets.UTF_8) +
+                publicKey + byteArrayOf(0) + payloadData
+    }
+}
+
+fun interface TicketEnvelopeSigner {
+    fun signature(payloadData: ByteArray): TicketEnvelopeSignature
+}
+
+sealed interface TicketSealValidation {
+    data object Unsigned : TicketSealValidation
+    data class Valid(val origin: TicketSealOrigin, val keyID: String) : TicketSealValidation
+    data class Invalid(val origin: TicketSealOrigin, val keyID: String?) : TicketSealValidation
+}
+
+data class VerifiedTicket(
+    val payload: TicketPayload,
+    val sealValidation: TicketSealValidation,
+)
 
 /**
  * Public ticket contents shared through the verification QR code.
@@ -63,6 +134,9 @@ data class TicketPayload(
     val captureSettings: String? = null,
     val palette: List<TicketPaletteEntry> = emptyList(),
     val revealLayout: String? = null,
+    val style: String? = null,
+    val narrative: String? = null,
+    val sealedAt: String? = null,
 ) {
     fun toJson(): JSONObject {
         // Keys are inserted in the same sorted order Swift's `.sortedKeys` produces. JSON objects
@@ -81,11 +155,14 @@ data class TicketPayload(
         json.put("i", ticketID)
         lens?.let { json.put("l", it) }
         normalizedMessage(message)?.let { json.put("m", it) }
+        narrative?.let { json.put("n", it) }
         place?.let { json.put("p", it) }
+        sealedAt?.let { json.put("q", it) }
         revealLayout?.let { json.put("r", it) }
         subtitle?.let { json.put("s", it) }
         json.put("t", title)
         json.put("v", version)
+        style?.let { json.put("x", it) }
         return json
     }
 
@@ -105,6 +182,9 @@ data class TicketPayload(
                 lens = trimmed(lens, 64),
                 captureSettings = trimmed(captureSettings, 64),
                 palette = palette.take(6),
+                style = style,
+                narrative = narrative,
+                sealedAt = sealedAt,
             )
 
             1 -> copy(
@@ -118,6 +198,9 @@ data class TicketPayload(
                 lens = trimmed(lens, 36),
                 captureSettings = trimmed(captureSettings, 40),
                 palette = palette.take(6),
+                style = style,
+                narrative = narrative,
+                sealedAt = sealedAt,
             )
 
             else -> copy(
@@ -131,6 +214,9 @@ data class TicketPayload(
                 lens = null,
                 captureSettings = trimmed(captureSettings, 32),
                 palette = palette.take(6),
+                style = style,
+                narrative = narrative,
+                sealedAt = sealedAt,
             )
         }
     }
@@ -177,6 +263,9 @@ data class TicketPayload(
                 captureSettings = json.optionalString("e"),
                 palette = palette,
                 revealLayout = json.optionalString("r"),
+                style = json.optionalString("x"),
+                narrative = json.optionalString("n"),
+                sealedAt = json.optionalString("q"),
             )
         }
 
@@ -243,13 +332,21 @@ sealed class TicketEnvelopeException(val readableMessage: String) : Exception(re
 object TicketEnvelope {
     const val PAYLOAD_KEY = "t"
     const val CHECKSUM_KEY = "c"
+    const val SEAL_ALGORITHM_KEY = "a"
+    const val SEAL_PUBLIC_KEY = "k"
+    const val SEAL_SIGNATURE_KEY = "s"
+    const val SEAL_ORIGIN_KEY = "o"
     const val DEFAULT_BASE_URL = "https://appclip.apple.com/id?p=com.example.lingdongphoto.Clip"
 
     private const val MAXIMUM_URL_LENGTH = 2_000
     private const val COMPRESSED_MARKER: Byte = 0x5A
     private const val PLAIN_MARKER: Byte = 0x4A
 
-    fun invocationURL(payload: TicketPayload, baseURLString: String = DEFAULT_BASE_URL): String {
+    fun invocationURL(
+        payload: TicketPayload,
+        baseURLString: String = DEFAULT_BASE_URL,
+        signer: TicketEnvelopeSigner? = null,
+    ): String {
         val base = runCatching { URI(baseURLString.trim()) }.getOrNull()
         if (base == null || base.scheme?.lowercase() != "https" || base.host.isNullOrEmpty()) {
             throw TicketEnvelopeException.InvalidURL
@@ -261,12 +358,29 @@ object TicketEnvelope {
             .filter { it.isNotEmpty() }
             .filterNot {
                 val name = it.substringBefore('=')
-                name == PAYLOAD_KEY || name == CHECKSUM_KEY
+                name in setOf(
+                    PAYLOAD_KEY,
+                    CHECKSUM_KEY,
+                    SEAL_ALGORITHM_KEY,
+                    SEAL_PUBLIC_KEY,
+                    SEAL_SIGNATURE_KEY,
+                    SEAL_ORIGIN_KEY,
+                )
             }
 
         for (level in 0..2) {
-            val (token, checksum) = encodedPayload(payload.compacted(level))
-            val query = retainedQuery + listOf("$PAYLOAD_KEY=$token", "$CHECKSUM_KEY=$checksum")
+            val encoded = encodedPayload(payload.compacted(level))
+            val seal = signer?.signature(encoded.payloadData)
+            val sealQuery = if (seal == null) emptyList() else listOf(
+                "$SEAL_ALGORITHM_KEY=${TicketEnvelopeSignature.ALGORITHM}",
+                "$SEAL_PUBLIC_KEY=${base64URLEncode(seal.publicKey)}",
+                "$SEAL_SIGNATURE_KEY=${base64URLEncode(seal.signature)}",
+                "$SEAL_ORIGIN_KEY=${seal.origin.wireValue}",
+            )
+            val query = retainedQuery + listOf(
+                "$PAYLOAD_KEY=${encoded.token}",
+                "$CHECKSUM_KEY=${encoded.checksum}",
+            ) + sealQuery
             val candidate = "$prefix?${query.joinToString("&")}"
             if (candidate.toByteArray(Charsets.UTF_8).size <= MAXIMUM_URL_LENGTH) return candidate
         }
@@ -274,6 +388,10 @@ object TicketEnvelope {
     }
 
     fun decode(value: String): TicketPayload {
+        return decodeVerified(value).payload
+    }
+
+    fun decodeVerified(value: String): VerifiedTicket {
         val items = queryItems(value) ?: throw TicketEnvelopeException.InvalidURL
         val token = items[PAYLOAD_KEY]
         val checksum = items[CHECKSUM_KEY]
@@ -285,7 +403,7 @@ object TicketEnvelope {
         val payload = runCatching { TicketPayload.fromJson(JSONObject(String(body, Charsets.UTF_8))) }
             .getOrNull() ?: throw TicketEnvelopeException.CorruptedPayload
         if (payload.version != TicketPayload.CURRENT_VERSION) throw TicketEnvelopeException.UnsupportedVersion
-        return payload
+        return VerifiedTicket(payload, sealValidation(items, body))
     }
 
     fun looksLikeTicketURL(value: String): Boolean {
@@ -346,7 +464,13 @@ object TicketEnvelope {
         return "%012d".format(java.lang.Long.remainderUnsigned(value, 1_000_000_000_000L))
     }
 
-    private fun encodedPayload(payload: TicketPayload): Pair<String, String> {
+    private data class EncodedPayload(
+        val token: String,
+        val checksum: String,
+        val payloadData: ByteArray,
+    )
+
+    private fun encodedPayload(payload: TicketPayload): EncodedPayload {
         val json = payload.toJson().toString().toByteArray(Charsets.UTF_8)
         val compressed = deflate(json)
         val envelope = if (compressed != null && compressed.size < json.size) {
@@ -354,7 +478,58 @@ object TicketEnvelope {
         } else {
             byteArrayOf(PLAIN_MARKER) + json
         }
-        return base64URLEncode(envelope) to checksumValue(envelope)
+        return EncodedPayload(base64URLEncode(envelope), checksumValue(envelope), json)
+    }
+
+    private fun sealValidation(
+        items: Map<String, String>,
+        payloadData: ByteArray,
+    ): TicketSealValidation {
+        val sealKeys = setOf(
+            SEAL_ALGORITHM_KEY,
+            SEAL_PUBLIC_KEY,
+            SEAL_SIGNATURE_KEY,
+            SEAL_ORIGIN_KEY,
+        )
+        if (sealKeys.none(items::containsKey)) return TicketSealValidation.Unsigned
+
+        val origin = TicketSealOrigin.fromWire(items[SEAL_ORIGIN_KEY])
+        val publicKeyData = items[SEAL_PUBLIC_KEY]?.let(::base64URLDecode)
+        val signatureData = items[SEAL_SIGNATURE_KEY]?.let(::base64URLDecode)
+        if (
+            items[SEAL_ALGORITHM_KEY] != TicketEnvelopeSignature.ALGORITHM ||
+            publicKeyData == null ||
+            signatureData == null
+        ) {
+            return TicketSealValidation.Invalid(origin, null)
+        }
+
+        val keyID = MessageDigest.getInstance("SHA-256")
+            .digest(publicKeyData)
+            .take(6)
+            .joinToString("") { "%02X".format(it.toInt() and 0xFF) }
+        val valid = runCatching {
+            if (publicKeyData.size != 65 || publicKeyData[0] != 0x04.toByte()) return@runCatching false
+            val parameters = AlgorithmParameters.getInstance("EC").apply {
+                init(ECGenParameterSpec("secp256r1"))
+            }.getParameterSpec(ECParameterSpec::class.java)
+            val point = ECPoint(
+                BigInteger(1, publicKeyData.copyOfRange(1, 33)),
+                BigInteger(1, publicKeyData.copyOfRange(33, 65)),
+            )
+            val publicKey = KeyFactory.getInstance("EC")
+                .generatePublic(ECPublicKeySpec(point, parameters))
+            Signature.getInstance("SHA256withECDSA").run {
+                initVerify(publicKey)
+                update(TicketEnvelopeSignature.signingData(payloadData, publicKeyData, origin))
+                verify(signatureData)
+            }
+        }.getOrDefault(false)
+        return if (valid) {
+            TicketSealValidation.Valid(origin, keyID)
+        } else {
+            TicketSealValidation.Invalid(origin, keyID)
+        }
     }
 
     private fun decodedPayloadData(envelope: ByteArray): ByteArray? {

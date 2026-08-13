@@ -103,7 +103,7 @@ fun TravelTicketCanvas(state: AppUiState, exporting: Boolean) {
 }
 
 private val AppUiState.ticketColors: List<RGBColor>
-    get() = palette.ifEmpty { RGBColor.fallback }
+    get() = activePalette.ifEmpty { RGBColor.fallback }
 
 private val AppUiState.darkestTicketColor: RGBColor
     get() = ticketColors.minByOrNull { it.relativeLuminance } ?: RGBColor.fallback[3]
@@ -250,6 +250,7 @@ private fun ClassicTravelTicket(state: AppUiState) {
             TicketCodeImage(
                 payload = payload,
                 style = state.preferences.ticketCodeStyle,
+                deviceSealEnabled = state.preferences.ticketDeviceSealEnabled,
                 foreground = foreground,
                 maxWidth = codeMaxWidth,
                 maxHeight = codeMaxHeight,
@@ -434,6 +435,7 @@ private fun VerticalTravelTicket(state: AppUiState) {
                     TicketCodeImage(
                         payload = payload,
                         style = state.preferences.ticketCodeStyle,
+                        deviceSealEnabled = state.preferences.ticketDeviceSealEnabled,
                         foreground = foreground,
                         maxWidth = codeMaxWidth,
                         maxHeight = codeMaxHeight,
@@ -550,6 +552,7 @@ private fun MinimalTravelTicket(state: AppUiState, exporting: Boolean) {
             TicketCodeImage(
                 payload = payload,
                 style = state.preferences.ticketCodeStyle,
+                deviceSealEnabled = state.preferences.ticketDeviceSealEnabled,
                 foreground = panelForeground,
                 maxWidth = width * .30f,
                 maxHeight = height * if (state.preferences.ticketCodeStyle == TicketCodeStyle.Barcode) .22f else .50f,
@@ -562,6 +565,7 @@ private fun MinimalTravelTicket(state: AppUiState, exporting: Boolean) {
 fun TicketCodeImage(
     payload: TicketPayload,
     style: TicketCodeStyle,
+    deviceSealEnabled: Boolean,
     foreground: RGBColor,
     maxWidth: Dp,
     maxHeight: Dp,
@@ -578,7 +582,7 @@ fun TicketCodeImage(
         targetWidth
     }
     val argb = foreground.color.toArgb()
-    val bitmap = remember(payload, style, argb) {
+    val bitmap = remember(payload, style, argb, deviceSealEnabled) {
         runCatching {
             TicketCodeRenderer.image(
                 style = style,
@@ -586,6 +590,7 @@ fun TicketCodeImage(
                 pixelWidth = if (style == TicketCodeStyle.Barcode) 1_200 else 900,
                 pixelHeight = if (style == TicketCodeStyle.Barcode) 400 else 900,
                 foregroundColor = argb,
+                signer = if (deviceSealEnabled) TicketDeviceSealService else null,
             )
         }.getOrNull()
     }

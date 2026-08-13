@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.FormatQuote
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Palette
@@ -36,6 +37,9 @@ import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.ViewWeek
 import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.Verified
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -90,7 +94,7 @@ fun TicketCodeStudioSheet(
     val preferences = state.preferences
     val payload = state.ticketPayload
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var verificationPreviewShown by remember { mutableStateOf(false) }
+    var verificationPreviewTicket by remember { mutableStateOf<VerifiedTicket?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -105,7 +109,11 @@ fun TicketCodeStudioSheet(
                 Modifier.fillMaxWidth().height(66.dp).background(Color.White.copy(alpha = .80f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("影像票根编码", fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (preferences.ticketNarrativeStyle == TicketNarrativeStyle.Emotional) "影像票根 · 时光胶囊" else "影像票根编码",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                )
                 TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.CenterEnd)) {
                     Text("完成", color = SystemBlue, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 }
@@ -135,7 +143,17 @@ fun TicketCodeStudioSheet(
                     CodePreview(
                         payload = payload,
                         style = preferences.ticketCodeStyle,
-                        onPreviewVerification = { verificationPreviewShown = true },
+                        deviceSealEnabled = preferences.ticketDeviceSealEnabled,
+                        onPreviewVerification = {
+                            val signer = if (preferences.ticketDeviceSealEnabled) {
+                                TicketDeviceSealService
+                            } else null
+                            verificationPreviewTicket = runCatching {
+                                TicketEnvelope.decodeVerified(
+                                    TicketEnvelope.invocationURL(payload, signer = signer)
+                                )
+                            }.getOrNull()
+                        },
                     )
                 }
 
@@ -180,8 +198,10 @@ fun TicketCodeStudioSheet(
                     }
                 }
 
+                item { NarrativeOptions(preferences, onPreferences) }
                 item { HeaderOptions(preferences, onPreferences) }
-                item { MessageOptions(state.ticketMessage, onTicketMessage) }
+                item { MessageOptions(preferences, state.ticketMessage, onTicketMessage) }
+                item { DeviceSealOptions(preferences, onPreferences) }
                 item { PrivacyOptions(preferences, onPreferences) }
 
                 item {
@@ -212,13 +232,75 @@ fun TicketCodeStudioSheet(
         }
     }
 
-    if (verificationPreviewShown) {
-        TicketVerificationDialog(payload) { verificationPreviewShown = false }
+    verificationPreviewTicket?.let { ticket ->
+        TicketVerificationDialog(ticket) { verificationPreviewTicket = null }
     }
 }
 
 @Composable
-private fun MessageOptions(message: String, onMessage: (String) -> Unit) {
+private fun NarrativeOptions(preferences: AppPreferences, onPreferences: (AppPreferences) -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(24.dp)).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            Icon(Icons.Outlined.AccessTime, null, Modifier.size(20.dp))
+            Text("扫码后的叙事风格", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+        TicketNarrativeStyle.entries.forEach { style ->
+            NarrativeChoice(
+                icon = if (style == TicketNarrativeStyle.Emotional) Icons.Outlined.AccessTime else Icons.Outlined.Verified,
+                title = style.label,
+                detail = style.description,
+                selected = preferences.ticketNarrativeStyle == style,
+            ) { onPreferences(preferences.copy(ticketNarrativeStyle = style)) }
+        }
+        if (preferences.ticketNarrativeStyle == TicketNarrativeStyle.Emotional) {
+            Text("叙事视角", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 4.dp))
+            TicketNarrativePerspective.entries.forEach { perspective ->
+                NarrativeChoice(
+                    icon = if (perspective == TicketNarrativePerspective.Self) Icons.Outlined.Person else Icons.Outlined.People,
+                    title = perspective.label,
+                    detail = perspective.description,
+                    selected = preferences.ticketNarrativePerspective == perspective,
+                ) { onPreferences(preferences.copy(ticketNarrativePerspective = perspective)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NarrativeChoice(
+    icon: ImageVector,
+    title: String,
+    detail: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (selected) SystemBlue.copy(alpha = .10f) else StudioBackground)
+            .border(1.dp, if (selected) SystemBlue.copy(alpha = .55f) else Color.Black.copy(alpha = .05f), RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(13.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(11.dp),
+    ) {
+        Icon(icon, null, Modifier.size(20.dp), tint = if (selected) SystemBlue else StudioSecondary)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(detail, color = StudioSecondary, fontSize = 11.sp, lineHeight = 15.sp)
+        }
+        if (selected) Icon(Icons.Outlined.CheckCircle, null, Modifier.size(19.dp), tint = SystemBlue)
+    }
+}
+
+@Composable
+private fun MessageOptions(preferences: AppPreferences, message: String, onMessage: (String) -> Unit) {
+    val emotional = preferences.ticketNarrativeStyle == TicketNarrativeStyle.Emotional
+    val selfPerspective = preferences.ticketNarrativePerspective == TicketNarrativePerspective.Self
     Column(
         Modifier
             .fillMaxWidth()
@@ -228,7 +310,11 @@ private fun MessageOptions(message: String, onMessage: (String) -> Unit) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
             Icon(Icons.Outlined.FormatQuote, null, Modifier.size(20.dp))
-            Text("票根寄语", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(
+                if (emotional) if (selfPerspective) "写给过去的备忘" else "创作者留下的寄语" else "票根寄语",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+            )
             Spacer(Modifier.weight(1f))
             Text(
                 "${message.codePointCount(0, message.length)}/${TicketPayload.MAX_MESSAGE_LENGTH}",
@@ -240,13 +326,19 @@ private fun MessageOptions(message: String, onMessage: (String) -> Unit) {
             value = message,
             onValueChange = onMessage,
             modifier = Modifier.fillMaxWidth().testTag("ticket-message-field"),
-            placeholder = { Text("写下一句话，留给以后扫码看到它的人") },
+            placeholder = {
+                Text(
+                    if (emotional) {
+                        if (selfPerspective) "给未来的自己留一句话…" else "写一句想让扫描者看到的话…"
+                    } else "写下一句话，留给以后扫码看到它的人"
+                )
+            },
             minLines = 3,
             maxLines = 5,
             shape = RoundedCornerShape(13.dp),
         )
         Text(
-            "寄语属于票根公开信息，会写入验证二维码，并显示在扫码后的详情页中。",
+            if (emotional) "这段文字会随时光胶囊一起封存，并显示在扫码后的回忆页中。" else "寄语属于票根公开信息，会写入验证二维码，并显示在扫码后的详情页中。",
             color = StudioSecondary,
             fontSize = 12.sp,
             lineHeight = 17.sp,
@@ -360,8 +452,13 @@ private fun CodeStyleCard(
 }
 
 @Composable
-private fun CodePreview(payload: TicketPayload, style: TicketCodeStyle, onPreviewVerification: () -> Unit) {
-    val bitmap = remember(payload, style) {
+private fun CodePreview(
+    payload: TicketPayload,
+    style: TicketCodeStyle,
+    deviceSealEnabled: Boolean,
+    onPreviewVerification: () -> Unit,
+) {
+    val bitmap = remember(payload, style, deviceSealEnabled) {
         runCatching {
             TicketCodeRenderer.image(
                 style = style,
@@ -369,6 +466,7 @@ private fun CodePreview(payload: TicketPayload, style: TicketCodeStyle, onPrevie
                 pixelWidth = if (style == TicketCodeStyle.Barcode) 1_200 else 900,
                 pixelHeight = if (style == TicketCodeStyle.Barcode) 300 else 900,
                 foregroundColor = 0xFF000000.toInt(),
+                signer = if (deviceSealEnabled) TicketDeviceSealService else null,
             )
         }.getOrNull()
     }
@@ -433,7 +531,7 @@ private fun CodePreview(payload: TicketPayload, style: TicketCodeStyle, onPrevie
             ) {
                 Icon(Icons.Outlined.Visibility, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("预览扫描后的验证界面", fontWeight = FontWeight.SemiBold)
+                Text(if (payload.style == "e") "预览时光胶囊效果" else "预览扫描后的验证界面", fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -487,6 +585,59 @@ private fun HeaderOptions(preferences: AppPreferences, onPreferences: (AppPrefer
                 lineHeight = 17.sp,
             )
         }
+    }
+}
+
+@Composable
+private fun DeviceSealOptions(
+    preferences: AppPreferences,
+    onPreferences: (AppPreferences) -> Unit,
+) {
+    val origin = remember(preferences.ticketDeviceSealEnabled) {
+        if (preferences.ticketDeviceSealEnabled) TicketDeviceSealService.currentOrigin() else null
+    }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(Color.White, RoundedCornerShape(24.dp))
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+            Icon(Icons.Outlined.Verified, null, Modifier.size(21.dp), tint = SystemBlue)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    if (preferences.ticketNarrativeStyle == TicketNarrativeStyle.Emotional) "给时光胶囊加上设备封印" else "给票根加上设备封印",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    if (preferences.ticketNarrativeStyle == TicketNarrativeStyle.Emotional) "防止胶囊里的信息在生成后被悄悄改写" else "防止二维码里的公开信息在生成后被悄悄改写",
+                    color = StudioSecondary,
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp,
+                )
+            }
+            Switch(
+                checked = preferences.ticketDeviceSealEnabled,
+                onCheckedChange = {
+                    onPreferences(preferences.copy(ticketDeviceSealEnabled = it))
+                },
+            )
+        }
+        Text(
+            when {
+                !preferences.ticketDeviceSealEnabled ->
+                    "已关闭。票根仍可查看，但扫描者无法确认公开信息生成后有没有被改动。"
+                origin == TicketSealOrigin.AndroidHardware ->
+                    "开启后，设备会用安全芯片中的专属密钥给公开信息盖章。照片不会写入二维码，也不会上传。"
+                else ->
+                    "这台设备没有提供可用的硬件密钥，已使用系统软件保护的设备密钥盖章，并会如实显示给扫描者。"
+            },
+            color = StudioSecondary,
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+        )
     }
 }
 

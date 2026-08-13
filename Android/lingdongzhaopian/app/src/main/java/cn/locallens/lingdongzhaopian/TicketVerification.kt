@@ -3,6 +3,7 @@ package cn.locallens.lingdongzhaopian
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.FormatQuote
@@ -44,12 +47,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -59,14 +70,25 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.delay
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 @Composable
 fun TicketVerificationDialog(payload: TicketPayload, onClose: () -> Unit) {
+    TicketVerificationDialog(
+        VerifiedTicket(payload, TicketSealValidation.Unsigned),
+        onClose,
+    )
+}
+
+@Composable
+fun TicketVerificationDialog(ticket: VerifiedTicket, onClose: () -> Unit) {
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false),
     ) {
-        TicketVerificationScreen(payload, onClose)
+        TicketVerificationScreen(ticket, onClose)
     }
 }
 
@@ -76,6 +98,15 @@ fun TicketVerificationDialog(payload: TicketPayload, onClose: () -> Unit) {
  */
 @Composable
 fun TicketVerificationScreen(payload: TicketPayload, onClose: () -> Unit) {
+    TicketVerificationScreen(
+        VerifiedTicket(payload, TicketSealValidation.Unsigned),
+        onClose,
+    )
+}
+
+@Composable
+fun TicketVerificationScreen(ticket: VerifiedTicket, onClose: () -> Unit) {
+    val payload = ticket.payload
     val colors = remember(payload) {
         payload.palette
             .map { RGBColor.fromHex(TicketCodeRenderer.ticketColor(it.hex)) }
@@ -98,11 +129,13 @@ fun TicketVerificationScreen(payload: TicketPayload, onClose: () -> Unit) {
             contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 30.dp, bottom = 40.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            item { VerificationHeader(onClose) }
-            item { HeroTicket(payload) }
-            payload.message?.let { message -> item { MessagePanel(message) } }
+            item { VerificationHeader(payload.style == "e", onClose) }
+            item { HeroTicket(payload, ticket.sealValidation) }
+            if (payload.style == "e") item { TimeCapsulePanel(payload) }
+            payload.message?.let { message -> item { MessagePanel(message, payload.style == "e", payload.narrative != "shared") } }
             if (payload.palette.isNotEmpty()) item { PalettePanel(payload, colors) }
             item { MetadataPanel(payload) }
+            item { SealPanel(ticket.sealValidation) }
             item { PrivacyPanel() }
         }
 
@@ -113,7 +146,7 @@ fun TicketVerificationScreen(payload: TicketPayload, onClose: () -> Unit) {
 }
 
 @Composable
-private fun VerificationHeader(onClose: () -> Unit) {
+private fun VerificationHeader(emotional: Boolean, onClose: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(
             Modifier
@@ -126,7 +159,7 @@ private fun VerificationHeader(onClose: () -> Unit) {
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text("灵动照片", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text("影像票根 · 本地验证", color = Color.White.copy(alpha = .64f), fontSize = 12.sp)
+            Text(if (emotional) "影像票根 · 时光胶囊" else "影像票根 · 本地验证", color = Color.White.copy(alpha = .64f), fontSize = 12.sp)
         }
         Box(
             Modifier
@@ -142,7 +175,7 @@ private fun VerificationHeader(onClose: () -> Unit) {
 }
 
 @Composable
-private fun HeroTicket(payload: TicketPayload) {
+private fun HeroTicket(payload: TicketPayload, validation: TicketSealValidation) {
     TicketGlassPanel(cornerRadius = 30.dp, padding = 22.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -153,8 +186,24 @@ private fun HeroTicket(payload: TicketPayload) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(Icons.Outlined.Verified, null, Modifier.size(14.dp), tint = Color.White)
-                    Text("票根信息完整", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    val valid = validation is TicketSealValidation.Valid
+                    val invalid = validation is TicketSealValidation.Invalid
+                    Icon(
+                        Icons.Outlined.Verified,
+                        null,
+                        Modifier.size(14.dp),
+                        tint = if (invalid) Color(0xFFFF6B6B) else Color.White,
+                    )
+                    Text(
+                        when {
+                            valid -> "设备封印有效"
+                            invalid -> "设备封印已失效"
+                            else -> "公开信息完整"
+                        },
+                        color = if (invalid) Color(0xFFFF6B6B) else Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
                 Spacer(Modifier.weight(1f))
                 Text(
@@ -174,7 +223,7 @@ private fun HeroTicket(payload: TicketPayload) {
             }
 
             Text(
-                "照片指纹 ${payload.fingerprint}",
+                if (payload.style == "e") "时光印记 ${payload.fingerprint}" else "照片指纹 ${payload.fingerprint}",
                 color = Color.White.copy(alpha = .58f),
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
@@ -186,10 +235,122 @@ private fun HeroTicket(payload: TicketPayload) {
 }
 
 @Composable
-private fun MessagePanel(message: String) {
+private fun SealPanel(validation: TicketSealValidation) {
+    val title: String
+    val description: String
+    val tint: Color
+    when (validation) {
+        TicketSealValidation.Unsigned -> {
+            title = "这张票根没有设备封印"
+            description = "仍可查看公开信息，但无法判断生成后是否被重新改写。较早版本生成的票根也会显示为未封印。"
+            tint = Color.White.copy(alpha = .78f)
+        }
+        is TicketSealValidation.Valid -> {
+            title = if (validation.origin.hardwareBacked) "设备封印通过" else "签名校验通过"
+            val source = when (validation.origin) {
+                TicketSealOrigin.AppleSecureEnclave -> "票根标记为由 iPhone 安全隔区中的设备密钥盖章"
+                TicketSealOrigin.AndroidHardware -> "票根标记为由 Android 设备的硬件密钥盖章"
+                TicketSealOrigin.AndroidSoftware -> "票根标记为由 Android 软件保护的设备密钥盖章"
+                TicketSealOrigin.SimulatorTest -> "这是模拟器测试签名，不代表真实硬件保护"
+                TicketSealOrigin.Unknown -> "票根标记为由兼容的 P-256 设备密钥盖章"
+            }
+            description = "$source，公开信息从盖章后没有发生变化。密钥编号 ${validation.keyID}。"
+            tint = Color(0xFF39D66F)
+        }
+        is TicketSealValidation.Invalid -> {
+            title = "设备封印没有通过"
+            description = "票根的公开信息或签名已发生变化。你仍可查看内容，但不要把它当作原始票根。"
+            tint = Color(0xFFFF6B6B)
+        }
+    }
+    TicketGlassPanel(cornerRadius = 24.dp, padding = 18.dp) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(contentAlignment = Alignment.BottomEnd) {
+                LingdongLiquidGlassIcon(Modifier.size(28.dp))
+                DeviceBrandBadge(
+                    deviceType = sealDeviceType(validation),
+                    modifier = Modifier.offset(x = 2.dp, y = 2.dp),
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(description, color = Color.White.copy(alpha = .62f), fontSize = 12.sp, lineHeight = 17.sp)
+            }
+        }
+    }
+}
+
+private fun sealDeviceType(validation: TicketSealValidation): String = when (validation) {
+    TicketSealValidation.Unsigned -> "unsigned"
+    is TicketSealValidation.Invalid -> "invalid"
+    is TicketSealValidation.Valid -> when (validation.origin) {
+        TicketSealOrigin.AppleSecureEnclave -> "apple"
+        TicketSealOrigin.AndroidHardware, TicketSealOrigin.AndroidSoftware -> "android"
+        TicketSealOrigin.SimulatorTest, TicketSealOrigin.Unknown -> "unknown"
+    }
+}
+
+@Composable
+private fun TimeCapsulePanel(payload: TicketPayload) {
+    val selfPerspective = payload.narrative != "shared"
+    val captureText = ticketRelativeTime(payload.captureTime)
+    val captureToSeal = ticketDaysBetween(payload.captureTime, payload.sealedAt)
+    val headline = when {
+        captureText != null && selfPerspective && (captureToSeal == null || captureToSeal <= 0) -> "🕰️ 这是一段${captureText}的回忆"
+        captureText != null && selfPerspective -> "🕰️ ${captureText}的光影，由你封存成这枚票根"
+        captureText != null && !selfPerspective && (captureToSeal == null || captureToSeal <= 0) -> "🌿 这是${captureText}留下的一段光影"
+        captureText != null -> "🌿 ${captureText}的光影，被创作者封存于此"
+        selfPerspective -> "🕰️ 一段由你封存的回忆"
+        else -> "🌿 一段创作者封存的光影"
+    }
+    val subtitle = if (selfPerspective) {
+        if (captureToSeal != null && captureToSeal > 0) "那一刻的光、色与心情，被后来的你亲手封存于此。" else "这张票根由你亲手封存，记录了那一刻的光、色与心情。"
+    } else {
+        if (captureToSeal != null && captureToSeal > 0) "创作者在那一刻按下快门，后来的 TA 将这段色彩与时间凝固于此。" else "创作者在那一刻按下快门，让这段色彩与时间凝固于此。"
+    }
+    TicketGlassPanel(cornerRadius = 26.dp, padding = 20.dp) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            PanelTitle(Icons.Outlined.AccessTime, "时光胶囊")
+            Text(headline, color = Color.White, fontSize = 18.sp, lineHeight = 25.sp, fontWeight = FontWeight.Bold)
+            Text(subtitle, color = Color.White.copy(alpha = .62f), fontSize = 12.sp, lineHeight = 18.sp)
+            payload.captureTime?.let { Text("拍摄于 $it", color = Color.White.copy(alpha = .58f), fontSize = 12.sp) }
+            payload.place?.let { Text(it, color = Color.White.copy(alpha = .58f), fontSize = 12.sp) }
+        }
+    }
+}
+
+private val ticketTimeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd, HH:mm")
+
+private fun ticketParsedTime(value: String?): LocalDateTime? =
+    value?.let { runCatching { LocalDateTime.parse(it, ticketTimeFormatter) }.getOrNull() }
+
+private fun ticketDaysBetween(start: String?, end: String?): Long? {
+    val first = ticketParsedTime(start) ?: return null
+    val second = ticketParsedTime(end) ?: return null
+    return ChronoUnit.DAYS.between(first.toLocalDate(), second.toLocalDate())
+}
+
+private fun ticketRelativeTime(value: String?): String? {
+    val date = ticketParsedTime(value)?.toLocalDate() ?: return null
+    val days = ChronoUnit.DAYS.between(date, java.time.LocalDate.now())
+    return when {
+        days <= 0 -> "今天"
+        days == 1L -> "昨天"
+        days < 30 -> "$days 天前"
+        days < 365 -> "${days / 30} 个月前"
+        days % 365 < 30 -> "${days / 365} 年前"
+        else -> "${days / 365} 年 ${days % 365 / 30} 个月前"
+    }
+}
+
+@Composable
+private fun MessagePanel(message: String, emotional: Boolean, selfPerspective: Boolean) {
     TicketGlassPanel(cornerRadius = 26.dp, padding = 20.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(13.dp)) {
-            PanelTitle(Icons.Outlined.FormatQuote, "票根寄语")
+            PanelTitle(
+                Icons.Outlined.FormatQuote,
+                if (emotional) if (selfPerspective) "写给过去的备忘" else "创作者留下的寄语" else "票根寄语",
+            )
             Text(
                 message,
                 color = Color.White,
@@ -254,7 +415,7 @@ private fun MetadataPanel(payload: TicketPayload) {
     )
     TicketGlassPanel(cornerRadius = 26.dp, padding = 20.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(15.dp)) {
-            PanelTitle(Icons.Outlined.CameraAlt, "拍摄信息")
+            PanelTitle(Icons.Outlined.CameraAlt, if (payload.style == "e") "影像档案" else "拍摄信息")
             if (values.isEmpty()) {
                 Text("这张票根没有公开拍摄信息", color = Color.White.copy(alpha = .58f), fontSize = 14.sp)
             } else {
@@ -520,3 +681,175 @@ internal fun RGBColor.Companion.fromHex(argb: Int): RGBColor = RGBColor(
     ((argb shr 8) and 0xFF) / 255f,
     (argb and 0xFF) / 255f,
 )
+
+@Composable
+private fun LingdongLiquidGlassIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val designSize = 100f
+        val scale = size.minDimension / designSize
+        val cx = size.width / 2f
+        val lensW = 80f * scale
+        val lensH = 45f * scale
+        val lensX = (size.width - lensW) / 2f
+
+        drawGlassLens(
+            x = lensX, y = cx - lensH / 2f + 20f * scale,
+            w = lensW, h = lensH,
+            colors = listOf(Color(red = 0.2f, green = 0.8f, blue = 0.6f), Color(red = 0.0f, green = 0.4f, blue = 0.3f)),
+            waveOpacity = 0.4f,
+        )
+        drawGlassLens(
+            x = lensX, y = cx - lensH / 2f,
+            w = lensW, h = lensH,
+            colors = listOf(Color(red = 0.5f, green = 0.9f, blue = 0.4f), Color(red = 0.1f, green = 0.6f, blue = 0.4f)),
+            waveOpacity = 0.5f,
+        )
+        drawGlassLens(
+            x = lensX, y = cx - lensH / 2f - 20f * scale,
+            w = lensW, h = lensH,
+            colors = listOf(Color(red = 0.9f, green = 0.95f, blue = 0.3f), Color(red = 0.4f, green = 0.8f, blue = 0.2f)),
+            waveOpacity = 0.6f,
+        )
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawGlassLens(
+    x: Float,
+    y: Float,
+    w: Float,
+    h: Float,
+    colors: List<Color>,
+    waveOpacity: Float,
+) {
+    drawOval(
+        color = Color.Black.copy(alpha = 0.18f),
+        topLeft = Offset(x = x, y = y + h * 0.22f),
+        size = Size(width = w, height = h),
+    )
+
+    drawOval(
+        brush = Brush.linearGradient(
+            colors = colors,
+            start = Offset(x = x, y = y),
+            end = Offset(x = x + w, y = y + h),
+        ),
+        topLeft = Offset(x = x, y = y),
+        size = Size(width = w, height = h),
+    )
+
+    val wavePath = Path().apply {
+        moveTo(x, y + h * 0.6f)
+        cubicTo(
+            x1 = x + w * 0.35f, y1 = y + h * 0.8f,
+            x2 = x + w * 0.65f, y2 = y + h * 0.2f,
+            x3 = x + w, y3 = y + h * 0.4f,
+        )
+        lineTo(x + w, y)
+        lineTo(x, y)
+        close()
+    }
+    val ovalClipPath = Path().apply {
+        addOval(Rect(left = x, top = y, right = x + w, bottom = y + h))
+    }
+    clipPath(path = ovalClipPath) {
+        drawPath(
+            path = wavePath,
+            brush = Brush.verticalGradient(
+                colors = listOf(Color.White.copy(alpha = waveOpacity), Color.Transparent),
+                startY = y,
+                endY = y + h,
+            ),
+        )
+    }
+
+    drawOval(
+        brush = Brush.verticalGradient(
+            colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.6f)),
+            startY = y,
+            endY = y + h,
+        ),
+        style = Stroke(width = 1.5.dp.toPx()),
+        topLeft = Offset(x = x, y = y),
+        size = Size(width = w, height = h),
+    )
+
+    drawOval(
+        brush = Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.9f), Color.Transparent),
+            startY = y,
+            endY = y + h,
+        ),
+        style = Stroke(width = 1.5.dp.toPx()),
+        topLeft = Offset(x = x, y = y),
+        size = Size(width = w, height = h),
+    )
+
+    drawCircle(
+        color = Color.White,
+        radius = 2.dp.toPx(),
+        center = Offset(x = x + w * 0.75f, y = y + h * 0.1f),
+    )
+}
+
+@Composable
+private fun DeviceBrandBadge(deviceType: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.size(14.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(14.dp)
+                .shadow(
+                    elevation = 1.2.dp,
+                    shape = CircleShape,
+                    ambientColor = Color.Black.copy(alpha = 0.18f),
+                    spotColor = Color.Black.copy(alpha = 0.18f),
+                )
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.72f))
+                .border(
+                    width = 0.5.dp,
+                    color = Color.White.copy(alpha = 0.5f),
+                    shape = CircleShape,
+                ),
+        )
+
+        when (deviceType) {
+            "apple" -> Image(
+                painter = painterResource(R.drawable.ic_badge_apple),
+                contentDescription = "Apple",
+                modifier = Modifier.size(8.dp),
+            )
+
+            "android" -> Image(
+                painter = painterResource(R.drawable.ic_badge_android),
+                contentDescription = "Android",
+                modifier = Modifier.size(8.dp),
+            )
+
+            "unsigned" -> Image(
+                painter = painterResource(R.drawable.ic_badge_xmark),
+                contentDescription = "Unsigned",
+                modifier = Modifier.size(7.dp),
+            )
+
+            "invalid" -> Image(
+                painter = painterResource(R.drawable.ic_badge_invalid),
+                contentDescription = "Invalid seal",
+                modifier = Modifier.size(8.dp),
+            )
+
+            else -> {
+                Text(
+                    text = "?",
+                    style = TextStyle(
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.Black,
+                    ),
+                )
+            }
+        }
+    }
+}

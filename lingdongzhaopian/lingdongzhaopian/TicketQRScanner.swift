@@ -21,13 +21,13 @@ struct TicketQRScannerScreen: View {
     @State private var state: ScannerState = .preparing
     @State private var feedback: String?
     @State private var isProcessing = false
-    @State private var verifiedPayload: TicketPayload?
+    @State private var verifiedTicket: VerifiedTicket?
 
     var body: some View {
         Group {
-            if let verifiedPayload {
+            if let verifiedTicket {
                 TicketVerificationView(
-                    payload: verifiedPayload,
+                    ticket: verifiedTicket,
                     onClose: onCancel
                 )
                 .transition(.opacity)
@@ -37,7 +37,7 @@ struct TicketQRScannerScreen: View {
             }
         }
         .preferredColorScheme(.dark)
-        .animation(.easeInOut(duration: 0.24), value: verifiedPayload?.id)
+        .animation(.easeInOut(duration: 0.24), value: verifiedTicket?.id)
         .task(prepareScanner)
     }
 
@@ -226,10 +226,10 @@ struct TicketQRScannerScreen: View {
             guard let url = URL(string: value) else {
                 throw TicketEnvelopeError.invalidURL
             }
-            let payload = try TicketEnvelope.decode(from: url)
+            let ticket = try TicketEnvelope.decodeVerified(from: url)
             UINotificationFeedbackGenerator()
                 .notificationOccurred(.success)
-            verifiedPayload = payload
+            verifiedTicket = ticket
         } catch {
             feedback = "这不是可验证的灵动照片票根"
             Task { @MainActor in

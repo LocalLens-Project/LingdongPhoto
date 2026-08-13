@@ -116,7 +116,9 @@ fun ArtworkCanvas(
 @Composable
 private fun MotionCardCanvas(state: AppUiState, onCycleFont: (Int) -> Unit, onAdjustTextScale: (Float) -> Unit) {
     val photo = state.bitmapAt(0)
-    val theme = MotionCardThemeResolver.resolve(state.palette, state.palettePercentages)
+    val headerPalette = state.activePalette
+    val headerPercentages = state.activePalettePercentages
+    val theme = MotionCardThemeResolver.resolve(headerPalette, headerPercentages)
     when (state.preferences.templateStyle) {
         ArtworkTemplateStyle.Immersive -> Box(Modifier.fillMaxSize()) {
             ArtworkPhoto(photo, state, Modifier.fillMaxSize())
@@ -132,14 +134,17 @@ private fun MotionCardCanvas(state: AppUiState, onCycleFont: (Int) -> Unit, onAd
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(state.artworkCopy.title, color = Color.White.copy(alpha = .96f), fontSize = (15 * state.textScale).sp, fontWeight = FontWeight.SemiBold, fontFamily = state.artworkFontFamily, textAlign = TextAlign.Center)
-                Text(state.photos.firstOrNull()?.metadata?.captureTimeText ?: "记录这一刻", color = Color.White.copy(alpha = .90f), fontSize = 8.sp)
+                val metadata = state.photos.firstOrNull()?.metadata
+                if (metadata?.captureTimeMillis != null || state.preferences.showMissingCaptureTime) {
+                    Text(metadata?.captureTimeText ?: "记录这一刻", color = Color.White.copy(alpha = .90f), fontSize = 8.sp)
+                }
             }
         }
         ArtworkTemplateStyle.Classic, ArtworkTemplateStyle.Airy -> Column(Modifier.fillMaxSize()) {
             val header = if (state.preferences.templateStyle == ArtworkTemplateStyle.Airy) .34f else .43f
             val sampled = state.preferences.motionCardHeaderStyle == MotionCardHeaderStyle.SampledGradient
-            val gradient = remember(state.palette, state.palettePercentages) {
-                MotionCardGradientResolver.resolve(state.palette, state.palettePercentages)
+            val gradient = remember(headerPalette, headerPercentages) {
+                MotionCardGradientResolver.resolve(headerPalette, headerPercentages)
             }
             val headerForeground = if (sampled) gradient.foreground.color else theme.foreground.color
             Box(
@@ -169,11 +174,14 @@ private fun MotionCardCanvas(state: AppUiState, onCycleFont: (Int) -> Unit, onAd
                         textAlign = TextAlign.Center,
                         maxLines = 2,
                     )
-                    Text(
-                        state.photos.firstOrNull()?.metadata?.captureTimeText ?: "记录这一刻",
-                        color = headerForeground.copy(alpha = .92f),
-                        fontSize = 8.sp,
-                    )
+                    val metadata = state.photos.firstOrNull()?.metadata
+                    if (metadata?.captureTimeMillis != null || state.preferences.showMissingCaptureTime) {
+                        Text(
+                            metadata?.captureTimeText ?: "记录这一刻",
+                            color = headerForeground.copy(alpha = .92f),
+                            fontSize = 8.sp,
+                        )
+                    }
                 }
             }
             ArtworkPhoto(photo, state, Modifier.fillMaxWidth().weight(1f - header))
@@ -274,19 +282,19 @@ private fun ColorPaletteCanvas(state: AppUiState, exporting: Boolean, onPaletteO
                                     Brush.linearGradient(listOf(Color.White.copy(alpha = .72f), Color.White.copy(alpha = .12f))),
                                     RoundedCornerShape(22.dp),
                                 )
-                            else -> Modifier.paletteClearGlassSurface(state.palette.firstOrNull()?.color ?: Color.White)
+                            else -> Modifier.paletteClearGlassSurface(state.activePalette.firstOrNull()?.color ?: Color.White)
                         }
                     )
                     .padding(horizontal = 12.dp, vertical = 11.dp)
             ) {
                 if (compact) {
                     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                        state.palette.take(6).forEachIndexed { index, color ->
+                        state.activePalette.take(6).forEachIndexed { index, color ->
                             PaletteSwatch(state, index, color, panelWidth, compact = true, modifier = Modifier.weight(1f))
                         }
                     }
                 } else {
-                    val visiblePalette = state.palette.take(6).mapIndexed { index, color -> index to color }
+                    val visiblePalette = state.activePalette.take(6).mapIndexed { index, color -> index to color }
                     val rows = when (visiblePalette.size) {
                         in 0..3 -> listOf(visiblePalette)
                         4 -> visiblePalette.chunked(2)
@@ -354,7 +362,7 @@ private fun PaletteSwatch(
         }
         if (state.preferences.showPalettePercentages) {
             Text(
-                "%.1f%%".format(state.palettePercentages.getOrElse(index) { 0.0 }),
+                "%.1f%%".format(state.activePalettePercentages.getOrElse(index) { 0.0 }),
                 color = Color.White.copy(alpha = .82f),
                 fontSize = percentageFontSize,
                 lineHeight = percentageFontSize * 1.15f,
@@ -371,7 +379,7 @@ private fun PaletteSwatch(
 
 @Composable
 private fun JournalCanvas(state: AppUiState, onCycleFont: (Int) -> Unit, onAdjustTextScale: (Float) -> Unit) {
-    val base = state.palette.getOrElse(3) { state.palette.lastOrNull() ?: RGBColor.fallback[3] }
+    val base = state.activePalette.getOrElse(3) { state.activePalette.lastOrNull() ?: RGBColor.fallback[3] }
         .adjusted(if (state.preferences.gentleBackground) .18f else -.24f, if (state.preferences.gentleBackground) -.22f else .18f)
     BoxWithConstraints(Modifier.fillMaxSize().background(base.color)) {
         Text(
@@ -486,8 +494,8 @@ private fun BubbleStampCanvas(
     onBubbleScale: (Float) -> Unit,
 ) {
     val photo = state.photos.firstOrNull()
-    val lightest = state.palette.maxByOrNull { it.relativeLuminance } ?: RGBColor.fallback[2]
-    val darkest = state.palette.minByOrNull { it.relativeLuminance } ?: RGBColor.fallback[3]
+    val lightest = state.activePalette.maxByOrNull { it.relativeLuminance } ?: RGBColor.fallback[2]
+    val darkest = state.activePalette.minByOrNull { it.relativeLuminance } ?: RGBColor.fallback[3]
     if (state.preferences.templateStyle == ArtworkTemplateStyle.Immersive) {
         Box(Modifier.fillMaxSize()) {
             ArtworkPhoto(state.bitmapAt(0), state, Modifier.fillMaxSize())
@@ -563,8 +571,8 @@ private fun StampInfo(
 
 @Composable
 private fun SpectrumWallpaperCanvas(state: AppUiState) {
-    val c0 = state.palette.getOrElse(2) { state.palette.lastOrNull() ?: RGBColor.fallback[2] }.adjusted(.18f, -.18f)
-    val c1 = state.palette.firstOrNull()?.adjusted(.10f, -.34f) ?: RGBColor.fallback.first()
+    val c0 = state.activePalette.getOrElse(2) { state.activePalette.lastOrNull() ?: RGBColor.fallback[2] }.adjusted(.18f, -.18f)
+    val c1 = state.activePalette.firstOrNull()?.adjusted(.10f, -.34f) ?: RGBColor.fallback.first()
     var target by remember(state.photos.firstOrNull()?.uri) { mutableFloatStateOf(0f) }
     LaunchedEffect(state.photos.firstOrNull()?.uri, state.mode) { target = 1f }
     val progress by animateFloatAsState(target, tween(1_250), label = "wallpaper-generation")

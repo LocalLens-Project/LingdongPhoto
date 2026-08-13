@@ -64,12 +64,17 @@ class AppInstrumentedTest {
 
     @Before
     fun dismissNotice() {
-        val nodes = composeRule.onAllNodesWithText("我知道了").fetchSemanticsNodes()
-        if (nodes.isNotEmpty()) composeRule.onNodeWithText("我知道了").performClick()
+        val updateNextNodes = composeRule.onAllNodesWithText("查看更新内容").fetchSemanticsNodes()
+        if (updateNextNodes.isNotEmpty()) {
+            composeRule.onNodeWithText("查看更新内容").performClick()
+        } else {
+            val startNodes = composeRule.onAllNodesWithText("开始使用").fetchSemanticsNodes()
+            if (startNodes.isNotEmpty()) composeRule.onNodeWithText("开始使用").performClick()
+        }
         composeRule.waitForIdle()
-        val updateNodes = composeRule.onAllNodesWithText("开始体验 1.0.2").fetchSemanticsNodes()
+        val updateNodes = composeRule.onAllNodesWithText("下一步").fetchSemanticsNodes()
         if (updateNodes.isNotEmpty()) {
-            composeRule.onNodeWithText("开始体验 1.0.2").performClick()
+            composeRule.onNodeWithText("下一步").performClick()
             composeRule.waitForIdle()
         }
     }

@@ -25,18 +25,21 @@ private enum PhotoSelectionOperation: Equatable {
     case replace(index: Int)
 }
 
-private enum Version102Audience: String {
+private enum Version200Audience: String {
     case upgradedFromPreviousVersion
-    case installed102
+    case installed200
 }
 
 struct ContentView: View {
     private static let ticketScannerIntroID = "ticketScanner"
+    private static let albumIntroID = "photoAlbum"
+    private static let colorRelationshipIntroID = "colorRelationship"
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("didAcknowledgeFreeNotice") private var didAcknowledgeFreeNotice = false
+    @AppStorage("didShowPublicGoodsCommitment") private var didShowPublicGoodsCommitment = false
     @AppStorage("supportsLivePhotos") private var supportsLivePhotos = true
     @AppStorage("useLiteraryColorNames") private var useLiteraryColorNames = false
     @AppStorage("preservePaletteBackground") private var preservePaletteBackground = true
@@ -61,23 +64,28 @@ struct ContentView: View {
     @AppStorage("exportDestination") private var exportDestinationRaw = ArtworkExportDestination.photoLibrary.rawValue
     @AppStorage("ticketCodeStyle") private var ticketCodeStyleRaw = TicketCodeStyle.barcode.rawValue
     @AppStorage("ticketLayoutStyle") private var ticketLayoutRaw = TicketLayoutStyle.classic.rawValue
+    @AppStorage("ticketCanvasWidthMode") private var ticketCanvasWidthModeRaw = TicketCanvasWidthMode.compact.rawValue
     @AppStorage("ticketShowCopy") private var ticketShowCopy = true
     @AppStorage("ticketShowDate") private var ticketShowDate = true
     @AppStorage("ticketShowPlace") private var ticketShowPlace = false
     @AppStorage("ticketShowDevice") private var ticketShowDevice = true
     @AppStorage("ticketShowParameters") private var ticketShowParameters = true
     @AppStorage("ticketShowPalette") private var ticketShowPalette = true
+    @AppStorage("ticketDeviceSealEnabled") private var ticketDeviceSealEnabled = true
     @AppStorage("ticketHeaderMode") private var ticketHeaderModeRaw = TicketHeaderMode.custom.rawValue
     @AppStorage("ticketCustomHeader") private var ticketCustomHeader = "LINGDONG"
     @AppStorage("ticketCityNameStyle") private var ticketCityNameStyleRaw = TicketCityNameStyle.pinyin.rawValue
+    @AppStorage("ticketNarrativeStyle") private var ticketNarrativeStyleRaw = TicketNarrativeStyle.standard.rawValue
+    @AppStorage("ticketNarrativePerspective") private var ticketNarrativePerspectiveRaw = TicketNarrativePerspective.defaultRawValue
     // This key is intentionally independent of the build number. Do not rename it
     // for future releases, otherwise users would see the one-time hint again.
     @AppStorage("didShowLivePhotoPlaybackHint") private var didShowLivePhotoPlaybackHint = false
     @AppStorage("didShowLivePhotoPlaybackHintBuild1060") private var didShowLivePhotoPlaybackHintBuild1060 = false
-    @AppStorage("version102Audience") private var version102AudienceRaw = ""
-    @AppStorage("didShowVersion102Update") private var didShowVersion102Update = false
+    @AppStorage("version200Audience") private var version200AudienceRaw = ""
+    @AppStorage("didShowVersion200Update") private var didShowVersion200Update = false
     @AppStorage("didShowModeSelectionHint101") private var didShowModeSelectionHint101 = false
     @AppStorage("didShowTicketLandscapeHint") private var didShowTicketLandscapeHint = false
+    @AppStorage("didShowTicketNarrativePrompt") private var didShowTicketNarrativePrompt = false
 
     @State private var mode: CreationMode = .motionCard
     @State private var introPageID = CreationMode.motionCard.rawValue
@@ -87,6 +95,9 @@ struct ContentView: View {
     @State private var images: [UIImage] = []
     @State private var palette = RGBColor.fallback
     @State private var palettePercentages = [Double](repeating: 0, count: 6)
+    @State private var motionCardSamplingRect: CGRect?
+    @State private var motionCardLocalPalette: [RGBColor]?
+    @State private var motionCardLocalPercentages: [Double]?
     @State private var ratio: ArtworkRatio = .threeFour
 
     @State private var isLoading = false
@@ -97,8 +108,11 @@ struct ContentView: View {
     @State private var canSave = false
     @State private var saveState: SaveVisualState = .idle
     @State private var settingsPresented = false
+    @State private var motionCardColorSamplerPresented = false
     @State private var modeSelectionPresented = false
     @State private var ticketScannerPresented = false
+    @State private var albumPresented = false
+    @State private var colorRelationshipPresented = false
     @State private var toastMessage: String?
     @State private var errorTitle = "无法保存"
     @State private var saveErrorMessage = ""
@@ -109,17 +123,23 @@ struct ContentView: View {
     @State private var isImportingSharedPhoto = false
     @State private var exportCenterPresented = false
     @State private var ticketStudioPresented = false
+    @State private var ticketNarrativePromptPresented = false
     @State private var ticketMessage = ""
     @State private var ticketMessagePromptPresented = false
     @State private var ticketMessageEditorPresented = false
     @State private var shouldExportAfterTicketMessageEditor = false
     @State private var skippedTicketMessageForCurrentPhoto = false
-    @State private var verifiedTicketPayload: TicketPayload?
+    @State private var verifiedTicket: VerifiedTicket?
     @State private var ticketVerificationErrorMessage = ""
     @State private var ticketVerificationErrorPresented = false
     @State private var isTicketLandscape = false
     @State private var sharedExportFile: ExportedArtworkFile?
     @State private var documentExportFile: ExportedArtworkFile?
+    @State private var ticketPrintPhase: TicketPrintPhase = .idle
+    @State private var ticketPrintImage: UIImage?
+    @State private var ticketPrintProgress: CGFloat = 0
+    @State private var ticketPrintHapticTask: Task<Void, Never>?
+    @State private var ticketPrintAnimationDeadline: Date?
 
     @State private var imageScale: CGFloat = 1
     @State private var storedScale: CGFloat = 1
@@ -151,6 +171,13 @@ struct ContentView: View {
     @State private var lastPrivacyGesturePoint: CGPoint?
     @State private var privacyPreviewTask: Task<Void, Never>?
 
+    @State private var sketchParameters = SketchParameters.defaultPencil
+    @State private var sketchImage: UIImage?
+    @State private var isSketchRendering = false
+    @State private var sketchRenderTask: Task<Void, Never>?
+    @State private var sketchRenderRevision = 0
+    @State private var renderedSketchParameters: SketchParameters?
+
     @State private var revealTask: Task<Void, Never>?
     @State private var toastTask: Task<Void, Never>?
     @State private var livePlaybackTask: Task<Void, Never>?
@@ -163,7 +190,8 @@ struct ContentView: View {
     @State private var isLivePhotoHintPresented = false
     @State private var isModeSelectionHintPresented = false
     @State private var isTicketLandscapeHintPresented = false
-    @State private var version102UpdatePresented = false
+    @State private var publicGoodsCommitmentPresented = false
+    @State private var version200UpdatePresented = false
     @StateObject private var cameraWatermarkLibrary = CameraWatermarkLibrary()
 
     private var pickerLimit: Int {
@@ -172,6 +200,16 @@ struct ContentView: View {
         }
         if case .replace = photoSelectionOperation { return 1 }
         return mode == .journal ? 5 : 1
+    }
+
+    private var hasCurrentSketchRender: Bool {
+        !isSketchRendering
+            && sketchImage != nil
+            && renderedSketchParameters == sketchParameters
+    }
+
+    private var canSaveCurrentArtwork: Bool {
+        canSave && (mode != .sketch || hasCurrentSketchRender)
     }
     private var controlsAreDimmed: Bool { saveState == .saving }
     private var paletteLayout: PaletteLayoutMode {
@@ -182,6 +220,12 @@ struct ContentView: View {
     }
     private var motionCardHeaderStyle: MotionCardHeaderStyle {
         MotionCardHeaderStyle(rawValue: motionCardHeaderStyleRaw) ?? .solid
+    }
+    private var effectiveMotionCardPalette: [RGBColor] {
+        motionCardLocalPalette ?? palette
+    }
+    private var effectiveMotionCardPercentages: [Double] {
+        motionCardLocalPercentages ?? palettePercentages
     }
     private var journalLayout: JournalLayoutMode {
         JournalLayoutMode(rawValue: journalLayoutRaw) ?? .automatic
@@ -210,7 +254,30 @@ struct ContentView: View {
         get { TicketLayoutStyle(rawValue: ticketLayoutRaw) ?? .classic }
         nonmutating set {
             ticketLayoutRaw = newValue.rawValue
-            ratio = newValue == .vertical ? .threeFour : .twentyOneNine
+            if newValue == .vertical {
+                ratio = .threeFour
+            } else if newValue == .classic {
+                switch ticketCanvasWidthMode {
+                case .compact: ratio = .twentyOneNine
+                case .standard: ratio = .sixteenNine
+                case .poster: ratio = .fourThree
+                }
+            } else {
+                ratio = .twentyOneNine
+            }
+        }
+    }
+    private var ticketCanvasWidthMode: TicketCanvasWidthMode {
+        get { TicketCanvasWidthMode(rawValue: ticketCanvasWidthModeRaw) ?? .compact }
+        nonmutating set {
+            ticketCanvasWidthModeRaw = newValue.rawValue
+            if mode == .travelTicket && ticketLayout == .classic {
+                switch newValue {
+                case .compact: ratio = .twentyOneNine
+                case .standard: ratio = .sixteenNine
+                case .poster: ratio = .fourThree
+                }
+            }
         }
     }
     private var ticketHeaderMode: TicketHeaderMode {
@@ -220,6 +287,36 @@ struct ContentView: View {
     private var ticketCityNameStyle: TicketCityNameStyle {
         get { TicketCityNameStyle(rawValue: ticketCityNameStyleRaw) ?? .pinyin }
         nonmutating set { ticketCityNameStyleRaw = newValue.rawValue }
+    }
+    private var ticketNarrativeStyle: TicketNarrativeStyle {
+        get { TicketNarrativeStyle(rawValue: ticketNarrativeStyleRaw) ?? .standard }
+        nonmutating set { ticketNarrativeStyleRaw = newValue.rawValue }
+    }
+    private var ticketNarrativePerspective: TicketNarrativePerspective {
+        get { TicketNarrativePerspective(rawValue: ticketNarrativePerspectiveRaw) ?? .self }
+        nonmutating set { ticketNarrativePerspectiveRaw = newValue.rawValue }
+    }
+    private var ticketIsEmotional: Bool { ticketNarrativeStyle == .emotional }
+    private var ticketIsSelfPerspective: Bool { ticketNarrativePerspective == .self }
+    private var ticketMessagePromptTitle: String {
+        if ticketIsEmotional {
+            return ticketIsSelfPerspective ? "还没有写下这次的备忘" : "还没有写下这次的寄语"
+        }
+        return "还没有写下这次的寄语"
+    }
+    private var ticketMessagePromptActionTitle: String {
+        if ticketIsEmotional {
+            return ticketIsSelfPerspective ? "补充备忘" : "补充寄语"
+        }
+        return "补充寄语"
+    }
+    private var ticketMessagePromptMessage: String {
+        if ticketIsEmotional {
+            return ticketIsSelfPerspective
+                ? "这段备忘会随票根一起封存，扫描时可以看到。要在导出前补充吗？"
+                : "这段寄语会随票根一起封存，扫描时可以看到。要在导出前补充吗？"
+        }
+        return "寄语会显示在影像票根的公开信息中。要在导出前补充吗？"
     }
     private var primaryMetadata: PhotoMetadata { selectedPhotos.first?.metadata ?? .empty }
     private var activeCameraWatermark: UIImage? {
@@ -239,6 +336,7 @@ struct ContentView: View {
     private var showsLivePlaybackControl: Bool {
         mode != .privacyMosaic
             && mode != .travelTicket
+            && mode != .sketch
             && selectedPhotos.contains(where: \.isLivePhoto)
     }
     private var canPresentLivePhotoHint: Bool {
@@ -248,7 +346,8 @@ struct ContentView: View {
             && didShowModeSelectionHint101
             && !isModeSelectionHintPresented
             && modeSelectionHintTask == nil
-            && !version102UpdatePresented
+            && !publicGoodsCommitmentPresented
+            && !version200UpdatePresented
             && !modeSelectionPresented
             && !settingsPresented
             && !isPickerPresented
@@ -256,7 +355,8 @@ struct ContentView: View {
     private var canPresentModeSelectionHint: Bool {
         isEditorVisible
             && !didShowModeSelectionHint101
-            && !version102UpdatePresented
+            && !publicGoodsCommitmentPresented
+            && !version200UpdatePresented
             && !modeSelectionPresented
             && !settingsPresented
             && !isPickerPresented
@@ -269,12 +369,31 @@ struct ContentView: View {
             && didShowModeSelectionHint101
             && !isModeSelectionHintPresented
             && modeSelectionHintTask == nil
-            && !version102UpdatePresented
+            && !publicGoodsCommitmentPresented
+            && !version200UpdatePresented
             && !modeSelectionPresented
             && !settingsPresented
             && !exportCenterPresented
             && !ticketStudioPresented
+            && !ticketNarrativePromptPresented
             && !isPickerPresented
+    }
+    private var canPresentNarrativePrompt: Bool {
+        isEditorVisible
+            && mode == .travelTicket
+            && !didShowTicketNarrativePrompt
+            && !publicGoodsCommitmentPresented
+            && !version200UpdatePresented
+            && !modeSelectionPresented
+            && !settingsPresented
+            && !exportCenterPresented
+            && !ticketStudioPresented
+            && !ticketMessageEditorPresented
+            && !ticketMessagePromptPresented
+            && !ticketVerificationErrorPresented
+            && !isPickerPresented
+            && !albumPresented
+            && !isTicketLandscape
     }
     private var hasShownLivePhotoPlaybackHint: Bool {
         didShowLivePhotoPlaybackHint || didShowLivePhotoPlaybackHintBuild1060
@@ -359,8 +478,23 @@ struct ContentView: View {
                 ? primaryMetadata.captureSettingsLine
                 : nil,
             palette: paletteEntries,
-            revealLayout: ticketLayout.revealLayout
+            revealLayout: ticketLayout.revealLayout,
+            revealWidthMode: ticketLayout == .classic
+                ? ticketCanvasWidthMode.revealWidthMode
+                : nil,
+            style: ticketNarrativeStyle == .emotional ? ticketNarrativeStyle.rawValue : nil,
+            narrative: ticketNarrativeStyle == .emotional ? ticketNarrativePerspective.rawValue : nil,
+            sealedAt: TicketTimeCalculator.nowFormatted()
         )
+    }
+
+    private var ticketEnvelopeSigner: TicketEnvelopeSigning? {
+        ticketDeviceSealEnabled ? TicketDeviceSealService.shared : nil
+    }
+
+    private var usesInAppTicketLandscape: Bool {
+        if #available(iOS 18.0, *) { return false }
+        return true
     }
 
     var body: some View {
@@ -371,7 +505,11 @@ struct ContentView: View {
                 if isEditorVisible {
                     Group {
                         if mode == .travelTicket, isTicketLandscape {
-                            ticketLandscapeEditorView(in: proxy.size)
+                            if usesInAppTicketLandscape {
+                                legacyTicketLandscapeEditorView(in: proxy.size)
+                            } else {
+                                ticketLandscapeEditorView(in: proxy.size)
+                            }
                         } else {
                             editorView(in: proxy.size)
                         }
@@ -386,24 +524,34 @@ struct ContentView: View {
                     toast(text: toastMessage)
                 }
 
+                if ticketPrintPhase.isPresented {
+                    TicketPrintExperienceView(
+                        phase: ticketPrintPhase,
+                        ticketImage: ticketPrintImage,
+                        feedProgress: ticketPrintProgress,
+                        reduceMotion: reduceMotion,
+                        supportsIsland: TicketIslandAvailability.isSupported(
+                            screenSize: proxy.size,
+                            safeAreaTop: proxy.safeAreaInsets.top
+                        ),
+                        backgroundPalette: palette
+                    )
+                    .zIndex(90)
+                }
+
                 ShakeDetector(
                     isEnabled: !editCopyPresented
                         && !settingsPresented
                         && !modeSelectionPresented
-                        && !version102UpdatePresented
+                        && !albumPresented
+                        && !publicGoodsCommitmentPresented
+                        && !version200UpdatePresented
                         && !isPickerPresented
                 ) {
                     resetComposition()
                 }
                     .frame(width: 0, height: 0)
 
-                if !didAcknowledgeFreeNotice {
-                    FreeNoticeOverlay {
-                        withAnimation(.snappy) {
-                            didAcknowledgeFreeNotice = true
-                        }
-                    }
-                }
             }
         }
         // Keep the established editor appearance light without overriding the
@@ -411,8 +559,20 @@ struct ContentView: View {
         // into the user's system setting independently.
         .environment(\.colorScheme, .light)
         .statusBarHidden(true)
-        .sheet(isPresented: $version102UpdatePresented) {
-            Version102UpdateView(onNext: completeVersion102Update)
+        .sheet(isPresented: $publicGoodsCommitmentPresented) {
+            PublicGoodsCommitmentView(
+                showsUpdateNext: shouldPresentVersion200Update,
+                onNext: completePublicGoodsCommitment
+            )
+                .environment(\.colorScheme, .dark)
+                .presentationDetents([.fraction(0.94)])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(38)
+                .presentationBackground(.black)
+                .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $version200UpdatePresented) {
+            Version200UpdateView(onNext: completeVersion200Update)
                 .environment(\.colorScheme, .dark)
                 .presentationDetents([.fraction(0.94)])
                 .presentationDragIndicator(.hidden)
@@ -435,6 +595,29 @@ struct ContentView: View {
             guard !isPresented, !pickerSelections.isEmpty else { return }
             Task { await loadSelectedPhotos() }
         }
+        .sheet(isPresented: $motionCardColorSamplerPresented) {
+            if let image = images.first {
+                MotionCardColorSamplerView(
+                    image: image,
+                    initialSelection: motionCardSamplingRect,
+                    headerStyle: motionCardHeaderStyle,
+                    onApply: { selection, result in
+                        motionCardSamplingRect = selection
+                        motionCardLocalPalette = result.colors
+                        motionCardLocalPercentages = result.percentages
+                        motionCardColorSamplerPresented = false
+                    },
+                    onReset: {
+                        resetMotionCardSampling()
+                        motionCardColorSamplerPresented = false
+                    }
+                )
+                .environment(\.colorScheme, systemColorScheme)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(34)
+            }
+        }
         .onChange(of: mode) { _, newMode in
             if introPageID != newMode.rawValue {
                 introPageID = newMode.rawValue
@@ -447,15 +630,25 @@ struct ContentView: View {
             }
             ratio = newMode == .travelTicket && ticketLayout == .vertical
                 ? .threeFour
-                : newMode.defaultRatio
+                : (newMode == .travelTicket && ticketLayout == .classic
+                    ? (ticketCanvasWidthMode == .compact ? .twentyOneNine
+                        : ticketCanvasWidthMode == .standard ? .sixteenNine
+                        : .fourThree)
+                    : newMode.defaultRatio)
             if newMode == .privacyMosaic {
                 refreshPrivacyPreview()
             } else {
                 finishPrivacyPainting()
             }
+            if newMode == .sketch {
+                scheduleSketchPreviewRefresh()
+            }
         }
         .onChange(of: privacyMosaicStrength) { _, _ in
             schedulePrivacyPreviewRefresh()
+        }
+        .onChange(of: sketchParameters) { _, _ in
+            scheduleSketchPreviewRefresh()
         }
         .onChange(of: paletteLayoutRaw) { _, _ in
             paletteOffset = 0
@@ -504,6 +697,8 @@ struct ContentView: View {
             CreationModeSelectionView(
                 selectedMode: mode,
                 onSelect: selectCreationMode,
+                onOpenAlbum: openAlbum,
+                onOpenColorRelationship: openColorRelationship,
                 onScanTicket: openTicketScanner
             )
             .environment(\.colorScheme, systemColorScheme)
@@ -515,6 +710,16 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $ticketScannerPresented) {
             TicketQRScannerScreen(
                 onCancel: { ticketScannerPresented = false }
+            )
+        }
+        .fullScreenCover(isPresented: $albumPresented) {
+            AlbumRootView()
+                .background(Color.black.ignoresSafeArea())
+                .presentationBackground(.black)
+        }
+        .fullScreenCover(isPresented: $colorRelationshipPresented) {
+            ColorRelationshipFeatureView(
+                onOpenModeSelection: returnFromColorRelationshipToModeSelection
             )
         }
         .sheet(isPresented: $editCopyPresented) {
@@ -538,7 +743,11 @@ struct ContentView: View {
                 presentExportCenter()
             }
         ) {
-            TicketMessageEditorSheet(message: ticketMessage) { value in
+            TicketMessageEditorSheet(
+                message: ticketMessage,
+                narrativeStyle: ticketNarrativeStyle,
+                narrativePerspective: ticketNarrativePerspective
+            ) { value in
                 ticketMessage = value
                 skippedTicketMessageForCurrentPhoto = false
                 shouldExportAfterTicketMessageEditor = true
@@ -588,6 +797,7 @@ struct ContentView: View {
                 showDevice: $ticketShowDevice,
                 showParameters: $ticketShowParameters,
                 showPalette: $ticketShowPalette,
+                deviceSealEnabled: $ticketDeviceSealEnabled,
                 message: Binding(
                     get: { ticketMessage },
                     set: {
@@ -605,6 +815,14 @@ struct ContentView: View {
                     get: { ticketCityNameStyle },
                     set: { ticketCityNameStyle = $0 }
                 ),
+                narrativeStyle: Binding(
+                    get: { ticketNarrativeStyle },
+                    set: { ticketNarrativeStyle = $0 }
+                ),
+                narrativePerspective: Binding(
+                    get: { ticketNarrativePerspective },
+                    set: { ticketNarrativePerspective = $0 }
+                ),
                 detectedCityName: primaryMetadata.ticketCityName,
                 payload: ticketPayload,
                 baseURLString: TicketEnvelope.configuredBaseURLString,
@@ -618,10 +836,10 @@ struct ContentView: View {
             .presentationCornerRadius(38)
             .presentationBackground(.ultraThinMaterial)
         }
-        .fullScreenCover(item: $verifiedTicketPayload) { payload in
+        .fullScreenCover(item: $verifiedTicket) { ticket in
             TicketVerificationView(
-                payload: payload,
-                onClose: { verifiedTicketPayload = nil }
+                ticket: ticket,
+                onClose: { verifiedTicket = nil }
             )
         }
         .sheet(isPresented: $ticketVerificationErrorPresented) {
@@ -638,10 +856,10 @@ struct ContentView: View {
                 .preferredColorScheme(.light)
         }
         .alert(
-            "还没有写下这次的寄语",
+            ticketMessagePromptTitle,
             isPresented: $ticketMessagePromptPresented
         ) {
-            Button("补充寄语") {
+            Button(ticketMessagePromptActionTitle) {
                 Task { @MainActor in
                     await Task.yield()
                     ticketMessageEditorPresented = true
@@ -656,17 +874,32 @@ struct ContentView: View {
             }
             Button("取消", role: .cancel) {}
         } message: {
-            Text("寄语会显示在影像票根的公开信息中。要在导出前补充吗？")
+            Text(ticketMessagePromptMessage)
         }
         .alert(errorTitle, isPresented: $saveErrorPresented) {
             Button("好", role: .cancel) {}
         } message: {
             Text(saveErrorMessage)
         })
+        .sheet(isPresented: $ticketNarrativePromptPresented) {
+            TicketNarrativePromptView(
+                onSelect: { style, perspective in
+                    ticketNarrativeStyle = style
+                    ticketNarrativePerspective = perspective
+                    dismissNarrativePrompt()
+                },
+                onDismiss: {
+                    dismissNarrativePrompt()
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(34)
+        }
 
         return presentedContent
         .task {
-            configureVersion102Experience()
+            configureLaunchExperience()
             if didShowLivePhotoPlaybackHintBuild1060 {
                 didShowLivePhotoPlaybackHint = true
             }
@@ -674,6 +907,9 @@ struct ContentView: View {
             importSharedPhotoIfAvailable()
 #if DEBUG
             await loadDebugPreviewIfNeeded()
+            if ProcessInfo.processInfo.arguments.contains("--album") {
+                albumPresented = true
+            }
 #endif
         }
         .onChange(of: scenePhase) { _, newPhase in
@@ -699,8 +935,14 @@ struct ContentView: View {
                 dismissTicketLandscapeHint()
             }
         }
+        .onChange(of: canPresentNarrativePrompt) { _, canPresent in
+            if canPresent {
+                presentNarrativePromptIfNeeded()
+            }
+        }
         .onDisappear {
             stopLivePhotoPlayback()
+            dismissTicketPrintExperience()
             dismissModeSelectionHint(animated: false)
             dismissLivePhotoHint(animated: false)
             dismissTicketLandscapeHint(animated: false)
@@ -724,7 +966,7 @@ struct ContentView: View {
             || queryItems.contains { $0.name == TicketEnvelope.checksumKey }
         if isTicketURL {
             do {
-                verifiedTicketPayload = try TicketEnvelope.decode(from: url)
+                verifiedTicket = try TicketEnvelope.decodeVerified(from: url)
             } catch {
                 ticketVerificationErrorMessage = (error as? LocalizedError)?
                     .errorDescription
@@ -781,6 +1023,12 @@ struct ContentView: View {
                     .tag(item.rawValue)
             }
 
+            albumIntro
+                .tag(Self.albumIntroID)
+
+            colorRelationshipIntro
+                .tag(Self.colorRelationshipIntroID)
+
             ticketScannerIntro
                 .tag(Self.ticketScannerIntroID)
         }
@@ -823,6 +1071,40 @@ struct ContentView: View {
             isActionDisabled: false,
             showsImportStatus: false,
             action: openTicketScanner
+        )
+    }
+
+    private var albumIntro: some View {
+        introPage(
+            title: "影像相簿",
+            subtitle: "把照片与灵动作品装订成书\n横屏翻阅，并导出打印级 PDF",
+            symbol: "book.pages",
+            accent: Color(red: 0.73, green: 0.89, blue: 0.74),
+            showsJournalBadge: false,
+            actionSymbol: "book.closed",
+            actionAccessibilityLabel: "打开影像相簿",
+            actionAccessibilityHint: "创建、编辑、预览或打印多页影像相簿",
+            isBusy: false,
+            isActionDisabled: false,
+            showsImportStatus: false,
+            action: openAlbum
+        )
+    }
+
+    private var colorRelationshipIntro: some View {
+        introPage(
+            title: "色彩关系",
+            subtitle: "选择两张照片\n看看它们如何共鸣、对照与过渡",
+            symbol: "point.3.connected.trianglepath.dotted",
+            accent: Color(red: 0.74, green: 0.86, blue: 0.98),
+            showsJournalBadge: false,
+            actionSymbol: "arrow.up.right",
+            actionAccessibilityLabel: "打开色彩关系",
+            actionAccessibilityHint: "选择两张照片并分析它们的色彩关系",
+            isBusy: false,
+            isActionDisabled: false,
+            showsImportStatus: false,
+            action: openColorRelationship
         )
     }
 
@@ -916,7 +1198,11 @@ struct ContentView: View {
     }
 
     private var introPageIDs: [String] {
-        CreationMode.allCases.map(\.rawValue) + [Self.ticketScannerIntroID]
+        CreationMode.allCases.map(\.rawValue) + [
+            Self.albumIntroID,
+            Self.colorRelationshipIntroID,
+            Self.ticketScannerIntroID
+        ]
     }
 
     private func editorView(in size: CGSize) -> some View {
@@ -934,6 +1220,10 @@ struct ContentView: View {
         } else if mode == .travelTicket {
             let editorReserve: CGFloat = size.height < 760 ? 250 : 215
             canvasWidth = min(availableWidth, max(280, size.height - editorReserve) * ratioValue)
+        } else if mode == .motionCard && templateStyle != .immersive {
+            // Leave room for the editor-only local color sampling controls below the artwork.
+            let editorReserve: CGFloat = size.height < 760 ? 205 : 175
+            canvasWidth = min(availableWidth, max(300, size.height - editorReserve) * ratioValue)
         } else {
             // Extra-tall ratios must remain fully reachable on compact iPhones.
             canvasWidth = min(availableWidth, max(320, size.height - 130) * ratioValue)
@@ -1024,11 +1314,11 @@ struct ContentView: View {
 
                 LiquidCircleButton(
                     symbol: saveState == .success ? "checkmark" : "arrow.down",
-                    isEnabled: canSave,
+                    isEnabled: canSaveCurrentArtwork,
                     isBusy: saveState == .saving,
                     action: saveArtwork
                 )
-                .opacity(canSave || saveState != .idle ? 1 : 0)
+                .opacity(canSaveCurrentArtwork || saveState != .idle ? 1 : 0)
 
                 LiquidCircleButton(
                     symbol: "gearshape",
@@ -1040,7 +1330,7 @@ struct ContentView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.22), value: controlsAreDimmed)
-            .animation(.easeInOut(duration: 0.20), value: canSave)
+            .animation(.easeInOut(duration: 0.20), value: canSaveCurrentArtwork)
             .animation(.easeInOut(duration: 0.18), value: showAppTitle)
             .padding(.horizontal, 16)
             .padding(.top, 10)
@@ -1086,6 +1376,12 @@ struct ContentView: View {
             artworkPreview(width: canvasWidth, height: canvasHeight)
             .padding(.top, mode == .travelTicket ? 0 : (showsLivePlaybackControl ? 8 : 20))
 
+            if mode == .motionCard, templateStyle != .immersive {
+                motionCardSamplingControls
+                    .frame(width: canvasWidth)
+                    .padding(.top, 12)
+            }
+
             if mode == .privacyMosaic {
                 PrivacyMosaicControls(
                     brushMode: $privacyBrushMode,
@@ -1099,6 +1395,18 @@ struct ContentView: View {
                     onTogglePainting: togglePrivacyPainting,
                     onDetect: detectPrivacyContent,
                     onUndo: undoPrivacyEdit
+                )
+                .padding(.horizontal, 18)
+                .padding(.top, 12)
+            }
+
+            if mode == .sketch {
+                SketchEditorControls(
+                    parameters: $sketchParameters,
+                    isRendering: isSketchRendering,
+                    onStyleChange: { style in
+                        sketchParameters = style.defaultParameters
+                    }
                 )
                 .padding(.horizontal, 18)
                 .padding(.top, 12)
@@ -1131,10 +1439,21 @@ struct ContentView: View {
                         get: { ticketCodeStyle },
                         set: { ticketCodeStyle = $0 }
                     ),
-                    onOpenStudio: { ticketStudioPresented = true }
+                    widthMode: Binding(
+                        get: { ticketCanvasWidthMode },
+                        set: { ticketCanvasWidthMode = $0 }
+                    ),
+                    onOpenStudio: openTicketStudio
                 )
                 .padding(.horizontal, 18)
                 .padding(.top, 12)
+
+                if !isTicketLandscape {
+                    motionCardSamplingControls
+                        .frame(width: canvasWidth)
+                        .padding(.horizontal, 18)
+                        .padding(.top, 10)
+                }
             }
 
             Spacer(minLength: mode == .travelTicket
@@ -1142,6 +1461,68 @@ struct ContentView: View {
                 : (mode == .privacyMosaic ? 8 : 18))
         }
         .safeAreaPadding(.top)
+    }
+
+    private var motionCardSamplingControls: some View {
+        HStack(spacing: 10) {
+            Button {
+                motionCardColorSamplerPresented = true
+            } label: {
+                Label(
+                    motionCardSamplingRect == nil ? "局部取色" : "调整取色范围",
+                    systemImage: "viewfinder"
+                )
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .frame(maxWidth: .infinity)
+                .frame(height: 42)
+            }
+            .buttonStyle(LiquidPressButtonStyle())
+            .foregroundStyle(.primary.opacity(0.82))
+            .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
+            .accessibilityHint(mode == .travelTicket
+                ? "选择照片中的区域，只改变影像票根背景的取色"
+                : "选择照片中的区域，只改变灵动卡片顶部背景的取色")
+
+            if motionCardSamplingRect != nil {
+                Button(action: resetMotionCardSampling) {
+                    Label("恢复整图", systemImage: "arrow.counterclockwise")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .padding(.horizontal, 15)
+                        .frame(height: 42)
+                }
+                .buttonStyle(LiquidPressButtonStyle())
+                .foregroundStyle(.primary.opacity(0.72))
+                .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
+            }
+        }
+        .animation(.snappy, value: motionCardSamplingRect != nil)
+    }
+
+    private func resetMotionCardSampling() {
+        withAnimation(.easeInOut(duration: 0.22)) {
+            motionCardSamplingRect = nil
+            motionCardLocalPalette = nil
+            motionCardLocalPercentages = nil
+        }
+    }
+
+    /// iOS 17 can report a landscape scene while keeping the SwiftUI hit-test
+    /// tree in portrait coordinates after `requestGeometryUpdate`. That leaves
+    /// the ticket visible but makes every control appear frozen. Keep the scene
+    /// portrait on iOS 17 and rotate one correctly sized SwiftUI subtree instead;
+    /// visual and touch transforms then stay in the same coordinate space.
+    private func legacyTicketLandscapeEditorView(in size: CGSize) -> AnyView {
+        let landscapeSize = CGSize(
+            width: max(size.width, size.height),
+            height: min(size.width, size.height)
+        )
+        return AnyView(
+            ticketLandscapeEditorView(in: landscapeSize)
+                .frame(width: landscapeSize.width, height: landscapeSize.height)
+                .rotationEffect(.degrees(90))
+                .frame(width: size.width, height: size.height)
+                .clipped()
+        )
     }
 
     private func ticketLandscapeEditorView(in size: CGSize) -> AnyView {
@@ -1189,7 +1570,7 @@ struct ContentView: View {
 
                 LiquidCircleButton(
                     symbol: saveState == .success ? "checkmark" : "arrow.down",
-                    isEnabled: canSave,
+                    isEnabled: canSaveCurrentArtwork,
                     isBusy: saveState == .saving,
                     action: saveArtwork
                 )
@@ -1219,8 +1600,12 @@ struct ContentView: View {
                         get: { ticketCodeStyle },
                         set: { ticketCodeStyle = $0 }
                     ),
+                    widthMode: Binding(
+                        get: { ticketCanvasWidthMode },
+                        set: { ticketCanvasWidthMode = $0 }
+                    ),
                     isLandscape: true,
-                    onOpenStudio: { ticketStudioPresented = true }
+                    onOpenStudio: openTicketStudio
                 )
                 .frame(width: controlsWidth)
             }
@@ -1253,6 +1638,8 @@ struct ContentView: View {
             fontStyle: fontStyle,
             templateStyle: templateStyle,
             motionCardHeaderStyle: motionCardHeaderStyle,
+            motionCardHeaderPalette: effectiveMotionCardPalette,
+            motionCardHeaderPercentages: effectiveMotionCardPercentages,
             textScale: textScale,
             bubbleScale: bubbleScale,
             paletteOffset: paletteOffset,
@@ -1271,7 +1658,9 @@ struct ContentView: View {
             ticketPayload: ticketPayload,
             ticketCodeStyle: ticketCodeStyle,
             ticketLayout: ticketLayout,
-            ticketAppClipBaseURL: TicketEnvelope.configuredBaseURLString
+            ticketAppClipBaseURL: TicketEnvelope.configuredBaseURLString,
+            ticketDeviceSealEnabled: ticketDeviceSealEnabled,
+            sketchImage: mode == .sketch ? sketchImage : nil
         )
         .frame(width: width, height: height)
         .scaleEffect(canvasRevealed ? 1 : 0.78)
@@ -1291,7 +1680,9 @@ struct ContentView: View {
         .accessibilityLabel(
             mode == .privacyMosaic && isPrivacyPainting
                 ? "隐私马赛克预览，单指\(privacyBrushMode.rawValue)"
-                : "\(mode.title)预览，可拖拽或双指缩放"
+                : (mode == .sketch
+                    ? "\(mode.title)预览，按照片实际比例预览"
+                    : "\(mode.title)预览，可拖拽或双指缩放")
         )
         .accessibilityAction(named: "编辑作品文字") {
             if mode == .motionCard
@@ -1312,6 +1703,12 @@ struct ContentView: View {
 
         if mode == .privacyMosaic {
             return AnyGesture(compositionGesture(canvasSize: canvasSize).map { _ in () })
+        }
+
+        if mode == .sketch {
+            // Sketch is aspect-fit at the photo's native ratio — the preview
+            // already matches the actual image, so pan/zoom is disabled.
+            return AnyGesture(DragGesture(minimumDistance: 100_000).map { _ in () })
         }
 
         let canvasTapGesture = SpatialTapGesture(count: 2)
@@ -1847,6 +2244,33 @@ struct ContentView: View {
         }
     }
 
+    private func scheduleSketchPreviewRefresh() {
+        sketchRenderTask?.cancel()
+        sketchRenderRevision += 1
+        let revision = sketchRenderRevision
+        renderedSketchParameters = nil
+        guard let snapshot = images.first else {
+            sketchImage = nil
+            isSketchRendering = false
+            sketchRenderTask = nil
+            return
+        }
+        let parameters = sketchParameters
+        isSketchRendering = true
+        sketchRenderTask = Task {
+            try? await Task.sleep(for: .milliseconds(110))
+            guard !Task.isCancelled, revision == sketchRenderRevision else { return }
+            let rendered = await Task.detached(priority: .userInitiated) {
+                SketchFilterEngine.render(snapshot, parameters: parameters)
+            }.value
+            guard !Task.isCancelled, revision == sketchRenderRevision else { return }
+            sketchImage = rendered
+            renderedSketchParameters = rendered == nil ? nil : parameters
+            isSketchRendering = false
+            sketchRenderTask = nil
+        }
+    }
+
     private func openPicker(append: Bool = false, replacing index: Int? = nil) {
         guard !isLoading, saveState == .idle else { return }
         stopLivePhotoPlayback()
@@ -2011,6 +2435,9 @@ struct ContentView: View {
         case .replaceAll:
             combined = Array(imported.prefix(mode == .journal ? 5 : 1))
             PhotoAssetLoader.removeTemporaryResources(for: selectedPhotos)
+            motionCardSamplingRect = nil
+            motionCardLocalPalette = nil
+            motionCardLocalPercentages = nil
             ticketMessage = ""
             skippedTicketMessageForCurrentPhoto = false
             journalTransforms = Array(repeating: JournalPhotoTransform(), count: combined.count)
@@ -2041,6 +2468,10 @@ struct ContentView: View {
         images = combined.map(\.image)
         if operation == .replaceAll {
             resetPrivacyEdits(for: images.first)
+            if mode == .sketch {
+                sketchImage = nil
+                scheduleSketchPreviewRefresh()
+            }
         }
         let semantic = PhotoSemantic.combined(combined.map(\.semantic))
         if operation == .replaceAll {
@@ -2131,6 +2562,9 @@ struct ContentView: View {
         if mode == .privacyMosaic, let image = images.first, image.size.height > 0 {
             return min(max(image.size.width / image.size.height, 0.35), 2.40)
         }
+        if mode == .sketch, let image = images.first, image.size.height > 0 {
+            return min(max(image.size.width / image.size.height, 0.35), 2.40)
+        }
         return ratio.value(for: images.first)
     }
 
@@ -2158,6 +2592,42 @@ struct ContentView: View {
         }
     }
 
+    private func openAlbum() {
+        modeSelectionPresented = false
+        dismissModeSelectionHint()
+        dismissLivePhotoHint()
+        dismissTicketLandscapeHint()
+        if isTicketLandscape {
+            setTicketLandscape(false)
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            albumPresented = true
+        }
+    }
+
+    private func openColorRelationship() {
+        modeSelectionPresented = false
+        dismissModeSelectionHint()
+        dismissLivePhotoHint()
+        dismissTicketLandscapeHint()
+        if isTicketLandscape {
+            setTicketLandscape(false)
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            colorRelationshipPresented = true
+        }
+    }
+
+    private func returnFromColorRelationshipToModeSelection() {
+        colorRelationshipPresented = false
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(220))
+            modeSelectionPresented = true
+        }
+    }
+
     private func finishModeChange() {
         // Switching creation modes changes only the presentation. The selected
         // photo, its metadata/semantic analysis, palette and Live Photo resource
@@ -2171,12 +2641,17 @@ struct ContentView: View {
         if mode == .privacyMosaic {
             refreshPrivacyPreview()
         }
+        if mode == .sketch {
+            scheduleSketchPreviewRefresh()
+        }
         startRevealSequence()
         presentLivePhotoHintIfNeeded()
         if mode == .privacyMosaic, selectedPhotos.contains(where: \.isLivePhoto) {
             showToast("隐私遮挡后仅支持静态导出，避免动态帧泄露隐私", duration: 3.6)
         } else if mode == .travelTicket, selectedPhotos.contains(where: \.isLivePhoto) {
             showToast("影像票根使用实况照片的关键帧生成静态凭证", duration: 3.0)
+        } else if mode == .sketch, selectedPhotos.contains(where: \.isLivePhoto) {
+            showToast("素描基于实况照片的关键帧生成静态作品", duration: 3.0)
         }
     }
 
@@ -2206,6 +2681,10 @@ struct ContentView: View {
 
     private func saveArtwork() {
         guard canSave, saveState == .idle else { return }
+        guard mode != .sketch || hasCurrentSketchRender else {
+            showToast("正在生成当前素描效果，请稍候…", duration: 2.2)
+            return
+        }
         dismissModeSelectionHint()
         if mode == .travelTicket,
            TicketPayload.normalizedMessage(ticketMessage) == nil,
@@ -2216,22 +2695,26 @@ struct ContentView: View {
         presentExportCenter()
     }
 
-    private func presentExportCenter() {
-        if mode == .travelTicket,
-           ticketCodeStyle == .verificationQR {
-            do {
-                _ = try TicketEnvelope.invocationURL(
-                    for: ticketPayload,
-                    baseURLString: TicketEnvelope.configuredBaseURLString
-                )
-            } catch {
-                presentSaveError(
-                    error.localizedDescription,
-                    title: "无法生成验证二维码"
-                )
-                return
-            }
+    private func validateTicketCodeForExport() -> Bool {
+        guard ticketCodeStyle == .verificationQR else { return true }
+        do {
+            _ = try TicketEnvelope.invocationURL(
+                for: ticketPayload,
+                baseURLString: TicketEnvelope.configuredBaseURLString,
+                signer: ticketEnvelopeSigner
+            )
+            return true
+        } catch {
+            presentSaveError(
+                error.localizedDescription,
+                title: "无法生成验证二维码"
+            )
+            return false
         }
+    }
+
+    private func presentExportCenter() {
+        if mode == .travelTicket, !validateTicketCodeForExport() { return }
         if mode == .privacyMosaic {
             finishPrivacyPainting()
             if exportMetadataPolicy == .preserve {
@@ -2242,6 +2725,33 @@ struct ContentView: View {
     }
 
     private func performConfiguredExport() {
+        if mode == .travelTicket, exportDestination == .photoLibrary {
+            let needsPortraitTransition = isTicketLandscape
+            if needsPortraitTransition {
+                setTicketLandscape(false)
+            }
+            Task { @MainActor in
+                if needsPortraitTransition {
+                    await Task.yield()
+                    try? await Task.sleep(for: .milliseconds(220))
+                }
+                do {
+                    try await ArtworkExporter.preparePhotoLibraryAccess()
+                } catch {
+                    presentSaveError(error.localizedDescription)
+                    return
+                }
+                performSaveArtwork(
+                    format: .png,
+                    resolution: exportResolution,
+                    metadataPolicy: exportMetadataPolicy,
+                    destination: .photoLibrary,
+                    presentsTicketPrinter: true
+                )
+            }
+            return
+        }
+
         performSaveArtwork(
             format: exportFormat,
             resolution: exportResolution,
@@ -2254,9 +2764,15 @@ struct ContentView: View {
         format: ArtworkExportFormat,
         resolution: ArtworkExportResolution,
         metadataPolicy: ArtworkMetadataPolicy,
-        destination: ArtworkExportDestination
+        destination: ArtworkExportDestination,
+        presentsTicketPrinter: Bool = false
     ) {
         guard canSave, saveState == .idle else { return }
+        guard mode != .sketch || hasCurrentSketchRender else {
+            exportCenterPresented = false
+            showToast("正在生成当前素描效果，请稍候…", duration: 2.2)
+            return
+        }
         let effectiveFormat: ArtworkExportFormat = mode == .travelTicket
             ? .png
             : format
@@ -2265,18 +2781,69 @@ struct ContentView: View {
         stopLivePhotoPlayback()
         dismissLivePhotoHint()
         withAnimation(.easeOut(duration: 0.16)) { saveState = .saving }
-        showToast(
-            mode == .privacyMosaic ? "正在渲染隐私静态作品…" : "正在渲染高清作品…",
-            duration: 30
-        )
+        if presentsTicketPrinter {
+            beginTicketPrintExperience()
+        } else {
+            showToast(
+                mode == .privacyMosaic ? "正在渲染隐私静态作品…" : "正在渲染高清作品…",
+                duration: 30
+            )
+        }
 
         Task {
+            if presentsTicketPrinter {
+                _ = await TicketPrintLiveActivityController.shared.start(
+                    title: TicketPayload.normalizedMessage(ticketPayload.title) ?? "影像票根"
+                )
+            }
             let sourceWidth = images.first?.cgImage.map { CGFloat($0.width) } ?? 1080
             let pixelWidth = resolution.pixelWidth(sourceWidth: sourceWidth)
-            guard let image = renderArtwork(pixelWidth: pixelWidth) else {
-                saveState = .idle
-                presentSaveError("作品渲染失败，请稍后重试。")
+            let exportSketchImage: UIImage?
+            if mode == .sketch {
+                guard let sourceImage = images.first else {
+                    saveState = .idle
+                    presentSaveError("未找到可用于高清素描的原图。")
+                    return
+                }
+                let parameters = sketchParameters
+                let targetLongEdge = sketchExportLongEdge(
+                    for: sourceImage,
+                    pixelWidth: pixelWidth
+                )
+                showToast("正在进行高清分块推理…", duration: 60)
+                exportSketchImage = await Task.detached(priority: .userInitiated) {
+                    SketchFilterEngine.renderForExport(
+                        sourceImage,
+                        parameters: parameters,
+                        targetLongEdge: targetLongEdge
+                    )
+                }.value
+                guard exportSketchImage != nil else {
+                    saveState = .idle
+                    presentSaveError("高清素描渲染失败，请稍后重试。")
+                    return
+                }
+            } else {
+                exportSketchImage = nil
+            }
+            guard let renderedImage = renderArtwork(
+                pixelWidth: pixelWidth,
+                sketchImageOverride: exportSketchImage
+            ) else {
+                if presentsTicketPrinter {
+                    await failTicketPrintExperience("作品渲染失败，请稍后重试。")
+                } else {
+                    saveState = .idle
+                    presentSaveError("作品渲染失败，请稍后重试。")
+                }
                 return
+            }
+
+            let image = renderedImage
+            if presentsTicketPrinter {
+                let displayImage = TicketPrintImage.rotatedClockwise(renderedImage)
+                    ?? renderedImage
+                await startTicketFeed(with: displayImage)
             }
 
             do {
@@ -2307,7 +2874,8 @@ struct ContentView: View {
                         renderFrame: { frames, videoPixelWidth in
                             renderArtwork(
                                 replacingImages: frames,
-                                pixelWidth: videoPixelWidth
+                                pixelWidth: videoPixelWidth,
+                                sketchImageOverride: exportSketchImage
                             )
                         },
                         progress: { progress in
@@ -2315,12 +2883,16 @@ struct ContentView: View {
                         }
                     )
                 } else if destination == .photoLibrary {
-                    showToast(
-                        metadataPolicy == .preserve
-                            ? "正在写入相册并保留拍摄信息…"
-                            : "正在写入相册并清理敏感元数据…",
-                        duration: 30
-                    )
+                    if !presentsTicketPrinter {
+                        showToast(
+                            metadataPolicy == .preserve
+                                ? "正在写入相册并保留拍摄信息…"
+                                : "正在写入相册并清理敏感元数据…",
+                            duration: 30
+                        )
+                    } else {
+                        await markTicketWritingToPhotos()
+                    }
                     try await ArtworkExporter.saveStill(
                         image,
                         metadata: metadata,
@@ -2363,50 +2935,196 @@ struct ContentView: View {
                         sharedExportFile = item
                     }
                 }
+                LingdongWorkArchive.record(image: image, mode: mode)
                 toastTask?.cancel()
                 withAnimation(.easeOut(duration: 0.2)) { toastMessage = nil }
                 withAnimation(.spring(response: 0.32, dampingFraction: 0.72)) {
                     saveState = .success
                 }
+                if presentsTicketPrinter {
+                    await completeTicketPrintExperience()
+                }
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 try? await Task.sleep(for: .milliseconds(1_250))
+                if presentsTicketPrinter {
+                    await TicketPrintLiveActivityController.shared.end(
+                        phase: .completed,
+                        progress: 1
+                    )
+                    dismissTicketPrintExperience(endsLiveActivity: false)
+                }
                 withAnimation(.easeInOut(duration: 0.24)) {
                     saveState = .idle
                 }
             } catch {
-                saveState = .idle
-                presentSaveError(error.localizedDescription)
+                if presentsTicketPrinter {
+                    await failTicketPrintExperience(error.localizedDescription)
+                } else {
+                    saveState = .idle
+                    presentSaveError(error.localizedDescription)
+                }
             }
         }
     }
 
-    private func configureVersion102Experience() {
+    private func beginTicketPrintExperience() {
+        ticketPrintHapticTask?.cancel()
+        ticketPrintImage = nil
+        ticketPrintProgress = 0
+        ticketPrintAnimationDeadline = nil
+        ticketPrintPhase = .preparing
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.prepare()
+        impact.impactOccurred(intensity: 0.82)
+    }
+
+    private func startTicketFeed(with image: UIImage) async {
+        ticketPrintImage = image
+        ticketPrintPhase = .feeding
+        await TicketPrintLiveActivityController.shared.update(
+            phase: .printing,
+            progress: 0.58
+        )
+        let openingDelay = reduceMotion ? 0.04 : 0.24
+        let duration = reduceMotion ? 0.18 : 2.2
+        try? await Task.sleep(for: .seconds(openingDelay))
+        ticketPrintAnimationDeadline = Date.now.addingTimeInterval(duration)
+        withAnimation(.linear(duration: duration)) {
+            ticketPrintProgress = 1
+        }
+        await Task.yield()
+
+        ticketPrintHapticTask?.cancel()
+        ticketPrintHapticTask = Task { @MainActor in
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.prepare()
+            for index in 0..<13 {
+                try? await Task.sleep(for: .milliseconds(150))
+                guard !Task.isCancelled else { return }
+                impact.impactOccurred(intensity: index.isMultiple(of: 3) ? 0.54 : 0.34)
+                impact.prepare()
+            }
+        }
+    }
+
+    private func markTicketWritingToPhotos() async {
+        ticketPrintPhase = .finishing
+        await TicketPrintLiveActivityController.shared.update(
+            phase: .saving,
+            progress: 0.92
+        )
+    }
+
+    private func completeTicketPrintExperience() async {
+        ticketPrintHapticTask?.cancel()
+        if let deadline = ticketPrintAnimationDeadline {
+            let remaining = deadline.timeIntervalSinceNow
+            if remaining > 0 {
+                try? await Task.sleep(for: .seconds(remaining))
+            }
+        }
+        ticketPrintAnimationDeadline = nil
+        await TicketPrintLiveActivityController.shared.update(
+            phase: .completed,
+            progress: 1
+        )
+        withAnimation(
+            reduceMotion
+                ? .easeOut(duration: 0.12)
+                : .spring(response: 0.36, dampingFraction: 0.78)
+        ) {
+            ticketPrintPhase = .success
+            ticketPrintProgress = 1
+        }
+    }
+
+    private func failTicketPrintExperience(_ message: String) async {
+        ticketPrintHapticTask?.cancel()
+        withAnimation(.easeOut(duration: 0.18)) {
+            ticketPrintPhase = .failed
+        }
+        await TicketPrintLiveActivityController.shared.update(
+            phase: .failed,
+            progress: Double(ticketPrintProgress)
+        )
+        try? await Task.sleep(for: .milliseconds(420))
+        await TicketPrintLiveActivityController.shared.end(
+            phase: .failed,
+            progress: Double(ticketPrintProgress)
+        )
+        dismissTicketPrintExperience(endsLiveActivity: false)
+        saveState = .idle
+        presentSaveError(message)
+    }
+
+    private func dismissTicketPrintExperience(endsLiveActivity: Bool = true) {
+        ticketPrintHapticTask?.cancel()
+        ticketPrintHapticTask = nil
+        if endsLiveActivity {
+            Task {
+                await TicketPrintLiveActivityController.shared.cancel()
+            }
+        }
+        ticketPrintPhase = .idle
+        ticketPrintImage = nil
+        ticketPrintProgress = 0
+        ticketPrintAnimationDeadline = nil
+    }
+
+    private var shouldPresentVersion200Update: Bool {
+        version200AudienceRaw == Version200Audience.upgradedFromPreviousVersion.rawValue
+            && !didShowVersion200Update
+    }
+
+    private func configureLaunchExperience() {
 #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("--version102-upgrade") {
-            version102AudienceRaw = Version102Audience.upgradedFromPreviousVersion.rawValue
-            didShowVersion102Update = false
+        if arguments.contains("--version200-upgrade") {
+            version200AudienceRaw = Version200Audience.upgradedFromPreviousVersion.rawValue
+            didShowVersion200Update = false
             didShowModeSelectionHint101 = false
-            didAcknowledgeFreeNotice = true
-        } else if arguments.contains("--version102-fresh") {
-            version102AudienceRaw = Version102Audience.installed102.rawValue
-            didShowVersion102Update = false
+            didShowPublicGoodsCommitment = false
+            didAcknowledgeFreeNotice = false
+        } else if arguments.contains("--version200-fresh") {
+            version200AudienceRaw = Version200Audience.installed200.rawValue
+            didShowVersion200Update = false
             didShowModeSelectionHint101 = false
             didShowLivePhotoPlaybackHint = false
             didShowLivePhotoPlaybackHintBuild1060 = false
+            didShowPublicGoodsCommitment = false
+            didAcknowledgeFreeNotice = false
+        } else if arguments.contains("--album") {
+            // Album UI and export validation should open directly without
+            // unrelated one-time launch experiences covering the test route.
+            didShowPublicGoodsCommitment = true
             didAcknowledgeFreeNotice = true
+            didShowVersion200Update = true
+            didShowModeSelectionHint101 = true
+        } else if arguments.contains("--demo") {
+            // Existing screenshot/export fixtures should continue to open their
+            // requested screen unless a launch-experience argument is explicit.
+            didShowPublicGoodsCommitment = true
+            didAcknowledgeFreeNotice = true
+            if arguments.contains("--sketch") {
+                // Sketch demo should land directly on the editor without the
+                // v2.0.0 update sheet or mode-selection hint covering it.
+                didShowVersion200Update = true
+                didShowModeSelectionHint101 = true
+            }
         }
 #endif
 
-        if version102AudienceRaw.isEmpty {
-            version102AudienceRaw = hasPreviousVersionInstallEvidence()
-                ? Version102Audience.upgradedFromPreviousVersion.rawValue
-                : Version102Audience.installed102.rawValue
+        if version200AudienceRaw.isEmpty {
+            version200AudienceRaw = hasPreviousVersionInstallEvidence()
+                ? Version200Audience.upgradedFromPreviousVersion.rawValue
+                : Version200Audience.installed200.rawValue
         }
 
-        guard version102AudienceRaw == Version102Audience.upgradedFromPreviousVersion.rawValue,
-              !didShowVersion102Update else { return }
-        version102UpdatePresented = true
+        if !didShowPublicGoodsCommitment {
+            publicGoodsCommitmentPresented = true
+        } else if shouldPresentVersion200Update {
+            version200UpdatePresented = true
+        }
     }
 
     private func hasPreviousVersionInstallEvidence() -> Bool {
@@ -2422,7 +3140,9 @@ struct ContentView: View {
             "didShowLivePhotoPlaybackHint",
             "didShowLivePhotoPlaybackHintBuild1060",
             "version101Audience",
-            "didShowVersion101Update"
+            "didShowVersion101Update",
+            "version102Audience",
+            "didShowVersion102Update"
         ]
         if legacyKeys.contains(where: { defaults.object(forKey: $0) != nil }) {
             return true
@@ -2441,12 +3161,29 @@ struct ContentView: View {
         return bundleDate.timeIntervalSince(containerDate) > 300
     }
 
-    private func completeVersion102Update() {
-        didShowVersion102Update = true
-        version102UpdatePresented = false
+    private func completeVersion200Update() {
+        didShowVersion200Update = true
+        version200UpdatePresented = false
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 80 : 460))
             presentModeSelectionHintIfNeeded()
+        }
+    }
+
+    private func completePublicGoodsCommitment() {
+        didShowPublicGoodsCommitment = true
+        // Keep the legacy key as installation evidence and for compatibility
+        // with older builds that used the compact free-notice overlay.
+        didAcknowledgeFreeNotice = true
+        publicGoodsCommitmentPresented = false
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 80 : 360))
+            if shouldPresentVersion200Update {
+                version200UpdatePresented = true
+            } else {
+                presentModeSelectionHintIfNeeded()
+            }
         }
     }
 
@@ -2461,10 +3198,12 @@ struct ContentView: View {
         guard mode == .travelTicket else { return }
         didShowTicketLandscapeHint = true
         dismissTicketLandscapeHint()
+        InterfaceOrientationController.shared.request(
+            usesInAppTicketLandscape ? .portrait : .landscapeRight
+        )
         withAnimation(.easeInOut(duration: reduceMotion ? 0.12 : 0.28)) {
             isTicketLandscape = true
         }
-        InterfaceOrientationController.shared.request(.landscapeRight)
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
     }
 
@@ -2479,8 +3218,20 @@ struct ContentView: View {
             isTicketLandscape = enabled
         }
         InterfaceOrientationController.shared.request(
-            enabled ? .landscapeRight : .portrait
+            enabled && !usesInAppTicketLandscape ? .landscapeRight : .portrait
         )
+    }
+
+    private func openTicketStudio() {
+        if isTicketLandscape, usesInAppTicketLandscape {
+            setTicketLandscape(false)
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(180))
+                ticketStudioPresented = true
+            }
+        } else {
+            ticketStudioPresented = true
+        }
     }
 
     private var guidanceHintAnimation: Animation {
@@ -2589,6 +3340,16 @@ struct ContentView: View {
         } else {
             isTicketLandscapeHintPresented = false
         }
+    }
+
+    private func presentNarrativePromptIfNeeded() {
+        guard !didShowTicketNarrativePrompt else { return }
+        ticketNarrativePromptPresented = true
+    }
+
+    private func dismissNarrativePrompt() {
+        ticketNarrativePromptPresented = false
+        didShowTicketNarrativePrompt = true
     }
 
     private var livePhotoHintAnimation: Animation {
@@ -2704,8 +3465,12 @@ struct ContentView: View {
 
     private func renderArtwork(
         replacingImages replacements: [Int: UIImage] = [:],
-        pixelWidth: CGFloat = 1080
+        pixelWidth: CGFloat = 1080,
+        sketchImageOverride: UIImage? = nil
     ) -> UIImage? {
+        guard mode != .sketch
+                || sketchImageOverride != nil
+                || hasCurrentSketchRender else { return nil }
         let renderWidth: CGFloat = 360
         let renderScale = min(max(pixelWidth / renderWidth, 1), 16.67)
         var renderImages = images
@@ -2716,6 +3481,10 @@ struct ContentView: View {
         if mode == .spectrumWallpaper {
             outputRatio = min(max(UIScreen.main.bounds.width / UIScreen.main.bounds.height, 0.43), 0.50)
         } else if mode == .privacyMosaic,
+                  let image = renderImages.first,
+                  image.size.height > 0 {
+            outputRatio = min(max(image.size.width / image.size.height, 0.35), 2.40)
+        } else if mode == .sketch,
                   let image = renderImages.first,
                   image.size.height > 0 {
             outputRatio = min(max(image.size.width / image.size.height, 0.35), 2.40)
@@ -2746,6 +3515,8 @@ struct ContentView: View {
                 fontStyle: fontStyle,
                 templateStyle: templateStyle,
                 motionCardHeaderStyle: motionCardHeaderStyle,
+                motionCardHeaderPalette: effectiveMotionCardPalette,
+                motionCardHeaderPercentages: effectiveMotionCardPercentages,
                 textScale: textScale,
                 bubbleScale: bubbleScale,
                 paletteOffset: paletteOffset,
@@ -2765,7 +3536,11 @@ struct ContentView: View {
                 ticketPayload: ticketPayload,
                 ticketCodeStyle: ticketCodeStyle,
                 ticketLayout: ticketLayout,
-                ticketAppClipBaseURL: TicketEnvelope.configuredBaseURLString
+                ticketAppClipBaseURL: TicketEnvelope.configuredBaseURLString,
+                ticketDeviceSealEnabled: ticketDeviceSealEnabled,
+                sketchImage: mode == .sketch
+                    ? (sketchImageOverride ?? sketchImage)
+                    : nil
             )
             .frame(width: renderWidth, height: renderHeight)
         )
@@ -2786,6 +3561,21 @@ struct ContentView: View {
             return nil
         }
         return masked
+    }
+
+    private func sketchExportLongEdge(
+        for image: UIImage,
+        pixelWidth: CGFloat
+    ) -> CGFloat {
+        guard let cgImage = image.cgImage,
+              cgImage.width > 0,
+              cgImage.height > 0 else { return 1024 }
+        let sourceWidth = CGFloat(cgImage.width)
+        let sourceHeight = CGFloat(cgImage.height)
+        let sourceLongEdge = max(sourceWidth, sourceHeight)
+        let outputHeight = pixelWidth * sourceHeight / sourceWidth
+        let requestedLongEdge = max(pixelWidth, outputHeight)
+        return min(sourceLongEdge, min(max(requestedLongEdge, 1024), 1536))
     }
 
     private func showToast(_ message: String, duration: Double) {
@@ -2815,7 +3605,8 @@ struct ContentView: View {
         try TicketCodeRenderer.exportCard(
             for: style,
             payload: ticketPayload,
-            baseURLString: TicketEnvelope.configuredBaseURLString
+            baseURLString: TicketEnvelope.configuredBaseURLString,
+            signer: ticketEnvelopeSigner
         )
     }
 
@@ -2918,6 +3709,25 @@ struct ContentView: View {
         if arguments.contains("--wallpaper") { mode = .spectrumWallpaper }
         if arguments.contains("--privacy") { mode = .privacyMosaic }
         if arguments.contains("--ticket") { mode = .travelTicket }
+        if arguments.contains("--sketch") {
+            mode = .sketch
+            let defaultStyle: SketchStyle = .watercolor
+            let styleArg = arguments
+                .first(where: { $0.hasPrefix("--sketch-style=") })?
+                .dropFirst("--sketch-style=".count)
+            let parsedStyle: SketchStyle?
+            if let styleArg {
+                switch String(styleArg) {
+                case "pencil": parsedStyle = .pencil
+                case "charcoal": parsedStyle = .charcoal
+                case "watercolor": parsedStyle = .watercolor
+                default: parsedStyle = SketchStyle(rawValue: String(styleArg))
+                }
+            } else {
+                parsedStyle = nil
+            }
+            sketchParameters = (parsedStyle ?? defaultStyle).defaultParameters
+        }
         if arguments.contains("--ticket-barcode") {
             ticketCodeStyleRaw = TicketCodeStyle.barcode.rawValue
         }
@@ -2956,6 +3766,10 @@ struct ContentView: View {
         ratio = mode.defaultRatio
         if mode == .travelTicket, ticketLayout == .vertical {
             ratio = .threeFour
+        } else if mode == .travelTicket, ticketLayout == .classic {
+            ratio = ticketCanvasWidthMode == .compact ? .twentyOneNine
+                : ticketCanvasWidthMode == .standard ? .sixteenNine
+                : .fourThree
         }
         if arguments.contains("--ratio-square") { ratio = .oneOne }
         if arguments.contains("--ratio-four-five") { ratio = .fourFive }
@@ -3112,9 +3926,16 @@ struct ContentView: View {
             )
         }
         images = selectedPhotos.map(\.image)
+        motionCardSamplingRect = nil
+        motionCardLocalPalette = nil
+        motionCardLocalPercentages = nil
         journalTransforms = Array(repeating: JournalPhotoTransform(), count: images.count)
         selectedJournalIndex = mode == .journal ? 0 : nil
         resetPrivacyEdits(for: image)
+        if mode == .sketch {
+            sketchImage = nil
+            scheduleSketchPreviewRefresh()
+        }
         if mode == .privacyMosaic, arguments.contains("--privacy-mask") {
             privacyMasks = [
                 PrivacyMask(
@@ -3183,6 +4004,8 @@ struct ContentView: View {
         presentLivePhotoHintIfNeeded()
         if arguments.contains("--settings") { settingsPresented = true }
         if arguments.contains("--mode-picker") { modeSelectionPresented = true }
+        if arguments.contains("--color-relationship") { colorRelationshipPresented = true }
+        if arguments.contains("--version-update") { version200UpdatePresented = true }
         if arguments.contains("--export-center") { exportCenterPresented = true }
         if mode == .travelTicket,
            arguments.contains("--ticket-studio"),
@@ -3200,7 +4023,15 @@ struct ContentView: View {
             }
         }
         if mode == .travelTicket, arguments.contains("--ticket-verify") {
-            verifiedTicketPayload = ticketPayload
+            do {
+                let url = try TicketEnvelope.invocationURL(
+                    for: ticketPayload,
+                    signer: ticketEnvelopeSigner
+                )
+                verifiedTicket = try TicketEnvelope.decodeVerified(from: url)
+            } catch {
+                verifiedTicket = .unsigned(ticketPayload)
+            }
         }
         if mode == .travelTicket, arguments.contains("--ticket-message-prompt") {
             Task {
@@ -3315,7 +4146,8 @@ struct ContentView: View {
                 do {
                     let url = try TicketEnvelope.invocationURL(
                         for: ticketPayload,
-                        baseURLString: TicketEnvelope.configuredBaseURLString
+                        baseURLString: TicketEnvelope.configuredBaseURLString,
+                        signer: ticketEnvelopeSigner
                     )
                     let decoded = try TicketEnvelope.decode(from: url)
                     report.append(
@@ -3323,12 +4155,61 @@ struct ContentView: View {
                             ? "PASS QR payload round trip"
                             : "FAIL QR payload round trip"
                     )
+                    let verified = try TicketEnvelope.decodeVerified(from: url)
+                    report.append(
+                        verified.sealValidation.isValid
+                            ? "PASS device seal verification"
+                            : "FAIL device seal verification"
+                    )
+                    try url.absoluteString.write(
+                        to: directory.appendingPathComponent("ios-sealed-url.txt"),
+                        atomically: true,
+                        encoding: .utf8
+                    )
+
+                    if var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                       var items = components.queryItems,
+                       let index = items.firstIndex(where: {
+                           $0.name == TicketEnvelope.sealSignatureKey
+                       }),
+                       let value = items[index].value,
+                       let first = value.first {
+                        let replacement = first == "A" ? "B" : "A"
+                        items[index].value = String(replacement) + String(value.dropFirst())
+                        components.queryItems = items
+                        if let tamperedURL = components.url {
+                            let tampered = try TicketEnvelope.decodeVerified(from: tamperedURL)
+                            if case .invalid = tampered.sealValidation {
+                                report.append("PASS modified signature is rejected")
+                            } else {
+                                report.append("FAIL modified signature is rejected")
+                            }
+                        }
+                    }
+
+                    let androidURLFile = directory.appendingPathComponent(
+                        "android-sealed-url.txt"
+                    )
+                    if let value = try? String(contentsOf: androidURLFile),
+                       let androidURL = URL(string: value.trimmingCharacters(
+                           in: .whitespacesAndNewlines
+                       )),
+                       let androidTicket = try? TicketEnvelope.decodeVerified(
+                           from: androidURL
+                       ) {
+                        report.append(
+                            androidTicket.sealValidation.isValid
+                                ? "PASS Android device seal verification"
+                                : "FAIL Android device seal verification"
+                        )
+                    }
 
                     for style in TicketCodeStyle.allCases {
                         let image = try TicketCodeRenderer.exportCard(
                             for: style,
                             payload: ticketPayload,
-                            baseURLString: TicketEnvelope.configuredBaseURLString
+                            baseURLString: TicketEnvelope.configuredBaseURLString,
+                            signer: ticketEnvelopeSigner
                         )
                         guard let data = image.pngData() else {
                             report.append("FAIL \(style.title) PNG encoding")
@@ -3503,6 +4384,8 @@ private struct CreationModeSelectionView: View {
 
     let selectedMode: CreationMode
     let onSelect: (CreationMode) -> Void
+    let onOpenAlbum: () -> Void
+    let onOpenColorRelationship: () -> Void
     let onScanTicket: () -> Void
 
     private let columns = [
@@ -3544,8 +4427,11 @@ private struct CreationModeSelectionView: View {
                             modeCard(item)
                         }
 
-                        scanTicketCard
+                        albumCard
+                        colorRelationshipCard
                     }
+
+                    scanTicketCard
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
@@ -3567,21 +4453,62 @@ private struct CreationModeSelectionView: View {
 
     private var scanTicketCard: some View {
         Button(action: onScanTicket) {
+            HStack(spacing: 14) {
+                Image(systemName: "qrcode.viewfinder")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 44, height: 44)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("扫描验证票根")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("打开相机扫描二维码，在本机查看验证结果")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 84, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
+        .buttonStyle(LiquidPressButtonStyle())
+        .liquidGlass(
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+            interactive: true,
+            variant: .clear
+        )
+        .accessibilityLabel("扫描验证票根")
+        .accessibilityHint("打开相机扫描灵动照片票根二维码")
+    }
+
+    private var albumCard: some View {
+        Button(action: onOpenAlbum) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Image(systemName: "qrcode.viewfinder")
+                    Image(systemName: "book.pages")
                         .font(.system(size: 19, weight: .semibold))
                         .foregroundStyle(.primary)
                         .frame(width: 42, height: 42)
-
                     Spacer(minLength: 8)
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
                 }
 
-                Text("扫描验证票根")
+                Text("影像相簿")
                     .font(.headline)
                     .foregroundStyle(.primary)
 
-                Text("打开相机扫描二维码，在本机查看票根验证结果")
+                Text("把照片与灵动作品装订成书，横屏翻阅并输出打印 PDF")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.leading)
@@ -3598,8 +4525,46 @@ private struct CreationModeSelectionView: View {
             interactive: true,
             variant: .clear
         )
-        .accessibilityLabel("扫描验证票根")
-        .accessibilityHint("打开相机扫描灵动照片票根二维码")
+        .accessibilityHint("打开本地多页相簿项目")
+    }
+
+    private var colorRelationshipCard: some View {
+        Button(action: onOpenColorRelationship) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "point.3.connected.trianglepath.dotted")
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 42, height: 42)
+                    Spacer(minLength: 8)
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+
+                Text("色彩关系")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+
+                Text("比较两张照片的共鸣、对照与过渡，并导出关系作品")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 132, alignment: .topLeading)
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
+        .buttonStyle(LiquidPressButtonStyle())
+        .liquidGlass(
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+            interactive: true,
+            variant: .clear
+        )
+        .accessibilityLabel("色彩关系")
+        .accessibilityHint("选择两张照片并分析它们的色彩关系")
     }
 
     private func modeCard(_ item: CreationMode) -> some View {
@@ -3858,5 +4823,288 @@ private struct ShakeDetector: UIViewControllerRepresentable {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             onShake()
         }
+    }
+}
+
+private struct MotionCardColorSamplerView: View {
+    private enum Corner: CaseIterable, Hashable {
+        case topLeft, topRight, bottomLeft, bottomRight
+    }
+
+    @Environment(\.dismiss) private var dismiss
+    let image: UIImage
+    let initialSelection: CGRect?
+    let headerStyle: MotionCardHeaderStyle
+    let onApply: (CGRect, PaletteResult) -> Void
+    let onReset: () -> Void
+
+    @State private var selection: CGRect
+    @State private var gestureStart: CGRect?
+    @State private var previewResult: PaletteResult?
+
+    init(
+        image: UIImage,
+        initialSelection: CGRect?,
+        headerStyle: MotionCardHeaderStyle,
+        onApply: @escaping (CGRect, PaletteResult) -> Void,
+        onReset: @escaping () -> Void
+    ) {
+        self.image = image
+        self.initialSelection = initialSelection
+        self.headerStyle = headerStyle
+        self.onApply = onApply
+        self.onReset = onReset
+        _selection = State(initialValue: initialSelection ?? CGRect(x: 0.15, y: 0.20, width: 0.70, height: 0.60))
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                Text("拖动选框选择取色范围，拖动四角可调整大小。此范围只影响灵动卡片顶部背景。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 26)
+
+                GeometryReader { proxy in
+                    let imageRect = aspectFitRect(in: proxy.size)
+                    let selectedRect = displayRect(in: imageRect)
+                    ZStack {
+                        Color.black.opacity(0.94)
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: imageRect.width, height: imageRect.height)
+                            .position(x: imageRect.midX, y: imageRect.midY)
+
+                        Path { path in
+                            path.addRect(imageRect)
+                            path.addRect(selectedRect)
+                        }
+                        .fill(.black.opacity(0.52), style: FillStyle(eoFill: true))
+                        .allowsHitTesting(false)
+
+                        Rectangle()
+                            .fill(.clear)
+                            .contentShape(Rectangle())
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(.white, style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
+                            )
+                            .frame(width: selectedRect.width, height: selectedRect.height)
+                            .position(x: selectedRect.midX, y: selectedRect.midY)
+                            .gesture(moveGesture(imageRect: imageRect))
+
+                        ForEach(Corner.allCases, id: \.self) { corner in
+                            Circle()
+                                .fill(.white)
+                                .overlay(Circle().stroke(.black.opacity(0.24), lineWidth: 1))
+                                .frame(width: 24, height: 24)
+                                .shadow(color: .black.opacity(0.35), radius: 4, y: 1)
+                                .position(handlePoint(corner, in: selectedRect))
+                                .gesture(resizeGesture(corner: corner, imageRect: imageRect))
+                                .accessibilityLabel("调整取色范围")
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+                .frame(maxHeight: .infinity)
+                .padding(.horizontal, 18)
+
+                samplingPreview
+                    .padding(.horizontal, 18)
+
+                Button(role: .none, action: onReset) {
+                    Label("恢复整张照片取色", systemImage: "arrow.counterclockwise")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .padding(.horizontal, 18)
+                .padding(.bottom, 4)
+            }
+            .padding(.top, 12)
+            .navigationTitle("局部取色")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("应用") {
+                        let result = previewResult ?? Self.extractPalette(from: image, selection: selection)
+                        onApply(selection, result)
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .task(id: selection) {
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled else { return }
+            previewResult = Self.extractPalette(from: image, selection: selection)
+        }
+    }
+
+    @ViewBuilder
+    private var samplingPreview: some View {
+        if let previewResult {
+            let colors = previewResult.colors.isEmpty ? RGBColor.fallback : previewResult.colors
+            let percentages = previewResult.percentages
+            let solid = MotionCardColorTheme.resolve(
+                palette: colors.map {
+                    MotionCardColor(red: Double($0.red), green: Double($0.green), blue: Double($0.blue))
+                },
+                percentages: percentages
+            )
+            let gradient = MotionCardGradientTheme.resolve(
+                palette: colors.map {
+                    MotionCardColor(red: Double($0.red), green: Double($0.green), blue: Double($0.blue))
+                },
+                percentages: percentages
+            )
+            let previewColors = gradient.colors.map { Color(red: $0.red, green: $0.green, blue: $0.blue) }
+            HStack(spacing: 12) {
+                Group {
+                    if headerStyle == .sampledGradient {
+                        LinearGradient(colors: previewColors, startPoint: .leading, endPoint: .trailing)
+                    } else {
+                        Color(red: solid.background.red, green: solid.background.green, blue: solid.background.blue)
+                    }
+                }
+                .frame(height: 42)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                HStack(spacing: 4) {
+                    ForEach(Array(colors.prefix(4).enumerated()), id: \.offset) { _, color in
+                        Circle().fill(color.color).frame(width: 15, height: 15)
+                    }
+                }
+            }
+            .padding(10)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .accessibilityLabel("当前局部取色预览")
+        } else {
+            ProgressView("正在分析选区…")
+                .font(.footnote)
+                .frame(height: 62)
+        }
+    }
+
+    private func aspectFitRect(in available: CGSize) -> CGRect {
+        guard image.size.width > 0, image.size.height > 0 else {
+            return CGRect(origin: .zero, size: available)
+        }
+        let scale = min(available.width / image.size.width, available.height / image.size.height)
+        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        return CGRect(
+            x: (available.width - size.width) / 2,
+            y: (available.height - size.height) / 2,
+            width: size.width,
+            height: size.height
+        )
+    }
+
+    private func displayRect(in imageRect: CGRect) -> CGRect {
+        CGRect(
+            x: imageRect.minX + selection.minX * imageRect.width,
+            y: imageRect.minY + selection.minY * imageRect.height,
+            width: selection.width * imageRect.width,
+            height: selection.height * imageRect.height
+        )
+    }
+
+    private func handlePoint(_ corner: Corner, in rect: CGRect) -> CGPoint {
+        switch corner {
+        case .topLeft: CGPoint(x: rect.minX, y: rect.minY)
+        case .topRight: CGPoint(x: rect.maxX, y: rect.minY)
+        case .bottomLeft: CGPoint(x: rect.minX, y: rect.maxY)
+        case .bottomRight: CGPoint(x: rect.maxX, y: rect.maxY)
+        }
+    }
+
+    private func moveGesture(imageRect: CGRect) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                let start = gestureStart ?? selection
+                if gestureStart == nil { gestureStart = selection }
+                let dx = value.translation.width / max(imageRect.width, 1)
+                let dy = value.translation.height / max(imageRect.height, 1)
+                selection.origin.x = min(max(start.minX + dx, 0), 1 - start.width)
+                selection.origin.y = min(max(start.minY + dy, 0), 1 - start.height)
+            }
+            .onEnded { _ in gestureStart = nil }
+    }
+
+    private func resizeGesture(corner: Corner, imageRect: CGRect) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                let start = gestureStart ?? selection
+                if gestureStart == nil { gestureStart = selection }
+                let dx = value.translation.width / max(imageRect.width, 1)
+                let dy = value.translation.height / max(imageRect.height, 1)
+                selection = resized(start, corner: corner, dx: dx, dy: dy)
+            }
+            .onEnded { _ in gestureStart = nil }
+    }
+
+    private func resized(_ rect: CGRect, corner: Corner, dx: CGFloat, dy: CGFloat) -> CGRect {
+        let minimum: CGFloat = 0.12
+        var minX = rect.minX
+        var minY = rect.minY
+        var maxX = rect.maxX
+        var maxY = rect.maxY
+        switch corner {
+        case .topLeft:
+            minX = min(max(rect.minX + dx, 0), rect.maxX - minimum)
+            minY = min(max(rect.minY + dy, 0), rect.maxY - minimum)
+        case .topRight:
+            maxX = max(min(rect.maxX + dx, 1), rect.minX + minimum)
+            minY = min(max(rect.minY + dy, 0), rect.maxY - minimum)
+        case .bottomLeft:
+            minX = min(max(rect.minX + dx, 0), rect.maxX - minimum)
+            maxY = max(min(rect.maxY + dy, 1), rect.minY + minimum)
+        case .bottomRight:
+            maxX = max(min(rect.maxX + dx, 1), rect.minX + minimum)
+            maxY = max(min(rect.maxY + dy, 1), rect.minY + minimum)
+        }
+        return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+    }
+
+    private static func extractPalette(from image: UIImage, selection: CGRect) -> PaletteResult {
+        let normalized = CGRect(
+            x: min(max(selection.minX, 0), 1),
+            y: min(max(selection.minY, 0), 1),
+            width: min(max(selection.width, 0.01), 1 - min(max(selection.minX, 0), 1)),
+            height: min(max(selection.height, 0.01), 1 - min(max(selection.minY, 0), 1))
+        )
+        let sourceRect = CGRect(
+            x: normalized.minX * image.size.width,
+            y: normalized.minY * image.size.height,
+            width: normalized.width * image.size.width,
+            height: normalized.height * image.size.height
+        )
+        let maximumDimension: CGFloat = 512
+        let scale = min(1, maximumDimension / max(max(sourceRect.width, sourceRect.height), 1))
+        let outputSize = CGSize(
+            width: max(1, sourceRect.width * scale),
+            height: max(1, sourceRect.height * scale)
+        )
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let crop = UIGraphicsImageRenderer(size: outputSize, format: format).image { context in
+            UIColor.black.setFill()
+            context.fill(CGRect(origin: .zero, size: outputSize))
+            image.draw(in: CGRect(
+                x: -sourceRect.minX * scale,
+                y: -sourceRect.minY * scale,
+                width: image.size.width * scale,
+                height: image.size.height * scale
+            ))
+        }
+        return PaletteExtractor.extract(from: crop)
     }
 }

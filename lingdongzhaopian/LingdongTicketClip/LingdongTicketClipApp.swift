@@ -5,9 +5,11 @@ import SwiftUI
 
 @main
 struct LingdongTicketClipApp: App {
+    @StateObject private var launchModel = TicketClipLaunchModel()
+
     var body: some Scene {
         WindowGroup {
-            TicketClipRootView()
+            TicketClipRootView(launchModel: launchModel)
         }
     }
 }

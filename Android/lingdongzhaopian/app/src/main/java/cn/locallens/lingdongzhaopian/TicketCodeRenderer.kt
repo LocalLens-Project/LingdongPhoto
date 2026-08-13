@@ -31,6 +31,7 @@ object TicketCodeRenderer {
         pixelHeight: Int,
         foregroundColor: Int,
         backgroundColor: Int? = null,
+        signer: TicketEnvelopeSigner? = null,
     ): Bitmap = when (style) {
         TicketCodeStyle.Barcode -> rasterized(
             barcodeMatrix(TicketEnvelope.barcodeValue(payload)),
@@ -44,7 +45,7 @@ object TicketCodeRenderer {
         )
 
         TicketCodeStyle.VerificationQR -> rasterized(
-            qrMatrix(TicketEnvelope.invocationURL(payload, baseURLString)),
+            qrMatrix(TicketEnvelope.invocationURL(payload, baseURLString, signer)),
             pixelWidth,
             pixelHeight,
             horizontalPadding = 34,
@@ -59,6 +60,7 @@ object TicketCodeRenderer {
         style: TicketCodeStyle,
         payload: TicketPayload,
         baseURLString: String = TicketEnvelope.DEFAULT_BASE_URL,
+        signer: TicketEnvelopeSigner? = null,
     ): Bitmap {
         val canvasWidth = if (style == TicketCodeStyle.Barcode) 1_600 else 1_260
         val canvasHeight = if (style == TicketCodeStyle.Barcode) 920 else 1_520
@@ -87,6 +89,7 @@ object TicketCodeRenderer {
             pixelHeight = codeHeight,
             foregroundColor = codeColor,
             backgroundColor = null,
+            signer = signer,
         )
 
         val bitmap = Bitmap.createBitmap(canvasWidth, canvasHeight, Bitmap.Config.ARGB_8888)

@@ -324,51 +324,6 @@ struct AmbientBackground: View {
     }
 }
 
-struct FreeNoticeOverlay: View {
-    let dismiss: () -> Void
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.20)
-                .ignoresSafeArea()
-                .onTapGesture(perform: dismiss)
-
-            VStack(spacing: 18) {
-                ZStack {
-                    Circle()
-                        .fill(.white.opacity(0.24))
-                        .frame(width: 68, height: 68)
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 34, weight: .medium))
-                }
-
-                VStack(spacing: 8) {
-                    Text("灵动照片 · 完全免费")
-                        .font(.title3.bold())
-                    Text("本应用不收取任何订阅或功能费用。\n谨防付费下载、代购或订阅骗局。")
-                        .font(.subheadline)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                        .lineSpacing(4)
-                }
-
-                Button("我知道了", action: dismiss)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(.black, in: Capsule())
-            }
-            .padding(26)
-            .frame(maxWidth: 330)
-            .liquidGlass(in: RoundedRectangle(cornerRadius: 32, style: .continuous))
-            .padding(.horizontal, 24)
-        }
-        .transition(.opacity.combined(with: .scale(scale: 0.94)))
-        .zIndex(100)
-    }
-}
-
 struct FreePromisePill: View {
     var body: some View {
         HStack(spacing: 7) {

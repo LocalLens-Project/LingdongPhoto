@@ -24,6 +24,8 @@ struct ArtworkCanvas: View {
     var fontStyle: ArtworkFontStyle = .rounded
     var templateStyle: ArtworkTemplateStyle = .classic
     var motionCardHeaderStyle: MotionCardHeaderStyle = .solid
+    var motionCardHeaderPalette: [RGBColor]?
+    var motionCardHeaderPercentages: [Double]?
     var textScale: CGFloat = 1
     var bubbleScale: CGFloat = 1
     var paletteOffset: CGFloat = 0
@@ -44,8 +46,15 @@ struct ArtworkCanvas: View {
     var ticketCodeStyle: TicketCodeStyle = .barcode
     var ticketLayout: TicketLayoutStyle = .classic
     var ticketAppClipBaseURL: String = TicketEnvelope.configuredBaseURLString
+    var ticketDeviceSealEnabled = true
+    var sketchImage: UIImage? = nil
 
     private var colors: [RGBColor] {
+        let base = palette.isEmpty ? RGBColor.fallback : palette
+        return motionCardHeaderPalette ?? base
+    }
+
+    private var paletteSwatchColors: [RGBColor] {
         palette.isEmpty ? RGBColor.fallback : palette
     }
 
@@ -117,6 +126,8 @@ struct ArtworkCanvas: View {
             privacyMosaic(size: size)
         case .travelTicket:
             travelTicket(size: size)
+        case .sketch:
+            sketch(size: size)
         }
     }
 
@@ -158,6 +169,12 @@ struct ArtworkCanvas: View {
         let stubWidth = ticketWidth * (
             ticketCodeStyle == .verificationQR ? 0.335 : 0.285
         )
+        let referenceHeight = size.width * 9.0 / 21.0
+        let heightScale = max(1.0, size.height / referenceHeight)
+        let fontScaleFactor = sqrt(heightScale)
+        let verticalPadding = contentInset * 0.80 * heightScale
+        let scallopRadius = ticketHeight / CGFloat(max(1, 7)) * 0.50
+        let textMaxWidth = stubWidth - scallopRadius - contentInset * 0.80 * 2
 
         return ZStack(alignment: .leading) {
             primaryPhoto(
@@ -171,34 +188,34 @@ struct ArtworkCanvas: View {
             )
             .frame(width: stubWidth, height: ticketHeight)
 
-            VStack(alignment: .center, spacing: max(3, size.height * 0.018)) {
+            VStack(alignment: .center, spacing: max(3, size.height * 0.018 * heightScale)) {
                 if let headerTitle = ticketPayload.headerTitle,
                    !headerTitle.isEmpty {
                     Text(headerTitle)
                         .font(.system(
-                            size: max(9, size.width * 0.027),
+                            size: max(9, size.width * 0.027) * fontScaleFactor,
                             weight: .black,
                             design: .rounded
                         ))
-                        .lineLimit(1)
+                        .lineLimit(3)
                         .minimumScaleFactor(0.62)
                         .multilineTextAlignment(.center)
                         .tracking(max(0.6, size.width * 0.003))
-                        .frame(maxWidth: .infinity)
+                        .frame(width: textMaxWidth)
                 }
 
                 Text(ticketPayload.title)
                     .font(fontStyle.font(
-                        size: max(7, size.width * 0.014) * textScale,
+                        size: max(7, size.width * 0.014) * textScale * fontScaleFactor,
                         weight: .semibold
                     ))
-                    .lineLimit(1)
+                    .lineLimit(3)
                     .minimumScaleFactor(0.62)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(foreground.color.opacity(0.72))
-                    .frame(maxWidth: .infinity)
+                    .frame(width: textMaxWidth)
 
-                VStack(alignment: .center, spacing: max(2, size.height * 0.007)) {
+                VStack(alignment: .center, spacing: max(2, size.height * 0.007 * heightScale)) {
                     if let time = ticketPayload.captureTime {
                         Text(time)
                             .lineLimit(1)
@@ -214,12 +231,12 @@ struct ArtworkCanvas: View {
                         .minimumScaleFactor(0.70)
                 }
                 .font(.system(
-                    size: max(6, size.width * 0.0108),
+                    size: max(6, size.width * 0.0108) * fontScaleFactor,
                     weight: .semibold,
                     design: .rounded
                 ))
                 .foregroundStyle(foreground.color.opacity(0.70))
-                .frame(maxWidth: .infinity)
+                .frame(width: textMaxWidth)
 
                 Spacer(minLength: 2)
 
@@ -236,7 +253,8 @@ struct ArtworkCanvas: View {
             }
             .foregroundStyle(foreground.color)
             .padding(.horizontal, contentInset * 0.80)
-            .padding(.vertical, contentInset * 0.80)
+            .padding(.top, verticalPadding + (heightScale > 1.0 ? contentInset * 0.3 * (heightScale - 1.0) : 0))
+            .padding(.bottom, verticalPadding)
             .frame(width: stubWidth, height: ticketHeight, alignment: .center)
         }
         .frame(width: ticketWidth, height: ticketHeight)
@@ -423,6 +441,7 @@ struct ArtworkCanvas: View {
             for: ticketCodeStyle,
             payload: ticketPayload,
             baseURLString: ticketAppClipBaseURL,
+            signer: ticketDeviceSealEnabled ? TicketDeviceSealService.shared : nil,
             pixelSize: codePixelSize,
             foregroundColor: UIColor(
                 red: foreground.red,
@@ -497,7 +516,7 @@ struct ArtworkCanvas: View {
 
     private var ticketPaletteDots: some View {
         HStack(spacing: 5) {
-            ForEach(Array(colors.prefix(6).enumerated()), id: \.offset) { _, color in
+            ForEach(Array(paletteSwatchColors.prefix(6).enumerated()), id: \.offset) { _, color in
                 Circle()
                     .fill(color.color)
                     .frame(width: 10, height: 10)
@@ -521,15 +540,17 @@ struct ArtworkCanvas: View {
     }
 
     private func motionCard(size: CGSize) -> some View {
+        let headerColors = motionCardHeaderPalette.flatMap { $0.isEmpty ? nil : $0 } ?? colors
+        let headerPercentages = motionCardHeaderPercentages ?? palettePercentages
         let theme = MotionCardColorTheme.resolve(
-            palette: colors.map {
+            palette: headerColors.map {
                 MotionCardColor(
                     red: Double($0.red),
                     green: Double($0.green),
                     blue: Double($0.blue)
                 )
             },
-            percentages: palettePercentages
+            percentages: headerPercentages
         )
         let background = RGBColor(
             red: CGFloat(theme.background.red),
@@ -542,14 +563,14 @@ struct ArtworkCanvas: View {
             blue: CGFloat(theme.foreground.blue)
         )
         let gradientTheme = MotionCardGradientTheme.resolve(
-            palette: colors.map {
+            palette: headerColors.map {
                 MotionCardColor(
                     red: Double($0.red),
                     green: Double($0.green),
                     blue: Double($0.blue)
                 )
             },
-            percentages: palettePercentages
+            percentages: headerPercentages
         )
         let gradientColors = gradientTheme.colors.map {
             Color(
@@ -659,7 +680,7 @@ struct ArtworkCanvas: View {
         let panel = Group {
             if isCompact {
                 HStack(spacing: 4) {
-                    ForEach(Array(colors.prefix(6).enumerated()), id: \.offset) { index, color in
+                    ForEach(Array(paletteSwatchColors.prefix(6).enumerated()), id: \.offset) { index, color in
                         paletteSwatch(
                             index: index,
                             color: color,
@@ -673,7 +694,7 @@ struct ArtworkCanvas: View {
             } else {
                 let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
                 LazyVGrid(columns: columns, spacing: 11) {
-                    ForEach(Array(colors.prefix(6).enumerated()), id: \.offset) { index, color in
+                    ForEach(Array(paletteSwatchColors.prefix(6).enumerated()), id: \.offset) { index, color in
                         paletteSwatch(
                             index: index,
                             color: color,
@@ -697,14 +718,14 @@ struct ArtworkCanvas: View {
             panel
                 .background(.white.opacity(0.34), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .palettePanelOutline(colors: colors)
+                .palettePanelOutline(colors: paletteSwatchColors)
         } else {
             panel
                 .liquidGlass(
                     in: RoundedRectangle(cornerRadius: 22, style: .continuous),
                     variant: .clear
                 )
-                .palettePanelOutline(colors: colors)
+                .palettePanelOutline(colors: paletteSwatchColors)
         }
     }
 
@@ -1060,6 +1081,18 @@ struct ArtworkCanvas: View {
                     }
             }
         }
+        .frame(width: size.width, height: size.height)
+    }
+
+    @ViewBuilder
+    private func sketch(size: CGSize) -> some View {
+        SketchCanvas(
+            sourceImage: images.first,
+            sketchImage: sketchImage,
+            imageScale: imageScale,
+            imageOffset: imageOffset,
+            isExporting: isExporting
+        )
         .frame(width: size.width, height: size.height)
     }
 

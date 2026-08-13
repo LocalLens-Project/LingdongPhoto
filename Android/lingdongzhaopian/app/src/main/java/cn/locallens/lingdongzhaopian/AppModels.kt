@@ -72,7 +72,8 @@ enum class CreationMode(
 
 enum class ArtworkRatio(val label: String, val value: Float) {
     Original("原图", .75f), OneOne("1:1", 1f), ThreeFour("3:4", .75f), FourFive("4:5", .8f),
-    NineSixteen("9:16", 9f / 16f), SixteenNine("16:9", 16f / 9f), TwentyOneNine("21:9", 21f / 9f);
+    FourThree("4:3", 4f / 3f), NineSixteen("9:16", 9f / 16f), SixteenNine("16:9", 16f / 9f),
+    TwentyOneNine("21:9", 21f / 9f);
 
     fun valueFor(bitmap: Bitmap?): Float = if (this == Original && bitmap != null && bitmap.height > 0) {
         (bitmap.width.toFloat() / bitmap.height.toFloat()).coerceIn(.35f, 2.4f)
@@ -165,6 +166,12 @@ data class PhotoMetadata(
      */
     val placeName: String? = null,
 ) {
+    companion object {
+        val nowText: String
+            get() = DateTimeFormatter.ofPattern("yyyy/MM/dd, HH:mm")
+                .withZone(ZoneId.systemDefault()).format(Instant.now())
+    }
+
     val hasLocation: Boolean get() = latitude != null && longitude != null
 
     val locationText: String?
@@ -246,6 +253,15 @@ data class SelectedPhoto(
     val isMotionPhoto: Boolean get() = motionVideoFile?.isFile == true
 }
 data class JournalTransform(val scale: Float = 1f, val offset: Offset = Offset.Zero)
+data class NormalizedColorSampleRect(
+    val left: Float,
+    val top: Float,
+    val width: Float,
+    val height: Float,
+) {
+    val right: Float get() = left + width
+    val bottom: Float get() = top + height
+}
 data class PrivacyMask(
     val kind: PrivacyMaskKind,
     val left: Float,
@@ -267,6 +283,7 @@ data class AppPreferences(
     val preservePaletteBackground: Boolean = true,
     val applyLiquidGlassOnExport: Boolean = true,
     val showMoodCopy: Boolean = false,
+    val showMissingCaptureTime: Boolean = true,
     val supportsMotionPhotos: Boolean = true,
     val paletteLayout: PaletteLayoutMode = PaletteLayoutMode.Floating,
     val templateStyle: ArtworkTemplateStyle = ArtworkTemplateStyle.Classic,
@@ -278,12 +295,16 @@ data class AppPreferences(
     val exportDestination: ExportDestination = ExportDestination.PhotoLibrary,
     val ticketCodeStyle: TicketCodeStyle = TicketCodeStyle.Barcode,
     val ticketLayout: TicketLayoutStyle = TicketLayoutStyle.Classic,
+    val ticketCanvasWidth: TicketCanvasWidthMode = TicketCanvasWidthMode.Compact,
+    val ticketNarrativeStyle: TicketNarrativeStyle = TicketNarrativeStyle.Standard,
+    val ticketNarrativePerspective: TicketNarrativePerspective = TicketNarrativePerspective.Self,
     val ticketShowCopy: Boolean = true,
     val ticketShowDate: Boolean = true,
     val ticketShowPlace: Boolean = false,
     val ticketShowDevice: Boolean = true,
     val ticketShowParameters: Boolean = true,
     val ticketShowPalette: Boolean = true,
+    val ticketDeviceSealEnabled: Boolean = true,
     val ticketHeaderMode: TicketHeaderMode = TicketHeaderMode.Custom,
     val ticketCustomHeader: String = "LINGDONG",
     val ticketCityNameStyle: TicketCityNameStyle = TicketCityNameStyle.Pinyin,
@@ -295,9 +316,16 @@ data class AppUiState(
     val photos: List<SelectedPhoto> = emptyList(),
     val palette: List<RGBColor> = RGBColor.fallback,
     val palettePercentages: List<Double> = List(6) { 0.0 },
+    val motionCardSamplingRect: NormalizedColorSampleRect? = null,
+    val motionCardLocalPalette: List<RGBColor>? = null,
+    val motionCardLocalPercentages: List<Double>? = null,
+    val ticketSamplingRect: NormalizedColorSampleRect? = null,
+    val ticketLocalPalette: List<RGBColor>? = null,
+    val ticketLocalPercentages: List<Double>? = null,
     val artworkCopy: ArtworkCopy = ArtworkCopy(),
     val ticketMessage: String = "",
     val ticketSessionID: Long = 0L,
+    val ticketSealedAt: String = PhotoMetadata.nowText,
     val preferences: AppPreferences = AppPreferences(),
     val isLoading: Boolean = false,
     val loadingStatus: String = "",
@@ -318,14 +346,19 @@ data class AppUiState(
     val motionPreviewFrames: Map<Int, Bitmap> = emptyMap(),
     val isMotionPlaying: Boolean = false,
     val isExporting: Boolean = false,
-    val noticeAcknowledged: Boolean = false,
-    val updateLog102Acknowledged: Boolean = false,
+    val publicGoodsAcknowledged: Boolean = false,
+    val updateLog200Acknowledged: Boolean = false,
 )
 
 fun AppUiState.bitmapAt(index: Int): Bitmap? =
     motionPreviewFrames[index] ?: photos.getOrNull(index)?.bitmap
 
-/** Public ticket contents derived from the current photo, palette and privacy switches. */
+val AppUiState.activePalette: List<RGBColor>
+    get() = motionCardLocalPalette ?: ticketLocalPalette ?: palette
+
+val AppUiState.activePalettePercentages: List<Double>
+    get() = motionCardLocalPercentages ?: ticketLocalPercentages ?: palettePercentages
+
 val AppUiState.ticketPayload: TicketPayload
     get() {
         val preferences = preferences
@@ -333,9 +366,11 @@ val AppUiState.ticketPayload: TicketPayload
         val metadata = photo?.metadata ?: PhotoMetadata()
         val signature = photo?.contentSignature?.takeIf { it != 0L }
             ?: (artworkCopy.title.hashCode().toLong() shl 32) xor palette.hashCode().toLong()
+        val ticketPalette = activePalette
+        val ticketPercentages = activePalettePercentages
         val entries = if (preferences.ticketShowPalette) {
-            palette.take(6).mapIndexed { index, color ->
-                TicketPaletteEntry(color.hex, palettePercentages.getOrElse(index) { 0.0 })
+            ticketPalette.take(6).mapIndexed { index, color ->
+                TicketPaletteEntry(color.hex, ticketPercentages.getOrElse(index) { 0.0 })
             }
         } else emptyList()
         val headerTitle = when (preferences.ticketHeaderMode) {
@@ -358,6 +393,9 @@ val AppUiState.ticketPayload: TicketPayload
             captureSettings = if (preferences.ticketShowParameters) metadata.ticketCaptureSettingsLine else null,
             palette = entries,
             revealLayout = preferences.ticketLayout.revealLayout,
+            style = preferences.ticketNarrativeStyle.wireValue,
+            narrative = preferences.ticketNarrativePerspective.wireValue,
+            sealedAt = ticketSealedAt,
         )
     }
 

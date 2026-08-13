@@ -1,0 +1,31 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Android 机器人：半圆头（flat side 朝下）+ 两只白点眼睛 + 两根天线 -->
+    <!-- 半圆头：宽16高8，水平居中，直径在底部 -->
+    <path
+        android:fillColor="#1FA254"
+        android:pathData="M4,18 L20,18 A8,8 0 0,0 4,18 Z" />
+    <!-- 天线：左上 -->
+    <path
+        android:strokeColor="#1FA254"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M7.5,11 L3,4" />
+    <!-- 天线：右上 -->
+    <path
+        android:strokeColor="#1FA254"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M16.5,11 L21,4" />
+    <!-- 左眼 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M9,15.5 m-1.2,0 a1.2,1.2 0 1,1 2.4,0 a1.2,1.2 0 1,1 -2.4,0" />
+    <!-- 右眼 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M15,15.5 m-1.2,0 a1.2,1.2 0 1,1 2.4,0 a1.2,1.2 0 1,1 -2.4,0" />
+</vector>

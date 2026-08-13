@@ -39,6 +39,14 @@ import kotlin.coroutines.resumeWithException
 data class ExportedArtwork(val file: File, val bytes: ByteArray, val fileName: String, val mime: String)
 
 object ExportManager {
+    internal fun encodePng(context: Context, bitmap: Bitmap, namePrefix: String): ExportedArtwork {
+        val timestamp = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault()).format(Instant.now())
+        val fileName = "$namePrefix-$timestamp.png"
+        val file = File(context.cacheDir, fileName)
+        FileOutputStream(file).use { check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+        return ExportedArtwork(file, file.readBytes(), fileName, "image/png")
+    }
+
     suspend fun captureAndEncode(context: Context, view: View, bounds: Rect, state: AppUiState): ExportedArtwork {
         require(bounds.width > 0f && bounds.height > 0f) { "作品画布尺寸无效" }
         val dimensions = exportDimensions(

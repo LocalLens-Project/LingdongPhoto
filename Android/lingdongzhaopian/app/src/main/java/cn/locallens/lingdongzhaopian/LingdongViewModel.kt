@@ -23,8 +23,8 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
     private val _state = MutableStateFlow(
         AppUiState(
             preferences = readPreferences(),
-            noticeAcknowledged = prefs.getBoolean("noticeAcknowledged", false),
-            updateLog102Acknowledged = prefs.getBoolean("updateLogAcknowledged_1_0_2", false),
+            publicGoodsAcknowledged = prefs.getBoolean(PUBLIC_GOODS_ACKNOWLEDGED_KEY, false),
+            updateLog200Acknowledged = prefs.getBoolean(UPDATE_200_ACKNOWLEDGED_KEY, false),
         )
     )
     val state: StateFlow<AppUiState> = _state.asStateFlow()
@@ -32,14 +32,17 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
     private var privacyHistory = mutableListOf<Pair<List<PrivacyMask>, List<PrivacyStroke>>>()
     private var motionPlaybackJob: Job? = null
 
-    fun acknowledgeNotice() {
-        prefs.edit().putBoolean("noticeAcknowledged", true).apply()
-        update { it.copy(noticeAcknowledged = true) }
+    fun acknowledgePublicGoods() {
+        prefs.edit()
+            .putBoolean(PUBLIC_GOODS_ACKNOWLEDGED_KEY, true)
+            .putBoolean("noticeAcknowledged", true)
+            .apply()
+        update { it.copy(publicGoodsAcknowledged = true) }
     }
 
-    fun acknowledgeUpdateLog102() {
-        prefs.edit().putBoolean("updateLogAcknowledged_1_0_2", true).apply()
-        update { it.copy(updateLog102Acknowledged = true) }
+    fun acknowledgeUpdateLog200() {
+        prefs.edit().putBoolean(UPDATE_200_ACKNOWLEDGED_KEY, true).apply()
+        update { it.copy(updateLog200Acknowledged = true) }
     }
 
     fun setMode(mode: CreationMode) {
@@ -48,7 +51,9 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
         it.copy(
             mode = mode,
             ratio = if (mode == CreationMode.TravelTicket) {
-                it.preferences.ticketLayout.defaultRatio
+                if (it.preferences.ticketLayout == TicketLayoutStyle.Classic) {
+                    it.preferences.ticketCanvasWidth.ratio
+                } else it.preferences.ticketLayout.defaultRatio
             } else mode.defaultRatio,
             imageScale = 1f,
             imageOffset = Offset.Zero,
@@ -65,7 +70,19 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
         setPreferences(state.value.preferences.copy(ticketLayout = value))
         update { current ->
             if (current.mode == CreationMode.TravelTicket) {
-                current.copy(ratio = value.defaultRatio, imageScale = 1f, imageOffset = Offset.Zero)
+                val ratio = if (value == TicketLayoutStyle.Classic) {
+                    current.preferences.ticketCanvasWidth.ratio
+                } else value.defaultRatio
+                current.copy(ratio = ratio, imageScale = 1f, imageOffset = Offset.Zero)
+            } else current
+        }
+    }
+
+    fun setTicketCanvasWidth(value: TicketCanvasWidthMode) {
+        setPreferences(state.value.preferences.copy(ticketCanvasWidth = value))
+        update { current ->
+            if (current.mode == CreationMode.TravelTicket && current.preferences.ticketLayout == TicketLayoutStyle.Classic) {
+                current.copy(ratio = value.ratio, imageScale = 1f, imageOffset = Offset.Zero)
             } else current
         }
     }
@@ -100,11 +117,18 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
                         photos = photos,
                         palette = paletteResult.colors,
                         palettePercentages = paletteResult.percentages,
+                        motionCardSamplingRect = null,
+                        motionCardLocalPalette = null,
+                        motionCardLocalPercentages = null,
+                        ticketSamplingRect = null,
+                        ticketLocalPalette = null,
+                        ticketLocalPercentages = null,
                         artworkCopy = copy,
                         ticketMessage = if (!append && replaceIndex == null) "" else it.ticketMessage,
                         ticketSessionID = if (!append && replaceIndex == null) {
                             it.ticketSessionID + 1L
                         } else it.ticketSessionID,
+                        ticketSealedAt = if (!append && replaceIndex == null) PhotoMetadata.nowText else it.ticketSealedAt,
                         isLoading = false,
                         loadingStatus = "",
                         imageScale = 1f,
@@ -185,6 +209,46 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setPaletteOffset(value: Float) = update { it.copy(paletteOffset = value) }
+    fun applyMotionCardSampling(rect: NormalizedColorSampleRect, result: PaletteResult) = update {
+        it.copy(
+            motionCardSamplingRect = rect,
+            motionCardLocalPalette = result.colors,
+            motionCardLocalPercentages = result.percentages,
+            ticketSamplingRect = rect,
+            ticketLocalPalette = result.colors,
+            ticketLocalPercentages = result.percentages,
+        )
+    }
+    fun resetMotionCardSampling() = update {
+        it.copy(
+            motionCardSamplingRect = null,
+            motionCardLocalPalette = null,
+            motionCardLocalPercentages = null,
+            ticketSamplingRect = null,
+            ticketLocalPalette = null,
+            ticketLocalPercentages = null,
+        )
+    }
+    fun applyTicketSampling(rect: NormalizedColorSampleRect, result: PaletteResult) = update {
+        it.copy(
+            ticketSamplingRect = rect,
+            ticketLocalPalette = result.colors,
+            ticketLocalPercentages = result.percentages,
+            motionCardSamplingRect = rect,
+            motionCardLocalPalette = result.colors,
+            motionCardLocalPercentages = result.percentages,
+        )
+    }
+    fun resetTicketSampling() = update {
+        it.copy(
+            ticketSamplingRect = null,
+            ticketLocalPalette = null,
+            ticketLocalPercentages = null,
+            motionCardSamplingRect = null,
+            motionCardLocalPalette = null,
+            motionCardLocalPercentages = null,
+        )
+    }
     fun setBubbleScale(value: Float) = update { it.copy(bubbleScale = value.coerceIn(.45f, 2.1f)) }
     fun setTextScale(value: Float) = update { it.copy(textScale = value.coerceIn(.65f, 1.75f)) }
     fun setFontStyle(value: ArtworkFontStyle) = update { it.copy(fontStyle = value) }
@@ -323,6 +387,7 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
         preservePaletteBackground = prefs.getBoolean("preservePaletteBackground", true),
         applyLiquidGlassOnExport = prefs.getBoolean("applyLiquidGlassOnExport", true),
         showMoodCopy = prefs.getBoolean("showMoodCopy", false),
+        showMissingCaptureTime = prefs.getBoolean("showMissingCaptureTime", true),
         supportsMotionPhotos = prefs.getBoolean("supportsMotionPhotos", true),
         paletteLayout = enumValueOrDefault(prefs.getString("paletteLayout", null), PaletteLayoutMode.Floating),
         templateStyle = enumValueOrDefault(prefs.getString("templateStyle", null), ArtworkTemplateStyle.Classic),
@@ -334,12 +399,16 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
         exportDestination = enumValueOrDefault(prefs.getString("exportDestination", null), ExportDestination.PhotoLibrary),
         ticketCodeStyle = enumValueOrDefault(prefs.getString("ticketCodeStyle", null), TicketCodeStyle.Barcode),
         ticketLayout = enumValueOrDefault(prefs.getString("ticketLayout", null), TicketLayoutStyle.Classic),
+        ticketCanvasWidth = enumValueOrDefault(prefs.getString("ticketCanvasWidth", null), TicketCanvasWidthMode.Compact),
+        ticketNarrativeStyle = enumValueOrDefault(prefs.getString("ticketNarrativeStyle", null), TicketNarrativeStyle.Standard),
+        ticketNarrativePerspective = enumValueOrDefault(prefs.getString("ticketNarrativePerspective", null), TicketNarrativePerspective.Self),
         ticketShowCopy = prefs.getBoolean("ticketShowCopy", true),
         ticketShowDate = prefs.getBoolean("ticketShowDate", true),
         ticketShowPlace = prefs.getBoolean("ticketShowPlace", false),
         ticketShowDevice = prefs.getBoolean("ticketShowDevice", true),
         ticketShowParameters = prefs.getBoolean("ticketShowParameters", true),
         ticketShowPalette = prefs.getBoolean("ticketShowPalette", true),
+        ticketDeviceSealEnabled = prefs.getBoolean("ticketDeviceSealEnabled", true),
         ticketHeaderMode = enumValueOrDefault(prefs.getString("ticketHeaderMode", null), TicketHeaderMode.Custom),
         ticketCustomHeader = prefs.getString("ticketCustomHeader", null) ?: "LINGDONG",
         ticketCityNameStyle = enumValueOrDefault(prefs.getString("ticketCityNameStyle", null), TicketCityNameStyle.Pinyin),
@@ -360,6 +429,7 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
             .putBoolean("preservePaletteBackground", value.preservePaletteBackground)
             .putBoolean("applyLiquidGlassOnExport", value.applyLiquidGlassOnExport)
             .putBoolean("showMoodCopy", value.showMoodCopy)
+            .putBoolean("showMissingCaptureTime", value.showMissingCaptureTime)
             .putBoolean("supportsMotionPhotos", value.supportsMotionPhotos)
             .putString("paletteLayout", value.paletteLayout.name)
             .putString("templateStyle", value.templateStyle.name)
@@ -371,12 +441,16 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
             .putString("exportDestination", value.exportDestination.name)
             .putString("ticketCodeStyle", value.ticketCodeStyle.name)
             .putString("ticketLayout", value.ticketLayout.name)
+            .putString("ticketCanvasWidth", value.ticketCanvasWidth.name)
+            .putString("ticketNarrativeStyle", value.ticketNarrativeStyle.name)
+            .putString("ticketNarrativePerspective", value.ticketNarrativePerspective.name)
             .putBoolean("ticketShowCopy", value.ticketShowCopy)
             .putBoolean("ticketShowDate", value.ticketShowDate)
             .putBoolean("ticketShowPlace", value.ticketShowPlace)
             .putBoolean("ticketShowDevice", value.ticketShowDevice)
             .putBoolean("ticketShowParameters", value.ticketShowParameters)
             .putBoolean("ticketShowPalette", value.ticketShowPalette)
+            .putBoolean("ticketDeviceSealEnabled", value.ticketDeviceSealEnabled)
             .putString("ticketHeaderMode", value.ticketHeaderMode.name)
             .putString("ticketCustomHeader", value.ticketCustomHeader)
             .putString("ticketCityNameStyle", value.ticketCityNameStyle.name)
@@ -391,5 +465,10 @@ class LingdongViewModel(application: Application) : AndroidViewModel(application
         stopMotionPreview()
         state.value.photos.mapNotNull { it.motionVideoFile }.forEach { it.delete() }
         super.onCleared()
+    }
+
+    private companion object {
+        const val PUBLIC_GOODS_ACKNOWLEDGED_KEY = "publicGoodsCommitmentAcknowledged"
+        const val UPDATE_200_ACKNOWLEDGED_KEY = "updateLogAcknowledged_2_0_0"
     }
 }

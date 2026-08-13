@@ -33,10 +33,8 @@ android {
         applicationId = "cn.locallens.lingdongzhaopian"
         minSdk = 33
         targetSdk = 36
-        // Keep the Android package code monotonic so previous releases can update in place.
-        // The user-facing release build number for version 1.0.2 starts again at Build 1.
-        versionCode = 5
-        versionName = "1.0.2"
+        versionCode = 202608
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

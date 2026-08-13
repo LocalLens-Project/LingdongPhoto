@@ -16,12 +16,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.ConfirmationNumber
+import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.Compare
 import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Visibility
@@ -56,7 +59,10 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun ModeSelectionSheet(
     selectedMode: CreationMode,
+    relationshipSelected: Boolean = false,
     onSelect: (CreationMode) -> Unit,
+    onOpenAlbum: () -> Unit,
+    onOpenRelationship: () -> Unit,
     onScanTicket: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -93,13 +99,83 @@ fun ModeSelectionSheet(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        AlbumModeCard(onOpenAlbum, Modifier.weight(1f))
+                        RelationshipModeCard(relationshipSelected, onOpenRelationship, Modifier.weight(1f))
+                    }
+                }
+                item(span = { GridItemSpan(maxLineSpan) }) { ScanTicketCard(onScanTicket) }
                 items(CreationMode.entries.size) { index ->
                     val mode = CreationMode.entries[index]
-                    ModeCard(mode, selected = mode == selectedMode) { onSelect(mode) }
+                    ModeCard(mode, selected = !relationshipSelected && mode == selectedMode) { onSelect(mode) }
                 }
-                item { ScanTicketCard(onScanTicket) }
             }
         }
+    }
+}
+
+@Composable
+private fun RelationshipModeCard(selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .heightIn(min = 132.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(if (selected) Color.Black.copy(alpha = .075f) else Color.White)
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(42.dp).background(Color(0xFFD9B0A9).copy(alpha = .45f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Outlined.Compare, null, Modifier.size(21.dp), tint = Color.Black.copy(alpha = .82f))
+            }
+            Spacer(Modifier.weight(1f))
+            if (selected) Icon(Icons.Default.Check, null, Modifier.size(19.dp), tint = Color(0xFF007AFF))
+        }
+        Text("色彩关系", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(
+            "选择两张照片，观察它们的共鸣、对照与色彩过渡",
+            color = Color.Black.copy(alpha = .55f),
+            fontSize = 11.sp,
+            lineHeight = 14.sp,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun AlbumModeCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .heightIn(min = 132.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White)
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            Modifier.size(42.dp).background(Color(0xFFA8D7B6).copy(alpha = .45f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Outlined.Book, null, Modifier.size(21.dp), tint = Color.Black.copy(alpha = .82f))
+        }
+        Text("影像相簿", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(
+            "选择模板与尺寸，把普通照片或灵动作品装订成可打印 PDF",
+            color = Color.Black.copy(alpha = .55f),
+            fontSize = 11.sp,
+            lineHeight = 14.sp,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -139,15 +215,16 @@ private fun ModeCard(mode: CreationMode, selected: Boolean, onClick: () -> Unit)
 
 @Composable
 private fun ScanTicketCard(onClick: () -> Unit) {
-    Column(
+    Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 132.dp)
+            .heightIn(min = 86.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Color.White)
             .clickable(onClick = onClick)
             .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(13.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             Modifier.size(42.dp).background(Color(0xFFAADDFF).copy(alpha = .45f), CircleShape),
@@ -155,15 +232,17 @@ private fun ScanTicketCard(onClick: () -> Unit) {
         ) {
             Icon(Icons.Outlined.QrCodeScanner, null, Modifier.size(21.dp), tint = Color.Black.copy(alpha = .82f))
         }
-        Text("扫描验证票根", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Text(
-            "打开相机扫描二维码，在本机查看票根验证结果",
-            color = Color.Black.copy(alpha = .55f),
-            fontSize = 11.sp,
-            lineHeight = 14.sp,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("扫描验证票根", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "打开相机扫描二维码，在本机查看票根验证结果",
+                color = Color.Black.copy(alpha = .55f),
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -172,6 +251,7 @@ private fun ScanTicketCard(onClick: () -> Unit) {
 fun TicketEditorControls(
     state: AppUiState,
     onLayout: (TicketLayoutStyle) -> Unit,
+    onWidth: (TicketCanvasWidthMode) -> Unit,
     onCodeStyle: (TicketCodeStyle) -> Unit,
     onOpenStudio: () -> Unit,
     modifier: Modifier = Modifier,
@@ -191,6 +271,9 @@ fun TicketEditorControls(
                     onLayout = onLayout,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (state.preferences.ticketLayout == TicketLayoutStyle.Classic) {
+                    TicketWidthControl(state.preferences.ticketCanvasWidth, onWidth)
+                }
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -213,33 +296,60 @@ fun TicketEditorControls(
                 )
             }
         } else {
-            Row(
-                Modifier.fillMaxWidth().padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                TicketLayoutControl(
-                    state = state,
-                    expanded = layoutMenuExpanded,
-                    onExpandedChange = { layoutMenuExpanded = it },
-                    onLayout = onLayout,
-                    modifier = Modifier.weight(1f),
-                )
-                TicketCodeStyle.entries.forEach { style ->
-                    TicketCodeControl(
-                        style = style,
-                        selected = style == state.preferences.ticketCodeStyle,
-                        expanded = false,
-                        onClick = { onCodeStyle(style) },
-                        modifier = Modifier.width(43.dp),
+            Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    TicketLayoutControl(
+                        state = state,
+                        expanded = layoutMenuExpanded,
+                        onExpandedChange = { layoutMenuExpanded = it },
+                        onLayout = onLayout,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TicketCodeStyle.entries.forEach { style ->
+                        TicketCodeControl(
+                            style = style,
+                            selected = style == state.preferences.ticketCodeStyle,
+                            expanded = false,
+                            onClick = { onCodeStyle(style) },
+                            modifier = Modifier.width(43.dp),
+                        )
+                    }
+                    TicketPlainControl(
+                        icon = Icons.Outlined.Visibility,
+                        label = "预览与公开信息",
+                        onClick = onOpenStudio,
+                        modifier = Modifier.weight(1.38f),
                     )
                 }
-                TicketPlainControl(
-                    icon = Icons.Outlined.Visibility,
-                    label = "预览与公开信息",
-                    onClick = onOpenStudio,
-                    modifier = Modifier.weight(1.38f),
-                )
+                if (state.preferences.ticketLayout == TicketLayoutStyle.Classic) {
+                    TicketWidthControl(state.preferences.ticketCanvasWidth, onWidth)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TicketWidthControl(selected: TicketCanvasWidthMode, onWidth: (TicketCanvasWidthMode) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.Black.copy(alpha = .055f)).padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        TicketCanvasWidthMode.entries.forEach { width ->
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (width == selected) Color.White.copy(alpha = .82f) else Color.Transparent)
+                    .clickable { onWidth(width) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(width.label, fontSize = 12.sp, fontWeight = if (width == selected) FontWeight.Bold else FontWeight.Medium)
             }
         }
     }

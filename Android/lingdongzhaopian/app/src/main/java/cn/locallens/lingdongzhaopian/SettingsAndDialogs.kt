@@ -1,7 +1,10 @@
 package cn.locallens.lingdongzhaopian
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +33,7 @@ import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.BubbleChart
 import androidx.compose.material.icons.outlined.CameraRoll
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Circle
@@ -40,6 +44,7 @@ import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Crop
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FormatColorText
 import androidx.compose.material.icons.outlined.FormatQuote
@@ -55,6 +60,7 @@ import androidx.compose.material.icons.outlined.MotionPhotosOn
 import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Percent
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.PhoneIphone
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.PrivacyTip
@@ -93,6 +99,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -112,6 +119,13 @@ fun SettingsScreen(
     @Suppress("UNUSED_PARAMETER") onClose: () -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+
+    fun copyValue(label: String, value: String, success: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(label, value))
+        Toast.makeText(context, success, Toast.LENGTH_SHORT).show()
+    }
 
     Column(Modifier.fillMaxSize().background(SettingsBackground)) {
         Box(
@@ -127,27 +141,14 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
             item {
-                SettingsSection("免费承诺") {
-                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("灵动照片", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                            Text(
-                                "完全免费",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.border(1.dp, Color.Black.copy(alpha = .65f), CircleShape)
-                                    .padding(horizontal = 8.dp, vertical = 3.dp),
-                            )
-                        }
-                        Text("无试用期、无订阅、无内购、无隐藏收费", fontSize = 14.sp)
-                        Box(
-                            Modifier.fillMaxWidth().height(48.dp).background(Color.Black, CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text("永久免费 · 谨防被骗", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
+                Text(
+                    "💖 本开源项目由 Wenzhou Dulan Network Technology Co., Ltd. 倾力维护与托管。",
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                    color = SecondaryText,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
 
             item {
@@ -235,6 +236,10 @@ fun SettingsScreen(
                     SettingsDivider()
                     SettingsSwitchRow(Icons.Outlined.FormatQuote, "总是显示意境文案", "即使图片存在位置信息，也优先显示根据画面内容与色彩生成的意境文案。", state.preferences.showMoodCopy) {
                         onPreferences(state.preferences.copy(showMoodCopy = it))
+                    }
+                    SettingsDivider()
+                    SettingsSwitchRow(Icons.Outlined.CalendarMonth, "显示缺失拍摄时间提示", "照片没有拍摄时间时显示“记录这一刻”。", state.preferences.showMissingCaptureTime) {
+                        onPreferences(state.preferences.copy(showMissingCaptureTime = it))
                     }
                 }
             }
@@ -326,6 +331,22 @@ fun SettingsScreen(
             }
 
             item {
+                SettingsSection("联系与交流") {
+                    CopyContactRow(
+                        icon = Icons.Outlined.People,
+                        title = "QQ 用户交流群",
+                        value = "群号 1050047342",
+                    ) { copyValue("QQ 用户交流群", "1050047342", "群号已复制，请在 QQ 中搜索添加") }
+                    SettingsDivider()
+                    CopyContactRow(
+                        icon = Icons.Outlined.Email,
+                        title = "客服邮箱",
+                        value = "help@locallens.cn",
+                    ) { copyValue("客服邮箱", "help@locallens.cn", "邮箱已复制") }
+                }
+            }
+
+            item {
                 SettingsSection("获取更新") {
                     Column(
                         Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -361,12 +382,27 @@ fun SettingsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("版本 1.0.2 (Build 1)", color = SecondaryText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("版本 2.0.0 (Build 202608)", color = SecondaryText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     Text("灵动照片 · 完全免费", color = SecondaryText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    Text("本开源项目由专注隐私的 LocalLens Project 发起", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CopyContactRow(icon: ImageVector, title: String, value: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(icon, null, Modifier.size(21.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(value, color = SecondaryText, fontSize = 12.sp)
+        }
+        Text("复制", color = SystemBlue, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
