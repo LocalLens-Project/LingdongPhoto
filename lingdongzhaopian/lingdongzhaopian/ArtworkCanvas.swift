@@ -47,7 +47,10 @@ struct ArtworkCanvas: View {
     var ticketLayout: TicketLayoutStyle = .classic
     var ticketAppClipBaseURL: String = TicketEnvelope.configuredBaseURLString
     var ticketDeviceSealEnabled = true
+    var ticketCodeImageOverride: UIImage?
     var sketchImage: UIImage? = nil
+    var showsColorPaletteOverlay = true
+    var lightToneOverlay: UIImage? = nil
 
     private var colors: [RGBColor] {
         let base = palette.isEmpty ? RGBColor.fallback : palette
@@ -68,6 +71,49 @@ struct ArtworkCanvas: View {
 
     private func readableForeground(preferred: RGBColor, background: RGBColor) -> RGBColor {
         guard preferred.contrastRatio(with: background) < 4.5 else { return preferred }
+        let black = RGBColor(red: 0.035, green: 0.035, blue: 0.035)
+        let white = RGBColor(red: 0.965, green: 0.965, blue: 0.965)
+        return black.contrastRatio(with: background) >= white.contrastRatio(with: background)
+            ? black
+            : white
+    }
+
+    static func ticketCodeForeground(
+        palette: [RGBColor],
+        motionCardHeaderPalette: [RGBColor]?,
+        layout: TicketLayoutStyle
+    ) -> RGBColor {
+        let colors = motionCardHeaderPalette
+            ?? (palette.isEmpty ? RGBColor.fallback : palette)
+        let dominant = colors[0]
+        let darkest = colors.min(by: {
+            $0.relativeLuminance < $1.relativeLuminance
+        }) ?? RGBColor.fallback[3]
+        let background: RGBColor
+        switch layout {
+        case .classic:
+            background = dominant.adjusted(
+                brightness: dominant.relativeLuminance < 0.18
+                    ? 0.10
+                    : (dominant.relativeLuminance < 0.48 ? 0.26 : -0.06),
+                saturation: -0.38
+            )
+        case .vertical:
+            background = dominant.adjusted(
+                brightness: dominant.relativeLuminance < 0.18
+                    ? 0.10
+                    : (dominant.relativeLuminance < 0.48 ? 0.24 : -0.05),
+                saturation: -0.30
+            )
+        case .minimal:
+            background = dominant.adjusted(
+                brightness: dominant.relativeLuminance < 0.30 ? 0.14 : -0.18,
+                saturation: -0.12
+            )
+        }
+        guard darkest.contrastRatio(with: background) < 4.5 else {
+            return darkest
+        }
         let black = RGBColor(red: 0.035, green: 0.035, blue: 0.035)
         let white = RGBColor(red: 0.965, green: 0.965, blue: 0.965)
         return black.contrastRatio(with: background) >= white.contrastRatio(with: background)
@@ -191,7 +237,7 @@ struct ArtworkCanvas: View {
             VStack(alignment: .center, spacing: max(3, size.height * 0.018 * heightScale)) {
                 if let headerTitle = ticketPayload.headerTitle,
                    !headerTitle.isEmpty {
-                    Text(headerTitle)
+                    Text(LocalizedStringKey(headerTitle))
                         .font(.system(
                             size: max(9, size.width * 0.027) * fontScaleFactor,
                             weight: .black,
@@ -204,7 +250,7 @@ struct ArtworkCanvas: View {
                         .frame(width: textMaxWidth)
                 }
 
-                Text(ticketPayload.title)
+                Text(LocalizedStringKey(ticketPayload.title))
                     .font(fontStyle.font(
                         size: max(7, size.width * 0.014) * textScale * fontScaleFactor,
                         weight: .semibold
@@ -217,7 +263,7 @@ struct ArtworkCanvas: View {
 
                 VStack(alignment: .center, spacing: max(2, size.height * 0.007 * heightScale)) {
                     if let time = ticketPayload.captureTime {
-                        Text(time)
+                        Text(LocalizedStringKey(time))
                             .lineLimit(1)
                             .minimumScaleFactor(0.70)
                     }
@@ -281,7 +327,7 @@ struct ArtworkCanvas: View {
                 cornerRadius: 0
             )
             .overlay(alignment: .topTrailing) {
-                Text(ticketPayload.ticketID)
+                Text(LocalizedStringKey(ticketPayload.ticketID))
                     .font(.system(
                         size: max(7, size.width * 0.024),
                         weight: .bold,
@@ -295,14 +341,14 @@ struct ArtworkCanvas: View {
             VStack(alignment: .leading, spacing: max(8, size.height * 0.014)) {
                 HStack(alignment: .top, spacing: 10) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(ticketPayload.title)
+                        Text(LocalizedStringKey(ticketPayload.title))
                             .font(fontStyle.font(
                                 size: max(11, size.width * 0.050) * textScale,
                                 weight: .bold
                             ))
                             .lineLimit(2)
                         if let subtitle = ticketPayload.subtitle {
-                            Text(subtitle)
+                            Text(LocalizedStringKey(subtitle))
                                 .font(.system(size: max(7, size.width * 0.025), weight: .medium))
                                 .lineLimit(2)
                                 .foregroundStyle(foreground.color.opacity(0.60))
@@ -371,7 +417,7 @@ struct ArtworkCanvas: View {
 
             HStack(alignment: .bottom, spacing: max(10, size.width * 0.028)) {
                 VStack(alignment: .leading, spacing: max(4, size.height * 0.014)) {
-                    Text(ticketPayload.title)
+                    Text(LocalizedStringKey(ticketPayload.title))
                         .font(fontStyle.font(
                             size: max(12, size.width * 0.036) * textScale,
                             weight: .bold
@@ -380,17 +426,17 @@ struct ArtworkCanvas: View {
 
                     HStack(spacing: 7) {
                         if let place = ticketPayload.place {
-                            Label(place, systemImage: "location.fill")
+                            Label(LocalizedStringKey(place), systemImage: "location.fill")
                         }
                         if let time = ticketPayload.captureTime {
-                            Label(time, systemImage: "calendar")
+                            Label(LocalizedStringKey(time), systemImage: "calendar")
                         }
                     }
                     .font(.system(size: max(6, size.width * 0.014), weight: .medium))
                     .lineLimit(1)
                     .foregroundStyle(panelForeground.color.opacity(0.70))
 
-                    Text(ticketPayload.ticketID)
+                    Text(LocalizedStringKey(ticketPayload.ticketID))
                         .font(.system(
                             size: max(6, size.width * 0.013),
                             weight: .semibold,
@@ -437,6 +483,45 @@ struct ArtworkCanvas: View {
         let codePixelSize = ticketCodeStyle == .barcode
             ? CGSize(width: 1_200, height: 400)
             : CGSize(width: 900, height: 900)
+        if #available(iOS 18.0, *) {
+            synchronousTicketCode(
+                availableSize: availableSize,
+                foreground: foreground,
+                codePixelSize: codePixelSize
+            )
+        } else if let ticketCodeImageOverride {
+            ticketCodeImage(
+                ticketCodeImageOverride,
+                availableSize: availableSize,
+                codePixelSize: codePixelSize
+            )
+        } else if isExporting {
+            Image(systemName: "exclamationmark.triangle")
+                .foregroundStyle(.orange)
+                .frame(
+                    width: min(availableSize.width, 44),
+                    height: min(availableSize.height, 44)
+                )
+                .accessibilityLabel("票根编码生成失败")
+        } else {
+            IOS17TicketCodeImage(
+                style: ticketCodeStyle,
+                payload: ticketPayload,
+                baseURLString: ticketAppClipBaseURL,
+                deviceSealEnabled: ticketDeviceSealEnabled,
+                pixelSize: codePixelSize,
+                availableSize: availableSize,
+                foreground: foreground
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func synchronousTicketCode(
+        availableSize: CGSize,
+        foreground: RGBColor,
+        codePixelSize: CGSize
+    ) -> some View {
         if let image = try? TicketCodeRenderer.image(
             for: ticketCodeStyle,
             payload: ticketPayload,
@@ -451,24 +536,11 @@ struct ArtworkCanvas: View {
             ),
             backgroundColor: nil
         ) {
-            Image(uiImage: image)
-                .resizable()
-                .interpolation(.none)
-                .aspectRatio(
-                    ticketCodeStyle == .barcode
-                        ? codePixelSize.width / codePixelSize.height
-                        : 1,
-                    contentMode: .fit
-                )
-                .frame(
-                    maxWidth: availableSize.width,
-                    maxHeight: availableSize.height
-                )
-                .accessibilityLabel(
-                    ticketCodeStyle == .barcode
-                        ? "真实一维票根码"
-                        : "App Clip 验证二维码"
-                )
+            ticketCodeImage(
+                image,
+                availableSize: availableSize,
+                codePixelSize: codePixelSize
+            )
         } else {
             Image(systemName: "exclamationmark.triangle")
                 .foregroundStyle(.orange)
@@ -478,6 +550,31 @@ struct ArtworkCanvas: View {
                 )
                 .accessibilityLabel("票根编码生成失败")
         }
+    }
+
+    private func ticketCodeImage(
+        _ image: UIImage,
+        availableSize: CGSize,
+        codePixelSize: CGSize
+    ) -> some View {
+        Image(uiImage: image)
+            .resizable()
+            .interpolation(.none)
+            .aspectRatio(
+                ticketCodeStyle == .barcode
+                    ? codePixelSize.width / codePixelSize.height
+                    : 1,
+                contentMode: .fit
+            )
+            .frame(
+                maxWidth: availableSize.width,
+                maxHeight: availableSize.height
+            )
+            .accessibilityLabel(
+                ticketCodeStyle == .barcode
+                    ? "真实一维票根码"
+                    : "App Clip 验证二维码"
+            )
     }
 
     private func ticketTearLine(height: CGFloat) -> some View {
@@ -528,10 +625,10 @@ struct ArtworkCanvas: View {
 
     private func ticketInfoLabel(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(.system(size: 7, weight: .bold, design: .monospaced))
                 .opacity(0.46)
-            Text(value)
+            Text(LocalizedStringKey(value))
                 .font(.system(size: 9, weight: .semibold))
                 .lineLimit(2)
                 .minimumScaleFactor(0.72)
@@ -594,12 +691,12 @@ struct ArtworkCanvas: View {
                         endPoint: .bottom
                     )
                     VStack(spacing: 4) {
-                        Text(copy.title)
+                        Text(LocalizedStringKey(copy.title))
                             .font(fontStyle.font(size: max(10, size.width * 0.040) * textScale, weight: .semibold))
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
                         if metadata.captureDate != nil || showMissingCaptureTime {
-                            Text(metadata.captureTimeText)
+                            Text(LocalizedStringKey(metadata.captureTimeText))
                                 .font(.system(size: max(7, size.width * 0.020), weight: .medium))
                         }
                     }
@@ -624,12 +721,12 @@ struct ArtworkCanvas: View {
                 }
 
                 VStack(spacing: 3) {
-                    Text(copy.title)
+                    Text(LocalizedStringKey(copy.title))
                         .font(fontStyle.font(size: max(8, size.width * 0.026) * textScale, weight: .semibold))
                         .lineLimit(2)
                         .multilineTextAlignment(.center)
                     if metadata.captureDate != nil || showMissingCaptureTime {
-                        Text(metadata.captureTimeText)
+                        Text(LocalizedStringKey(metadata.captureTimeText))
                             .font(.system(size: max(6, size.width * 0.017), weight: .medium))
                     }
                 }
@@ -656,20 +753,59 @@ struct ArtworkCanvas: View {
             layout: paletteLayout
         )
         return ZStack {
-            primaryPhoto(size: size, cornerRadius: 0)
+            colorInsightPhoto(size: size)
                 .overlay(.black.opacity(0.05))
 
-            VStack(spacing: 0) {
-                if paletteLayout == .bottom { Spacer() }
-
-                palettePanel(size: size)
-                    .scaleEffect(paletteRevealStage >= 1 ? 1 : 0.86, anchor: paletteLayout == .bottom ? .bottom : .top)
-                    .opacity(paletteRevealStage >= 1 ? 1 : 0)
-                    .offset(y: visiblePaletteOffset)
-
-                if paletteLayout != .bottom { Spacer() }
+            if let lightToneOverlay {
+                Image(uiImage: lightToneOverlay)
+                    .resizable()
+                    .aspectRatio(contentMode: showsColorPaletteOverlay ? .fill : .fit)
+                    .frame(width: size.width, height: size.height)
+                    .scaleEffect(showsColorPaletteOverlay ? imageScale : 1)
+                    .offset(
+                        x: showsColorPaletteOverlay ? imageOffset.width : 0,
+                        y: showsColorPaletteOverlay ? imageOffset.height : 0
+                    )
+                    .clipped()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
             }
-            .padding(.vertical, PalettePanelGeometry.verticalInset)
+
+            if showsColorPaletteOverlay {
+                VStack(spacing: 0) {
+                    if paletteLayout == .bottom { Spacer() }
+
+                    palettePanel(size: size)
+                        .scaleEffect(paletteRevealStage >= 1 ? 1 : 0.86, anchor: paletteLayout == .bottom ? .bottom : .top)
+                        .opacity(paletteRevealStage >= 1 ? 1 : 0)
+                        .offset(y: visiblePaletteOffset)
+
+                    if paletteLayout != .bottom { Spacer() }
+                }
+                .padding(.vertical, PalettePanelGeometry.verticalInset)
+            }
+        }
+        .animation(.easeInOut(duration: 0.18), value: lightToneOverlay != nil)
+    }
+
+    @ViewBuilder
+    private func colorInsightPhoto(size: CGSize) -> some View {
+        if showsColorPaletteOverlay {
+            primaryPhoto(size: size, cornerRadius: 0)
+        } else if let image = images.first {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size.width, height: size.height)
+        } else {
+            RoundedRectangle(cornerRadius: 0)
+                .fill(.white.opacity(0.24))
+                .frame(width: size.width, height: size.height)
+                .overlay {
+                    Image(systemName: "photo")
+                        .font(.largeTitle)
+                        .foregroundStyle(.white.opacity(0.65))
+                }
         }
     }
 
@@ -751,7 +887,7 @@ struct ArtworkCanvas: View {
                     ))
                     .foregroundStyle(.white.opacity(0.90))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.65)
+                    .minimumScaleFactor(0.58)
             }
             if showPalettePercentages {
                 Text(String(format: "%.1f%%", percentages[index]))
@@ -780,7 +916,7 @@ struct ArtworkCanvas: View {
         return ZStack {
             background.color
 
-            Text(copy.emojis)
+            Text(LocalizedStringKey(copy.emojis))
                 .font(.system(size: max(10, size.width * 0.031)))
                 .multilineTextAlignment(.center)
                 .position(x: size.width * 0.50, y: size.height * 0.18)
@@ -789,7 +925,7 @@ struct ArtworkCanvas: View {
                 .shadow(color: .black.opacity(0.22), radius: 16, y: 10)
                 .position(x: size.width * 0.50, y: size.height * 0.50)
 
-            Text(copy.journalCaption)
+            Text(LocalizedStringKey(copy.journalCaption))
                 .font(fontStyle.font(size: max(6, size.width * 0.018) * textScale))
                 .italic()
                 .foregroundStyle(captionColor)
@@ -826,21 +962,21 @@ struct ArtworkCanvas: View {
                         }
 
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(copy.title)
+                            Text(LocalizedStringKey(copy.title))
                                 .font(fontStyle.font(size: max(9, size.width * 0.030) * textScale, weight: .bold))
                                 .lineLimit(2)
-                            Text(copy.subtitle)
+                            Text(LocalizedStringKey(copy.subtitle))
                                 .font(fontStyle.font(size: max(6, size.width * 0.017) * textScale))
                                 .fontWeight(.semibold)
                                 .opacity(0.78)
                             if showDeviceInfo, let deviceLine = metadata.deviceLine {
-                                Text(deviceLine)
+                                Text(LocalizedStringKey(deviceLine))
                                     .font(.system(size: max(5, size.width * 0.014)))
                                     .opacity(0.52)
                             }
                             if showDeviceInfo, isCamera {
                                 if let lensLine = metadata.cameraLensLine {
-                                    Text(lensLine)
+                                    Text(LocalizedStringKey(lensLine))
                                         .font(.system(size: max(4, size.width * 0.013)))
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.62)
@@ -848,7 +984,7 @@ struct ArtworkCanvas: View {
                                         .opacity(0.46)
                                 }
                                 if let settingsLine = metadata.captureSettingsLine {
-                                    Text(settingsLine)
+                                    Text(LocalizedStringKey(settingsLine))
                                         .font(.system(size: max(4, size.width * 0.0125)))
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.78)
@@ -906,23 +1042,23 @@ struct ArtworkCanvas: View {
                     .frame(width: deviceMarkWidth, height: deviceBubbleDiameter)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(copy.title)
+                        Text(LocalizedStringKey(copy.title))
                             .font(fontStyle.font(size: max(8, size.width * 0.027) * textScale, weight: .bold))
                             .lineLimit(2)
-                        Text(copy.subtitle)
+                        Text(LocalizedStringKey(copy.subtitle))
                             .font(fontStyle.font(size: max(5, size.width * 0.016) * textScale))
                             .fontWeight(.semibold)
                             .opacity(0.70)
 
                         if showDeviceInfo {
                             if let deviceLine = metadata.deviceLine {
-                                Text(deviceLine)
+                                Text(LocalizedStringKey(deviceLine))
                                     .font(.system(size: max(4, size.width * 0.014)))
                                     .opacity(0.42)
                             }
                             if isCamera {
                                 if let lensLine = metadata.cameraLensLine {
-                                    Text(lensLine)
+                                    Text(LocalizedStringKey(lensLine))
                                         .font(.system(size: max(4, size.width * 0.013)))
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.62)
@@ -930,14 +1066,14 @@ struct ArtworkCanvas: View {
                                         .opacity(0.38)
                                 }
                                 if let settingsLine = metadata.captureSettingsLine {
-                                    Text(settingsLine)
+                                    Text(LocalizedStringKey(settingsLine))
                                         .font(.system(size: max(4, size.width * 0.0125)))
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.78)
                                         .opacity(0.32)
                                 }
                             } else if let cameraLine = metadata.cameraLine {
-                                Text(cameraLine)
+                                Text(LocalizedStringKey(cameraLine))
                                     .font(.system(size: max(4, size.width * 0.013)))
                                     .opacity(0.34)
                             }
@@ -1156,6 +1292,125 @@ struct ArtworkCanvas: View {
                 y: transform.normalizedOffset.height * size.height
             )
             .clipped()
+    }
+}
+
+private struct IOS17TicketCodeImage: View {
+    let style: TicketCodeStyle
+    let payload: TicketPayload
+    let baseURLString: String
+    let deviceSealEnabled: Bool
+    let pixelSize: CGSize
+    let availableSize: CGSize
+    let foreground: RGBColor
+
+    @State private var cachedImage: UIImage?
+    @State private var isLoading = true
+    @State private var generationFailed = false
+
+    private struct Request: Equatable {
+        let style: TicketCodeStyle
+        let payload: TicketPayload
+        let baseURLString: String
+        let deviceSealEnabled: Bool
+        let pixelSize: CGSize
+        let foreground: RGBColor
+    }
+
+    private var request: Request {
+        Request(
+            style: style,
+            payload: payload,
+            baseURLString: baseURLString,
+            deviceSealEnabled: deviceSealEnabled,
+            pixelSize: pixelSize,
+            foreground: foreground
+        )
+    }
+
+    var body: some View {
+        Group {
+            if let cachedImage {
+                Image(uiImage: cachedImage)
+                    .resizable()
+                    .interpolation(.none)
+                    .aspectRatio(
+                        style == .barcode
+                            ? pixelSize.width / pixelSize.height
+                            : 1,
+                        contentMode: .fit
+                    )
+                    .frame(
+                        maxWidth: availableSize.width,
+                        maxHeight: availableSize.height
+                    )
+                    .accessibilityLabel(
+                        style == .barcode
+                            ? "真实一维票根码"
+                            : "App Clip 验证二维码"
+                    )
+            } else if isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(
+                        width: min(availableSize.width, 44),
+                        height: min(availableSize.height, 44)
+                    )
+                    .accessibilityLabel("正在生成票根编码…")
+            } else if generationFailed {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                    .frame(
+                        width: min(availableSize.width, 44),
+                        height: min(availableSize.height, 44)
+                    )
+                    .accessibilityLabel("票根编码生成失败")
+            }
+        }
+        .task(id: request) {
+            await generate(request)
+        }
+    }
+
+    @MainActor
+    private func generate(_ request: Request) async {
+        cachedImage = nil
+        generationFailed = false
+        isLoading = true
+
+        let result = await Task.detached(priority: .userInitiated) {
+            () -> Result<UIImage, Error> in
+            do {
+                let image = try TicketCodeRenderer.image(
+                    for: request.style,
+                    payload: request.payload,
+                    baseURLString: request.baseURLString,
+                    signer: request.deviceSealEnabled
+                        ? TicketDeviceSealService.shared
+                        : nil,
+                    pixelSize: request.pixelSize,
+                    foregroundColor: UIColor(
+                        red: request.foreground.red,
+                        green: request.foreground.green,
+                        blue: request.foreground.blue,
+                        alpha: 1
+                    ),
+                    backgroundColor: nil
+                )
+                return .success(image)
+            } catch {
+                return .failure(error)
+            }
+        }.value
+
+        guard !Task.isCancelled, self.request == request else { return }
+        isLoading = false
+        switch result {
+        case let .success(image):
+            cachedImage = image
+        case .failure:
+            generationFailed = true
+        }
     }
 }
 

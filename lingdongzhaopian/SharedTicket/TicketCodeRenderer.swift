@@ -5,7 +5,7 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import UIKit
 
-enum TicketCodeRenderer {
+nonisolated enum TicketCodeRenderer {
     private static let context = CIContext(options: [.useSoftwareRenderer: false])
 
     static func image(
@@ -296,7 +296,7 @@ enum TicketCodeRenderer {
 }
 
 private extension UIColor {
-    convenience init(ticketHex value: String) {
+    nonisolated convenience init(ticketHex value: String) {
         let cleaned = value.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var number: UInt64 = 0
         Scanner(string: cleaned).scanHexInt64(&number)
@@ -308,7 +308,7 @@ private extension UIColor {
         )
     }
 
-    var ticketLuminance: CGFloat {
+    nonisolated var ticketLuminance: CGFloat {
         var red: CGFloat = 0
         var green: CGFloat = 0
         var blue: CGFloat = 0
@@ -319,7 +319,7 @@ private extension UIColor {
         return red * 0.299 + green * 0.587 + blue * 0.114
     }
 
-    func ticketMixed(with color: UIColor, amount: CGFloat) -> UIColor {
+    nonisolated func ticketMixed(with color: UIColor, amount: CGFloat) -> UIColor {
         var red: CGFloat = 0
         var green: CGFloat = 0
         var blue: CGFloat = 0

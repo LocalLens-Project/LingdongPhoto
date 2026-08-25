@@ -563,7 +563,7 @@ struct PrivacyMosaicControls: View {
                             brushMode = tool
                             UISelectionFeedbackGenerator().selectionChanged()
                         } label: {
-                            Label(tool.rawValue, systemImage: tool.symbol)
+                            Label(LocalizedStringKey(tool.rawValue), systemImage: tool.symbol)
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(brushMode == tool ? .white : .primary.opacity(0.68))
                                 .padding(.horizontal, 12)
@@ -576,7 +576,12 @@ struct PrivacyMosaicControls: View {
                         .buttonStyle(.plain)
                     }
                     Spacer(minLength: 4)
-                    Text("单指\(brushMode.rawValue)")
+                    Text(
+                        String(
+                            format: "单指：%@".appLocalized,
+                            brushMode.rawValue.appLocalized
+                        )
+                    )
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
                 }
@@ -640,7 +645,7 @@ struct PrivacyMosaicControls: View {
                 } else {
                     Image(systemName: symbol)
                 }
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.system(size: 14, weight: .semibold))
             }
             .foregroundStyle(.primary)

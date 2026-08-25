@@ -21,17 +21,17 @@ enum ArtworkExportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .permissionDenied:
-            "没有相册写入权限。请在系统设置中允许“灵动照片”添加照片。"
+            "没有相册写入权限。请在系统设置中允许“灵动照片”添加照片。".appLocalized
         case .encodingFailed:
-            "作品编码失败，请稍后重试。"
+            "作品编码失败，请稍后重试。".appLocalized
         case .missingVideo:
-            "所选 Live Photo 的动态片段不可用，请确认原片已从 iCloud 下载。"
+            "所选 Live Photo 的动态片段不可用，请确认原片已从 iCloud 下载。".appLocalized
         case .videoWriterFailed(let reason):
-            "Live Photo 生成失败：\(reason)"
+            String(format: "Live Photo 生成失败：%@".appLocalized, reason)
         case .photoLibraryFailed:
-            "保存失败，请确认设备存储空间后重试。"
+            "保存失败，请确认设备存储空间后重试。".appLocalized
         case .transparencyValidationFailed:
-            "票根透明区域校验失败，请稍后重试。"
+            "票根透明区域校验失败，请稍后重试。".appLocalized
         }
     }
 }
@@ -75,7 +75,7 @@ enum ArtworkExporter {
     }
 
 #if DEBUG
-    static func debugJPEGData(
+    nonisolated static func debugJPEGData(
         _ image: UIImage,
         metadata: PhotoMetadata,
         originalImageData: Data?,
@@ -92,7 +92,7 @@ enum ArtworkExporter {
     }
 #endif
 
-    static func encodedStillData(
+    nonisolated static func encodedStillData(
         _ image: UIImage,
         metadata: PhotoMetadata,
         originalImageData: Data?,
@@ -117,14 +117,19 @@ enum ArtworkExporter {
         metadataPolicy: ArtworkMetadataPolicy = .preserve,
         encodedDataValidator: ((Data) -> Bool)? = nil
     ) async throws {
-        let data = try imageData(
-            image: image,
-            metadata: metadata,
-            originalImageData: originalImageData,
-            assetIdentifier: nil,
-            format: format,
-            metadataPolicy: metadataPolicy
-        )
+        // Encoding multi-megapixel artwork is the single most expensive step of
+        // an export. Keep it off the main actor so a termination request (home
+        // swipe, system teardown) never stalls behind a synchronous encode.
+        let data = try await Task.detached(priority: .userInitiated) {
+            try imageData(
+                image: image,
+                metadata: metadata,
+                originalImageData: originalImageData,
+                assetIdentifier: nil,
+                format: format,
+                metadataPolicy: metadataPolicy
+            )
+        }.value
         if let encodedDataValidator,
            !encodedDataValidator(data) {
             throw ArtworkExportError.transparencyValidationFailed
@@ -151,31 +156,35 @@ enum ArtworkExporter {
             throw ArtworkExportError.missingVideo
         }
         let identifier = UUID().uuidString
-        let stillData = try imageData(
-            image: renderedStill,
-            metadata: metadata,
-            originalImageData: originalImageData,
-            assetIdentifier: identifier,
-            format: .jpeg,
-            metadataPolicy: metadataPolicy
-        )
+        let stillData = try await Task.detached(priority: .userInitiated) {
+            try imageData(
+                image: renderedStill,
+                metadata: metadata,
+                originalImageData: originalImageData,
+                assetIdentifier: identifier,
+                format: .jpeg,
+                metadataPolicy: metadataPolicy
+            )
+        }.value
         let pairedURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("lingdong-export-\(identifier)")
             .appendingPathExtension("mov")
         let videoOutputSize = try livePhotoVideoOutputSize(for: renderedStill)
 
         defer { try? FileManager.default.removeItem(at: pairedURL) }
-        try await makePairedVideo(
-            sourceURL: primarySource.value,
-            sourceVideoURLs: sourceVideoURLs,
-            destinationURL: pairedURL,
-            outputSize: videoOutputSize,
-            assetIdentifier: identifier,
-            renderFrame: { frames in
-                renderFrame(frames, videoOutputSize.width)
-            },
-            progress: progress
-        )
+        try await Task.detached(priority: .userInitiated) {
+            try await makePairedVideo(
+                sourceURL: primarySource.value,
+                sourceVideoURLs: sourceVideoURLs,
+                destinationURL: pairedURL,
+                outputSize: videoOutputSize,
+                assetIdentifier: identifier,
+                renderFrame: { frames in
+                    renderFrame(frames, videoOutputSize.width)
+                },
+                progress: progress
+            )
+        }.value
         try await saveToPhotoLibrary(
             photoData: stillData,
             pairedVideoURL: pairedURL,
@@ -185,7 +194,7 @@ enum ArtworkExporter {
         )
     }
 
-    private static func livePhotoVideoOutputSize(for renderedStill: UIImage) throws -> CGSize {
+    nonisolated private static func livePhotoVideoOutputSize(for renderedStill: UIImage) throws -> CGSize {
         guard let image = renderedStill.cgImage else {
             throw ArtworkExportError.encodingFailed
         }
@@ -207,7 +216,7 @@ enum ArtworkExporter {
         )
     }
 
-    private static func imageData(
+    nonisolated private static func imageData(
         image: UIImage,
         metadata: PhotoMetadata,
         originalImageData: Data?,
@@ -277,7 +286,7 @@ enum ArtworkExporter {
         return destinationData as Data
     }
 
-    private static func imageForEncoding(
+    nonisolated private static func imageForEncoding(
         _ image: CGImage,
         format: ArtworkExportFormat
     ) -> CGImage? {
@@ -305,7 +314,7 @@ enum ArtworkExporter {
         return context.makeImage()
     }
 
-    private static func normalizeRenderedOrientation(
+    nonisolated private static func normalizeRenderedOrientation(
         in properties: inout [CFString: Any]
     ) {
         properties[kCGImagePropertyOrientation] = 1
@@ -317,7 +326,7 @@ enum ArtworkExporter {
         properties[kCGImagePropertyTIFFDictionary] = tiff
     }
 
-    private static func merge(
+    nonisolated private static func merge(
         metadata: PhotoMetadata,
         pixelWidth: Int,
         pixelHeight: Int,
@@ -371,7 +380,7 @@ enum ArtworkExporter {
         if !gps.isEmpty { properties[kCGImagePropertyGPSDictionary] = gps }
     }
 
-    private static func makePairedVideo(
+    nonisolated private static func makePairedVideo(
         sourceURL: URL,
         sourceVideoURLs: [Int: URL],
         destinationURL: URL,
@@ -550,20 +559,53 @@ enum ArtworkExporter {
             throw ArtworkExportError.videoWriterFailed(writer.error?.localizedDescription ?? "无法写入动态照片时间标记。")
         }
 
+        // Every source Live Photo can have a slightly different duration. The
+        // old implementation used the first photo's absolute clock for all of
+        // them, so shorter clips froze while photo one kept moving and appeared
+        // to zoom on its own. Keep one normalized visual timeline instead.
+        guard let settledImage = await renderFrame([:]),
+              let settledCGImage = settledImage.cgImage else {
+            writer.cancelWriting()
+            throw ArtworkExportError.encodingFailed
+        }
+
         for index in 0..<frameCount {
             try Task.checkCancellation()
             let presentationTime = CMTime(seconds: Double(index) / framesPerSecond, preferredTimescale: 600)
+            let normalizedProgress = min(
+                1,
+                max(0, presentationTime.seconds / duration.seconds)
+            )
             var dynamicFrames: [Int: UIImage] = [:]
             for (photoIndex, source) in frameGenerators {
+                let lastReadableTime = CMTimeSubtract(
+                    source.duration,
+                    CMTime(value: 1, timescale: 600)
+                )
                 let requestedTime = CMTimeMinimum(
-                    presentationTime,
-                    CMTimeSubtract(source.duration, CMTime(value: 1, timescale: 600))
+                    CMTime(
+                        seconds: source.duration.seconds * normalizedProgress,
+                        preferredTimescale: 600
+                    ),
+                    lastReadableTime
                 )
                 let (sourceImage, _) = try await source.generator.image(at: requestedTime)
                 dynamicFrames[photoIndex] = UIImage(cgImage: sourceImage)
             }
-            guard let composedImage = renderFrame(dynamicFrames),
-                  let composedCGImage = composedImage.cgImage else {
+            guard let composedImage = await renderFrame(dynamicFrames),
+                  let dynamicCGImage = composedImage.cgImage else {
+                writer.cancelWriting()
+                throw ArtworkExportError.encodingFailed
+            }
+            // Ease all cells back onto the exported key photo together during
+            // the final beat. This creates a deliberate resting frame instead
+            // of letting any one source continue zooming after the others stop.
+            let settleProgress = min(1, max(0, (normalizedProgress - 0.86) / 0.14))
+            guard let composedCGImage = crossfadedImage(
+                from: dynamicCGImage,
+                to: settledCGImage,
+                amount: settleProgress
+            ) else {
                 writer.cancelWriting()
                 throw ArtworkExportError.encodingFailed
             }
@@ -581,7 +623,7 @@ enum ArtworkExporter {
                 throw ArtworkExportError.videoWriterFailed(writer.error?.localizedDescription ?? "视频帧写入失败。")
             }
 
-            progress(Double(index + 1) / Double(frameCount))
+            await progress(Double(index + 1) / Double(frameCount))
         }
 
         videoInput.markAsFinished()
@@ -598,7 +640,33 @@ enum ArtworkExporter {
         }
     }
 
-    private static func writeAudioSamples(
+    nonisolated private static func crossfadedImage(
+        from source: CGImage,
+        to destination: CGImage,
+        amount: Double
+    ) -> CGImage? {
+        guard amount > 0 else { return source }
+        guard amount < 1 else { return destination }
+        let width = destination.width
+        let height = destination.height
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        let rect = CGRect(x: 0, y: 0, width: width, height: height)
+        context.interpolationQuality = .high
+        context.draw(source, in: rect)
+        context.setAlpha(CGFloat(amount))
+        context.draw(destination, in: rect)
+        return context.makeImage()
+    }
+
+    nonisolated private static func writeAudioSamples(
         reader: AVAssetReader,
         output: AVAssetReaderTrackOutput,
         input: AVAssetWriterInput,
@@ -646,7 +714,7 @@ enum ArtworkExporter {
         }
     }
 
-    private static func makePixelBuffer(
+    nonisolated private static func makePixelBuffer(
         from image: CGImage,
         width: Int,
         height: Int,
@@ -692,13 +760,13 @@ enum ArtworkExporter {
                 }
 
                 let photoOptions = PHAssetResourceCreationOptions()
-                photoOptions.originalFilename = "灵动照片-\(Int(Date.now.timeIntervalSince1970)).\(format.fileExtension)"
+                photoOptions.originalFilename = "\("灵动照片".appLocalized)-\(Int(Date.now.timeIntervalSince1970)).\(format.fileExtension)"
                 photoOptions.uniformTypeIdentifier = format.type.identifier
                 request.addResource(with: .photo, data: photoData, options: photoOptions)
 
                 if let pairedVideoURL {
                     let videoOptions = PHAssetResourceCreationOptions()
-                    videoOptions.originalFilename = "灵动照片-Live.mov"
+                    videoOptions.originalFilename = "\("灵动照片".appLocalized)-Live.mov"
                     videoOptions.uniformTypeIdentifier = UTType.quickTimeMovie.identifier
                     request.addResource(with: .pairedVideo, fileURL: pairedVideoURL, options: videoOptions)
                 }

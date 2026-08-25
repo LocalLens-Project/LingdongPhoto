@@ -6,6 +6,18 @@ import Compression
 import Foundation
 import SwiftUI
 
+extension String {
+    /// Resolves runtime strings such as enum titles and generated copy through
+    /// the same catalog used by SwiftUI string literals.
+    nonisolated var appLocalized: String {
+        Bundle.main.localizedString(
+            forKey: self,
+            value: self,
+            table: "Localizable"
+        )
+    }
+}
+
 enum TicketCodeStyle: String, CaseIterable, Codable, Identifiable {
     case barcode
     case verificationQR
@@ -14,15 +26,15 @@ enum TicketCodeStyle: String, CaseIterable, Codable, Identifiable {
 
     var title: String {
         switch self {
-        case .barcode: "经典一维码"
-        case .verificationQR: "验证二维码"
+        case .barcode: "经典一维码".appLocalized
+        case .verificationQR: "验证二维码".appLocalized
         }
     }
 
     var shortTitle: String {
         switch self {
-        case .barcode: "一维码"
-        case .verificationQR: "二维码"
+        case .barcode: "一维码".appLocalized
+        case .verificationQR: "二维码".appLocalized
         }
     }
 
@@ -102,7 +114,7 @@ enum TicketRevealWidthMode: String, Codable, Equatable {
     }
 }
 
-enum TicketSealOrigin: String, Equatable {
+nonisolated enum TicketSealOrigin: String, Equatable {
     case appleSecureEnclave = "apple-se"
     case androidHardware = "android-hw"
     case androidSoftware = "android-sw"
@@ -118,7 +130,7 @@ enum TicketSealOrigin: String, Equatable {
     }
 }
 
-struct TicketEnvelopeSignature: Equatable {
+nonisolated struct TicketEnvelopeSignature: Equatable {
     static let algorithm = "ES256"
     private static let domain = "LingdongPhoto/TicketSeal/v1"
 
@@ -139,11 +151,11 @@ struct TicketEnvelopeSignature: Equatable {
     }
 }
 
-protocol TicketEnvelopeSigning {
+nonisolated protocol TicketEnvelopeSigning {
     func signature(for payloadData: Data) throws -> TicketEnvelopeSignature
 }
 
-enum TicketSealValidation: Equatable {
+nonisolated enum TicketSealValidation: Equatable {
     case unsigned
     case valid(origin: TicketSealOrigin, keyID: String)
     case invalid(origin: TicketSealOrigin, keyID: String?)
@@ -154,7 +166,7 @@ enum TicketSealValidation: Equatable {
     }
 }
 
-struct VerifiedTicket: Equatable, Identifiable {
+nonisolated struct VerifiedTicket: Equatable, Identifiable {
     let payload: TicketPayload
     let sealValidation: TicketSealValidation
     let sourceURL: URL?
@@ -204,7 +216,7 @@ enum TicketCityNameStyle: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-struct TicketPaletteEntry: Codable, Equatable, Hashable, Identifiable {
+nonisolated struct TicketPaletteEntry: Codable, Equatable, Hashable, Identifiable {
     let hex: String
     let percentage: Double
 
@@ -220,7 +232,7 @@ struct TicketPaletteEntry: Codable, Equatable, Hashable, Identifiable {
     }
 }
 
-struct TicketPayload: Codable, Equatable, Identifiable {
+nonisolated struct TicketPayload: Codable, Equatable, Identifiable {
     static let currentVersion = 1
     static let messageCharacterLimit = 80
 
@@ -439,7 +451,7 @@ struct TicketPayload: Codable, Equatable, Identifiable {
     }
 }
 
-enum TicketEnvelopeError: LocalizedError, Equatable {
+nonisolated enum TicketEnvelopeError: LocalizedError, Equatable {
     case invalidURL
     case missingPayload
     case corruptedPayload
@@ -448,16 +460,16 @@ enum TicketEnvelopeError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL: "这不是有效的影像票根链接。"
-        case .missingPayload: "二维码没有提供影像票根数据。"
-        case .corruptedPayload: "票根内容不完整或已被修改。"
-        case .unsupportedVersion: "这张票根由更新版本生成，请升级后再试。"
-        case .payloadTooLarge: "公开信息过多，无法生成稳定可扫描的二维码。"
+        case .invalidURL: "这不是有效的影像票根链接。".appLocalized
+        case .missingPayload: "二维码没有提供影像票根数据。".appLocalized
+        case .corruptedPayload: "票根内容不完整或已被修改。".appLocalized
+        case .unsupportedVersion: "这张票根由更新版本生成，请升级后再试。".appLocalized
+        case .payloadTooLarge: "公开信息过多，无法生成稳定可扫描的二维码。".appLocalized
         }
     }
 }
 
-enum TicketEnvelope {
+nonisolated enum TicketEnvelope {
     static let payloadKey = "t"
     static let checksumKey = "c"
     static let sealAlgorithmKey = "a"
@@ -490,10 +502,11 @@ enum TicketEnvelope {
             throw TicketEnvelopeError.invalidURL
         }
 
+        let sealLengthReserve = signer != nil ? 220 : 0
+
         for level in 0...2 {
             let candidate = payload.compacted(level: level)
             let encoded = try encodedPayload(candidate)
-            let signature = try signer?.signature(for: encoded.payloadData)
             var queryItems = components.queryItems ?? []
             let reservedKeys = Set([
                 payloadKey,
@@ -506,6 +519,13 @@ enum TicketEnvelope {
             queryItems.removeAll { reservedKeys.contains($0.name) }
             queryItems.append(URLQueryItem(name: payloadKey, value: encoded.token))
             queryItems.append(URLQueryItem(name: checksumKey, value: encoded.checksum))
+            components.queryItems = queryItems
+            guard let unsignedURL = components.url,
+                  unsignedURL.absoluteString.utf8.count + sealLengthReserve
+                      <= maximumURLLength else {
+                continue
+            }
+            let signature = try signer?.signature(for: encoded.payloadData)
             if let signature {
                 queryItems.append(URLQueryItem(
                     name: sealAlgorithmKey,
@@ -747,14 +767,14 @@ enum TicketEnvelope {
 }
 
 private extension Data {
-    func base64URLEncodedString() -> String {
+    nonisolated func base64URLEncodedString() -> String {
         base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
     }
 
-    init?(base64URLEncoded value: String) {
+    nonisolated init?(base64URLEncoded value: String) {
         var base64 = value
             .replacingOccurrences(of: "-", with: "+")
             .replacingOccurrences(of: "_", with: "/")
@@ -767,7 +787,7 @@ private extension Data {
 }
 
 extension Color {
-    init(ticketHex value: String) {
+    nonisolated init(ticketHex value: String) {
         let cleaned = value.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var number: UInt64 = 0
         Scanner(string: cleaned).scanHexInt64(&number)
@@ -791,17 +811,17 @@ enum TicketNarrativeStyle: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .standard: "标准模式"
-        case .emotional: "时光胶囊"
+        case .standard: "标准模式".appLocalized
+        case .emotional: "时光胶囊".appLocalized
         }
     }
 
     var description: String {
         switch self {
         case .standard:
-            "扫描后显示照片指纹、设备封印等技术信息"
+            "扫描后显示照片指纹、设备封印等技术信息".appLocalized
         case .emotional:
-            "扫描后显示时光跨度与情感化文案，适合留念与分享"
+            "扫描后显示时光跨度与情感化文案，适合留念与分享".appLocalized
         }
     }
 
@@ -823,17 +843,17 @@ enum TicketNarrativePerspective: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .self: "写给未来的我"
-        case .shared: "分享给朋友"
+        case .self: "写给未来的我".appLocalized
+        case .shared: "分享给朋友".appLocalized
         }
     }
 
     var description: String {
         switch self {
         case .self:
-            "用私域口吻呈现，适合自己收藏、偶尔回看"
+            "用私域口吻呈现，适合自己收藏、偶尔回看".appLocalized
         case .shared:
-            "用温暖中性的口吻呈现，适合分享到朋友圈或发给朋友"
+            "用温暖中性的口吻呈现，适合分享到朋友圈或发给朋友".appLocalized
         }
     }
 
@@ -898,22 +918,27 @@ enum TicketTimeCalculator {
 
     private static func formattedDayCount(_ days: Int) -> String {
         if days <= 0 {
-            return "今天"
+            return "今天".appLocalized
         } else if days == 1 {
-            return "昨天"
+            return "昨天".appLocalized
         } else if days < 30 {
-            return "\(days) 天前"
+            return "(days) 天前".appLocalized
+                .replacingOccurrences(of: "(days)", with: String(days))
         } else if days < 365 {
             let months = days / 30
-            return "\(months) 个月前"
+            return "(months) 个月前".appLocalized
+                .replacingOccurrences(of: "(months)", with: String(months))
         } else {
             let years = days / 365
             let remainingDays = days % 365
             if remainingDays < 30 {
-                return "\(years) 年前"
+                return "(years) 年前".appLocalized
+                    .replacingOccurrences(of: "(years)", with: String(years))
             } else {
                 let months = remainingDays / 30
-                return "\(years) 年 \(months) 个月前"
+                return "(years) 年 (months) 个月前".appLocalized
+                    .replacingOccurrences(of: "(years)", with: String(years))
+                    .replacingOccurrences(of: "(months)", with: String(months))
             }
         }
     }

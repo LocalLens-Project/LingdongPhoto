@@ -77,7 +77,7 @@ struct ColorRelationshipFeatureView: View {
                 }
 
                 if let toast {
-                    Text(toast)
+                    Text(LocalizedStringKey(toast))
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .padding(.horizontal, 16)
                         .frame(height: 42)
@@ -301,6 +301,8 @@ struct ColorRelationshipFeatureView: View {
                 Text("灵动照片")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.94))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.58)
 
                 Spacer()
 
@@ -369,6 +371,7 @@ struct ColorRelationshipFeatureView: View {
                 Text("灵动照片")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.58)
 
                 Spacer()
 
@@ -409,7 +412,13 @@ struct ColorRelationshipFeatureView: View {
             Button {
                 settingsPresented = true
             } label: {
-                Label("观察方式：\(lens.rawValue)", systemImage: lens.symbol)
+                Label(
+                    String(
+                        format: "观察方式：%@".appLocalized,
+                        lens.rawValue.appLocalized
+                    ),
+                    systemImage: lens.symbol
+                )
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .frame(maxWidth: .infinity)
                     .frame(height: 42)
@@ -576,7 +585,7 @@ struct ColorRelationshipFeatureView: View {
         kind: ArtworkExportKind,
         quality: ArtworkExportQuality,
         canvasWidth: CGFloat
-    ) -> [RelationshipPhoto]? {
+    ) async -> [RelationshipPhoto]? {
         guard quality == .original else { return photos }
         let required = ColorRelationshipCanvas.requiredSourceMaximumDimensions(
             canvasWidth: canvasWidth,
@@ -585,40 +594,49 @@ struct ColorRelationshipFeatureView: View {
             comparisonOnly: kind == .comparison
         )
         let dimensions = [required.left, required.right]
-        var result = photos
-        for index in result.indices {
-            guard let url = result[index].sourceImageURL,
-                  FileManager.default.fileExists(atPath: url.path),
-                  let sourceImage = StaticRelationshipPhotoImporter.exportImage(
-                    from: url,
-                    maximumDimension: dimensions[index]
-                  ) else {
-                return nil
+        let basePhotos = photos
+        // Decoding two camera originals from disk is pure ImageIO work; keep it
+        // off the main actor so the export sheet stays responsive.
+        return await Task.detached(priority: .userInitiated) {
+            var result = basePhotos
+            for index in result.indices {
+                guard let url = result[index].sourceImageURL,
+                      FileManager.default.fileExists(atPath: url.path),
+                      let sourceImage = StaticRelationshipPhotoImporter.exportImage(
+                        from: url,
+                        maximumDimension: dimensions[index]
+                      ) else {
+                    return nil
+                }
+                result[index].image = sourceImage
             }
-            result[index].image = sourceImage
-        }
-        return result
+            return result
+        }.value
     }
 
     @MainActor
     private func renderedJPEGData(
         kind: ArtworkExportKind,
         quality: ArtworkExportQuality
-    ) -> Data? {
+    ) async -> Data? {
         let width = exportCanvasWidth(kind: kind, quality: quality)
-        return autoreleasepool {
-            guard let renderPhotos = sourcePhotosForExport(
-                kind: kind,
-                quality: quality,
-                canvasWidth: width
-            ),
-            let image = renderedArtwork(
-                kind: kind,
-                canvasWidth: width,
-                renderPhotos: renderPhotos
-            ) else { return nil }
-            return image.jpegData(compressionQuality: 0.95)
-        }
+        guard let renderPhotos = await sourcePhotosForExport(
+            kind: kind,
+            quality: quality,
+            canvasWidth: width
+        ),
+        let image = renderedArtwork(
+            kind: kind,
+            canvasWidth: width,
+            renderPhotos: renderPhotos
+        ) else { return nil }
+        // Encoding an up-to-8K canvas takes seconds on older devices; the
+        // renderer itself must stay on the main actor, the JPEG encode must not.
+        return await Task.detached(priority: .userInitiated) {
+            autoreleasepool {
+                image.jpegData(compressionQuality: 0.95)
+            }
+        }.value
     }
 
     private func prepareShare() async {
@@ -643,7 +661,7 @@ struct ColorRelationshipFeatureView: View {
             showToast("请允许添加照片后再保存")
             return
         }
-        guard let data = renderedJPEGData(kind: kind, quality: quality) else {
+        guard let data = await renderedJPEGData(kind: kind, quality: quality) else {
             saveState = .idle
             showToast(quality == .original ? "无法读取静态原图，请重新选择照片" : "作品生成失败")
             return
@@ -660,8 +678,14 @@ struct ColorRelationshipFeatureView: View {
                 saveState = .success
             }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            let prefix = quality == .original ? "原图级" : "高清"
-            showToast(kind == .comparison ? "\(prefix)对比图已保存到照片" : "\(prefix)完整分析已保存到照片")
+            let savedMessage: String
+            switch (quality, kind) {
+            case (.original, .comparison): savedMessage = "原图级对比图已保存到照片"
+            case (.original, _): savedMessage = "原图级完整分析已保存到照片"
+            case (_, .comparison): savedMessage = "高清对比图已保存到照片"
+            case (_, _): savedMessage = "高清完整分析已保存到照片"
+            }
+            showToast(savedMessage)
             try? await Task.sleep(for: .seconds(1.25))
             withAnimation(.easeInOut(duration: 0.24)) { saveState = .idle }
         } catch {
@@ -672,7 +696,7 @@ struct ColorRelationshipFeatureView: View {
 
     private func showToast(_ message: String) {
         toastTask?.cancel()
-        toast = message
+        toast = message.appLocalized
         toastVisible = false
         withAnimation(.spring(response: 0.34, dampingFraction: 0.76)) {
             toastVisible = true
@@ -694,7 +718,7 @@ struct ColorRelationshipFeatureView: View {
 /// still image. In particular, it never asks an item provider for PHLivePhoto
 /// or its paired movie. The still is also downsampled before UIKit decodes it,
 /// keeping two large camera originals from producing a memory-pressure spike.
-private enum StaticRelationshipPhotoImporter {
+private enum StaticRelationshipPhotoImporter: Sendable {
     struct Result {
         let image: UIImage
         let sourceURL: URL
@@ -751,7 +775,8 @@ private enum StaticRelationshipPhotoImporter {
         )
     }
 
-    static func exportImage(from url: URL, maximumDimension: Int) -> UIImage? {
+    // Pure ImageIO downsampling: safe to run off the main actor.
+    nonisolated static func exportImage(from url: URL, maximumDimension: Int) -> UIImage? {
         guard let source = CGImageSourceCreateWithURL(
             url as CFURL,
             [kCGImageSourceShouldCache: false] as CFDictionary
@@ -797,7 +822,7 @@ private enum StaticRelationshipPhotoImporter {
         }
     }
 
-    private static func decodedImage(
+    nonisolated private static func decodedImage(
         source: CGImageSource,
         maximumDimension: Int
     ) -> UIImage? {
@@ -904,12 +929,12 @@ private struct ExportOptionsSheet: View {
                     .foregroundStyle(.secondary)
                 Picker("导出尺寸", selection: $quality) {
                     ForEach(ArtworkExportQuality.allCases) { item in
-                        Text(item.title).tag(item)
+                        Text(LocalizedStringKey(item.title)).tag(item)
                     }
                 }
                 .pickerStyle(.segmented)
 
-                Text(quality.detail)
+                Text(LocalizedStringKey(quality.detail))
                     .font(.system(size: 10, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -966,9 +991,9 @@ private struct ExportOptionsSheet: View {
                     .frame(width: 42, height: 42)
                     .background(.primary.opacity(0.07), in: Circle())
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
+                    Text(LocalizedStringKey(title))
                         .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    Text(detail)
+                    Text(LocalizedStringKey(detail))
                         .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
@@ -1104,9 +1129,9 @@ private struct RelationshipSettingsSheet: View {
                                     .font(.system(size: 20, weight: .medium))
                                     .frame(width: 32)
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(item.rawValue)
+                                    Text(LocalizedStringKey(item.rawValue))
                                         .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                    Text(item.caption)
+                                    Text(LocalizedStringKey(item.caption))
                                         .font(.system(size: 12, weight: .medium, design: .rounded))
                                         .foregroundStyle(.secondary)
                                 }
@@ -1174,7 +1199,7 @@ private struct RelationshipSettingsSheet: View {
         Button(action: action) {
             VStack(spacing: 7) {
                 Image(systemName: symbol).font(.system(size: 18, weight: .medium))
-                Text(title).font(.system(size: 11, weight: .semibold, design: .rounded))
+                Text(LocalizedStringKey(title)).font(.system(size: 11, weight: .semibold, design: .rounded))
             }
             .frame(maxWidth: .infinity)
             .frame(height: 72)
@@ -1186,7 +1211,7 @@ private struct RelationshipSettingsSheet: View {
 
     private func sheetMetric(_ title: String, _ value: Int) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
             Text(String(format: "%02d", value))

@@ -344,7 +344,7 @@ struct ColorRelationshipCanvas: View {
         .clipped()
         .overlay(alignment: labelPlacement == .top ? .topLeading : .bottomLeading) {
             if showsPhotoLabels {
-                Text(index)
+                Text(LocalizedStringKey(index))
                     .font(.system(size: max(8, reference * 0.08), weight: .bold, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.92))
                     .padding(.horizontal, reference * 0.065)
@@ -363,17 +363,17 @@ struct ColorRelationshipCanvas: View {
         let copy = relationship.copy(for: lens)
         return VStack(alignment: .leading, spacing: size.width * 0.022) {
             HStack(alignment: .firstTextBaseline) {
-                Text(copy.title)
+                Text(LocalizedStringKey(copy.title))
                     .font(.system(size: size.width * 0.065, weight: .bold, design: .rounded))
                 Spacer()
-                Text(lens.rawValue)
+                Text(LocalizedStringKey(lens.rawValue))
                     .font(.system(size: size.width * 0.027, weight: .bold, design: .rounded))
                     .padding(.horizontal, size.width * 0.035)
                     .frame(height: size.width * 0.075)
                     .background(ink.opacity(0.10), in: Capsule())
             }
 
-            Text(copy.narrative)
+            Text(LocalizedStringKey(copy.narrative))
                 .font(.system(size: size.width * 0.035, weight: .medium, design: .rounded))
                 .lineSpacing(size.width * 0.012)
                 .lineLimit(2)
@@ -400,7 +400,7 @@ struct ColorRelationshipCanvas: View {
         width: CGFloat
     ) -> some View {
         VStack(alignment: .leading, spacing: width * 0.006) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(.system(size: width * 0.022, weight: .medium, design: .rounded))
                 .opacity(0.58)
             Text(String(format: "%02d", value))
@@ -513,7 +513,7 @@ struct ColorRelationshipCanvas: View {
                         Circle().fill(pair.right.color)
                     }
                     .frame(width: size.width * 0.11, height: size.width * 0.075)
-                    Text(pair.middle.hex)
+                    Text(LocalizedStringKey(pair.middle.hex))
                         .font(.system(size: size.width * 0.019, weight: .semibold, design: .monospaced))
                         .foregroundStyle(evidenceInk)
                         .shadow(

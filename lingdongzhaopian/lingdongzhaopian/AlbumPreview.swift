@@ -57,10 +57,13 @@ struct AlbumBookPreviewScreen: View {
                         .accessibilityLabel("关闭整本预览")
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(project.title)
+                            Text(LocalizedStringKey(project.title))
                                 .font(.headline)
                                 .lineLimit(1)
-                            Text("整本预览 · \(project.pages.count) 页")
+                            Text(verbatim: String(
+                                format: "整本预览 · %lld 页".appLocalized,
+                                Int64(project.pages.count)
+                            ))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -107,7 +110,11 @@ struct AlbumBookPreviewScreen: View {
                 InterfaceOrientationController.shared.request(.landscape)
             }
             await Task.yield()
-            bookPages = AlbumPageRenderer.renderBookPages(project: project, images: images)
+            let previewProject = project
+            let previewImages = images
+            bookPages = await Task.detached(priority: .userInitiated) {
+                AlbumPageRenderer.renderBookPages(project: previewProject, images: previewImages)
+            }.value
 #if DEBUG
             let runsTurnTest = ProcessInfo.processInfo.arguments.contains("--album-preview-turn-test")
             let runsReverseTurnTest = ProcessInfo.processInfo.arguments.contains("--album-preview-reverse-test")
@@ -289,7 +296,10 @@ private final class AlbumLeafViewController: UIViewController {
         imageView.layer.shadowOffset = CGSize(width: 0, height: 12)
         root.addSubview(imageView)
         view = root
-        view.accessibilityLabel = "相簿第 \(index + 1) 页"
+        view.accessibilityLabel = String(
+            format: "相簿第 %lld 页".appLocalized,
+            Int64(index + 1)
+        )
     }
 
     override func viewDidLayoutSubviews() {

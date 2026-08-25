@@ -46,8 +46,8 @@ enum AlbumExportError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noPages: "相簿中没有可导出的页面。"
-        case .renderFailed: "相簿 PDF 生成失败，请稍后重试。"
+        case .noPages: "相簿中没有可导出的页面。".appLocalized
+        case .renderFailed: "相簿 PDF 生成失败，请稍后重试。".appLocalized
         }
     }
 }
@@ -56,7 +56,7 @@ enum AlbumExportError: LocalizedError {
 /// It never truncates user copy: the font is reduced only when the complete
 /// string cannot fit inside its template text frame.
 enum AlbumTypography {
-    static func attributedString(
+    nonisolated static func attributedString(
         for block: AlbumTextBlock,
         project: AlbumProject,
         page: AlbumPage,
@@ -112,7 +112,7 @@ enum AlbumTypography {
         return NSAttributedString(string: block.text, attributes: attributes)
     }
 
-    static func draw(_ text: NSAttributedString, in frame: CGRect) {
+    nonisolated static func draw(_ text: NSAttributedString, in frame: CGRect) {
         guard !text.string.isEmpty, frame.width > 0, frame.height > 0 else { return }
         let measured = text.boundingRect(
             with: CGSize(width: frame.width, height: .greatestFiniteMagnitude),
@@ -133,7 +133,7 @@ enum AlbumTypography {
         )
     }
 
-    private static func fittedFont(
+    nonisolated private static func fittedFont(
         _ baseFont: UIFont,
         text: String,
         color: UIColor,
@@ -175,7 +175,7 @@ enum AlbumTypography {
         return baseFont.withSize(lower)
     }
 
-    private static func font(
+    nonisolated private static func font(
         project: AlbumProject,
         page: AlbumPage,
         style: AlbumTextStyle,
@@ -200,7 +200,7 @@ enum AlbumTypography {
         }
     }
 
-    private static func displayFont(
+    nonisolated private static func displayFont(
         project: AlbumProject,
         page: AlbumPage,
         size: CGFloat,
@@ -218,7 +218,7 @@ enum AlbumTypography {
         }
     }
 
-    private static func supportingFont(
+    nonisolated private static func supportingFont(
         project: AlbumProject,
         page: AlbumPage,
         size: CGFloat,
@@ -235,7 +235,7 @@ enum AlbumTypography {
         }
     }
 
-    private static func overridePageFont(
+    nonisolated private static func overridePageFont(
         page: AlbumPage,
         size: CGFloat,
         weight: UIFont.Weight
@@ -259,7 +259,7 @@ enum AlbumTypography {
         }
     }
 
-    private static func roundedFont(size: CGFloat, weight: UIFont.Weight) -> UIFont {
+    nonisolated private static func roundedFont(size: CGFloat, weight: UIFont.Weight) -> UIFont {
         let base = UIFont.systemFont(ofSize: size, weight: weight)
         guard let descriptor = base.fontDescriptor.withDesign(.rounded) else { return base }
         return UIFont(descriptor: descriptor, size: size)
@@ -270,7 +270,7 @@ enum AlbumTypography {
 /// Keeping the stops opaque also prevents PDF transparency groups from making
 /// a pale content page look like a saturated dark backing sheet.
 enum AlbumPageAppearance {
-    static func paperColor(for style: AlbumDesignStyle) -> UIColor {
+    nonisolated static func paperColor(for style: AlbumDesignStyle) -> UIColor {
         switch style {
         case .coastPostcard: UIColor(red: 0.965, green: 0.982, blue: 0.982, alpha: 1)
         case .filmDiary: UIColor(red: 0.956, green: 0.944, blue: 0.915, alpha: 1)
@@ -282,7 +282,7 @@ enum AlbumPageAppearance {
         }
     }
 
-    static func backgroundStops(project: AlbumProject, page: AlbumPage) -> [UIColor] {
+    nonisolated static func backgroundStops(project: AlbumProject, page: AlbumPage) -> [UIColor] {
         let paper = paperColor(for: project.resolvedDesignStyle)
         let palette = resolvedColors(project.palette)
         if page.role == .cover || page.role == .backCover {
@@ -307,14 +307,14 @@ enum AlbumPageAppearance {
         return [composited(first, over: paper, alpha: page.tintStrength), paper]
     }
 
-    private static func resolvedColors(_ source: [AlbumColor]) -> [UIColor] {
+    nonisolated private static func resolvedColors(_ source: [AlbumColor]) -> [UIColor] {
         let colors = source.isEmpty ? AlbumColor.fallback : source
         return colors.map {
             UIColor(red: $0.red, green: $0.green, blue: $0.blue, alpha: 1)
         }
     }
 
-    private static func resolvedPageColors(project: AlbumProject, page: AlbumPage) -> [UIColor] {
+    nonisolated private static func resolvedPageColors(project: AlbumProject, page: AlbumPage) -> [UIColor] {
         let ids = Set(page.slots.compactMap(\.assetID))
         return Array(project.assets
             .filter { ids.contains($0.id) }
@@ -323,7 +323,7 @@ enum AlbumPageAppearance {
             .map { UIColor(red: $0.red, green: $0.green, blue: $0.blue, alpha: 1) }
     }
 
-    private static func composited(
+    nonisolated private static func composited(
         _ foreground: UIColor,
         over background: UIColor,
         alpha: CGFloat
@@ -360,7 +360,7 @@ enum AlbumPageAppearance {
 }
 
 enum AlbumPageRenderer {
-    static func renderPage(
+    nonisolated static func renderPage(
         project: AlbumProject,
         page: AlbumPage,
         images: [UUID: UIImage],
@@ -383,7 +383,7 @@ enum AlbumPageRenderer {
         }
     }
 
-    static func renderBookPages(
+    nonisolated static func renderBookPages(
         project: AlbumProject,
         images: [UUID: UIImage],
         pagePixelHeight: CGFloat = 1_300
@@ -407,14 +407,14 @@ enum AlbumPageRenderer {
         return pages
     }
 
-    private static func blankPage(size: CGSize) -> UIImage {
+    nonisolated private static func blankPage(size: CGSize) -> UIImage {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = false
         return UIGraphicsImageRenderer(size: size, format: format).image { _ in }
     }
 
-    static func drawPage(
+    nonisolated static func drawPage(
         project: AlbumProject,
         page: AlbumPage,
         images: [UUID: UIImage],
@@ -482,7 +482,7 @@ enum AlbumPageRenderer {
         context.restoreGState()
     }
 
-    private static func drawBackground(
+    nonisolated private static func drawBackground(
         project: AlbumProject,
         page: AlbumPage,
         bounds: CGRect,
@@ -495,7 +495,7 @@ enum AlbumPageRenderer {
         )
     }
 
-    private static func drawGradient(
+    nonisolated private static func drawGradient(
         colors: [UIColor],
         bounds: CGRect,
         context: CGContext
@@ -515,7 +515,7 @@ enum AlbumPageRenderer {
         )
     }
 
-    private static func drawDecorations(
+    nonisolated private static func drawDecorations(
         project: AlbumProject,
         page: AlbumPage,
         bounds: CGRect,
@@ -669,7 +669,7 @@ enum AlbumPageRenderer {
         }
     }
 
-    private static func drawLayoutBackground(
+    nonisolated private static func drawLayoutBackground(
         project: AlbumProject,
         page: AlbumPage,
         bounds: CGRect,
@@ -765,7 +765,7 @@ enum AlbumPageRenderer {
         context.restoreGState()
     }
 
-    private static func drawLayoutForeground(
+    nonisolated private static func drawLayoutForeground(
         project: AlbumProject,
         page: AlbumPage,
         bounds: CGRect,
@@ -828,7 +828,7 @@ enum AlbumPageRenderer {
         context.restoreGState()
     }
 
-    private static func draw(
+    nonisolated private static func draw(
         image: UIImage,
         in frame: CGRect,
         fit: AlbumImageFit,
@@ -887,7 +887,7 @@ enum AlbumPageRenderer {
         }
     }
 
-    private static func drawText(
+    nonisolated private static func drawText(
         _ block: AlbumTextBlock,
         project: AlbumProject,
         page: AlbumPage,
@@ -905,7 +905,7 @@ enum AlbumPageRenderer {
         AlbumTypography.draw(attributedText, in: frame)
     }
 
-    private static func expandedForBleed(
+    nonisolated private static func expandedForBleed(
         _ frame: CGRect,
         normalized: AlbumNormalizedRect,
         full: CGRect,
@@ -919,7 +919,7 @@ enum AlbumPageRenderer {
         return result
     }
 
-    private static func resolvedColors(_ colors: [AlbumColor]) -> [UIColor] {
+    nonisolated private static func resolvedColors(_ colors: [AlbumColor]) -> [UIColor] {
         let source = colors.isEmpty ? AlbumColor.fallback : colors
         return source.map {
             UIColor(red: $0.red, green: $0.green, blue: $0.blue, alpha: 1)
@@ -929,9 +929,11 @@ enum AlbumPageRenderer {
 }
 
 enum AlbumExportService {
-    private static let millimeterToPoint: CGFloat = 72 / 25.4
+    nonisolated private static let millimeterToPoint: CGFloat = 72 / 25.4
 
-    static func export(
+    // Pure CoreGraphics PDF generation. Marked nonisolated so callers can run
+    // it on a detached task and keep the main actor responsive during export.
+    nonisolated static func export(
         project: AlbumProject,
         images: [UUID: UIImage],
         kind: AlbumPDFKind
@@ -957,7 +959,7 @@ enum AlbumExportService {
         return AlbumExportedFile(url: url, kind: kind)
     }
 
-    static func lowResolutionCount(project: AlbumProject) -> Int {
+    nonisolated static func lowResolutionCount(project: AlbumProject) -> Int {
         let pagePixelWidth = project.format.millimeters.width / 25.4 * 300
         var lowAssets = Set<UUID>()
         for page in project.pages {
@@ -973,7 +975,7 @@ enum AlbumExportService {
         return lowAssets.count
     }
 
-    private static func writePrintPDF(
+    nonisolated private static func writePrintPDF(
         project: AlbumProject,
         images: [UUID: UIImage],
         to url: URL
@@ -993,7 +995,7 @@ enum AlbumExportService {
         let rendererFormat = UIGraphicsPDFRendererFormat()
         rendererFormat.documentInfo = [
             kCGPDFContextTitle as String: project.title,
-            kCGPDFContextCreator as String: "灵动照片 · 影像相簿"
+            kCGPDFContextCreator as String: "灵动照片 · 影像相簿".appLocalized
         ]
         let renderer = UIGraphicsPDFRenderer(bounds: fullBounds, format: rendererFormat)
         do {
@@ -1015,7 +1017,7 @@ enum AlbumExportService {
         }
     }
 
-    private static func writeDigitalPagesPDF(
+    nonisolated private static func writeDigitalPagesPDF(
         project: AlbumProject,
         images: [UUID: UIImage],
         to url: URL
@@ -1029,7 +1031,7 @@ enum AlbumExportService {
         let rendererFormat = UIGraphicsPDFRendererFormat()
         rendererFormat.documentInfo = [
             kCGPDFContextTitle as String: project.title,
-            kCGPDFContextCreator as String: "灵动照片 · 影像相簿"
+            kCGPDFContextCreator as String: "灵动照片 · 影像相簿".appLocalized
         ]
         let renderer = UIGraphicsPDFRenderer(bounds: pageBounds, format: rendererFormat)
         do {
@@ -1117,7 +1119,7 @@ extension AlbumColor {
 }
 
 private extension AlbumTextAlignment {
-    var nsAlignment: NSTextAlignment {
+    nonisolated var nsAlignment: NSTextAlignment {
         switch self {
         case .leading: .left
         case .center: .center

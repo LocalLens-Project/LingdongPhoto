@@ -14,9 +14,9 @@ struct TicketRevealLiveActivityWidget: Widget {
                     .foregroundStyle(context.primaryColor)
 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(context.state.phase.title)
+                    Text(LocalizedStringKey(context.state.phase.title))
                         .font(.headline)
-                    Text(context.attributes.title)
+                    Text(LocalizedStringKey(context.attributes.title))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     ProgressView(value: context.state.progress)
@@ -35,13 +35,13 @@ struct TicketRevealLiveActivityWidget: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.phase.title)
+                    Text(LocalizedStringKey(context.state.phase.title))
                         .font(.headline)
                         .lineLimit(1)
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text(context.attributes.title)
+                    Text(LocalizedStringKey(context.attributes.title))
                         .font(.caption.bold())
                         .foregroundStyle(context.secondaryColor)
                 }
@@ -50,7 +50,7 @@ struct TicketRevealLiveActivityWidget: Widget {
                     VStack(spacing: 7) {
                         ProgressView(value: context.state.progress)
                             .tint(context.primaryColor)
-                        Text(context.attributes.title)
+                        Text(LocalizedStringKey(context.attributes.title))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)

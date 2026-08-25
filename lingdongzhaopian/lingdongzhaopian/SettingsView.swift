@@ -15,6 +15,9 @@ struct SettingsView: View {
     private static let sourceRepositoryURL = URL(
         string: "https://github.com/LocalLens-Project/LingdongPhoto"
     )!
+    private static let appStoreReviewURL = URL(
+        string: "https://apps.apple.com/app/id6791514422?action=write-review"
+    )!
 
     @Environment(\.openURL) private var openURL
     @Binding var ratio: ArtworkRatio
@@ -45,6 +48,10 @@ struct SettingsView: View {
     @State private var savedWorkCount = 0
     @State private var savedWorkByteCount: Int64 = 0
 
+    private var isSimplifiedChineseLocalization: Bool {
+        Locale.preferredLanguages.first?.hasPrefix("zh-Hans") == true
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -58,7 +65,7 @@ struct SettingsView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 28) {
                         maintenanceStatement
-                        qqGroupSection
+                        supportAndContactSection
                         interfaceOptions
                         storageAndWorks
                         paletteOptions
@@ -69,7 +76,7 @@ struct SettingsView: View {
                         privacyOptions
 
                         VStack(spacing: 10) {
-                            Text("版本 2.0.0 (Build 202601)")
+                            Text("版本 2.1.0 (Build 202616)")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
 
@@ -77,10 +84,12 @@ struct SettingsView: View {
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
 
-                            Text("浙ICP备2026035179号-6A")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.primary)
-                                .accessibilityLabel("ICP备案号：浙ICP备2026035179号-6A")
+                            if isSimplifiedChineseLocalization {
+                                Text("浙ICP备2026035179号-6A")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                    .accessibilityLabel("ICP备案号：浙ICP备2026035179号-6A")
+                            }
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.bottom, 28)
@@ -116,17 +125,17 @@ struct SettingsView: View {
     private var maintenanceStatement: some View {
         VStack(alignment: .leading, spacing: 12) {
             ViewThatFits(in: .horizontal) {
-                Text(Self.maintenanceStatementText)
+                Text(LocalizedStringKey(Self.maintenanceStatementText))
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
 
                 VStack(spacing: 2) {
-                    Text(Self.maintenanceStatementFirstLine)
+                    Text(LocalizedStringKey(Self.maintenanceStatementFirstLine))
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Text(Self.maintenanceStatementContinuation)
+                    Text(LocalizedStringKey(Self.maintenanceStatementContinuation))
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
@@ -173,50 +182,90 @@ struct SettingsView: View {
         }
     }
 
-    private var qqGroupSection: some View {
+    private var supportAndContactSection: some View {
         VStack(spacing: 0) {
             Button {
-                UIPasteboard.general.string = "1050047342"
-                withAnimation(.snappy) {
-                    qqGroupCopied = true
-                }
-                Task { @MainActor in
-                    try? await Task.sleep(for: .seconds(2))
-                    withAnimation(.snappy) {
-                        qqGroupCopied = false
-                    }
-                }
+                openURL(Self.appStoreReviewURL)
             } label: {
                 HStack(spacing: 14) {
-                    Image(systemName: "person.3.fill")
+                    Image(systemName: "star.fill")
                         .font(.system(size: 18, weight: .semibold))
                         .frame(width: 30)
                         .foregroundStyle(Color.primary)
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("用户交流群")
+                        Text("评分来支持我们")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.primary)
-                        Text(qqGroupCopied ? "群号已复制，请在 QQ 中搜索添加" : "QQ 群：1050047342")
+                        Text("前往 App Store 为灵动照片评分")
                             .font(.caption)
-                            .foregroundStyle(qqGroupCopied ? .green : Color(UIColor.secondaryLabel))
+                            .foregroundStyle(Color(UIColor.secondaryLabel))
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
 
                     Spacer(minLength: 8)
 
-                    Image(systemName: qqGroupCopied ? "checkmark.circle.fill" : "doc.on.clipboard")
+                    Image(systemName: "arrow.up.right")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(qqGroupCopied ? .green : Color(UIColor.tertiaryLabel))
+                        .foregroundStyle(Color(UIColor.tertiaryLabel))
                 }
                 .padding(.horizontal, 18)
                 .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
                 .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("复制 QQ 用户交流群号")
-            .accessibilityHint("群号 1050047342 将被复制到剪贴板")
+            .accessibilityLabel("在 App Store 为灵动照片评分")
+            .accessibilityHint("将打开 App Store 的评分与评论页面")
+
+            sectionDivider
+
+            if isSimplifiedChineseLocalization {
+                Button {
+                    UIPasteboard.general.string = "1050047342"
+                    withAnimation(.snappy) {
+                        qqGroupCopied = true
+                    }
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(2))
+                        withAnimation(.snappy) {
+                            qqGroupCopied = false
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: "person.3.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .frame(width: 30)
+                            .foregroundStyle(Color.primary)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("用户交流群")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.primary)
+                            Text(qqGroupCopied ? "群号已复制，请在 QQ 中搜索添加" : "QQ 群：1050047342")
+                                .font(.caption)
+                                .foregroundStyle(qqGroupCopied ? .green : Color(UIColor.secondaryLabel))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+
+                        Spacer(minLength: 8)
+
+                        Image(systemName: qqGroupCopied ? "checkmark.circle.fill" : "doc.on.clipboard")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(qqGroupCopied ? .green : Color(UIColor.tertiaryLabel))
+                    }
+                    .padding(.horizontal, 18)
+                    .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
+                    .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("复制 QQ 用户交流群号")
+                .accessibilityHint("群号 1050047342 将被复制到剪贴板")
+
+                sectionDivider
+            }
 
             Button {
                 UIPasteboard.general.string = "help@locallens.cn"
@@ -270,7 +319,7 @@ struct SettingsView: View {
                 SettingRow(symbol: "rectangle.3.group", title: "排版模式") {
                     Picker("排版模式", selection: paletteLayoutBinding) {
                         ForEach(PaletteLayoutMode.allCases) { layout in
-                            Text(layout.rawValue).tag(layout)
+                            Text(LocalizedStringKey(layout.rawValue)).tag(layout)
                         }
                     }
                     .labelsHidden()
@@ -349,7 +398,11 @@ struct SettingsView: View {
 
     private var savedWorkSummary: String {
         guard savedWorkCount > 0 else { return "暂无应用内保存的作品" }
-        return "共 \(savedWorkCount) 件 · \(Self.formattedByteCount(savedWorkByteCount))"
+        return String(
+            format: "共 %lld 件 · %@".appLocalized,
+            Int64(savedWorkCount),
+            Self.formattedByteCount(savedWorkByteCount)
+        )
     }
 
     private func refreshWorkArchiveSummary() {
@@ -375,7 +428,7 @@ struct SettingsView: View {
                 ) {
                     Picker("顶部背景", selection: $motionCardHeaderStyle) {
                         ForEach(MotionCardHeaderStyle.allCases) { style in
-                            Text(style.rawValue).tag(style)
+                            Text(LocalizedStringKey(style.rawValue)).tag(style)
                         }
                     }
                     .labelsHidden()
@@ -493,7 +546,7 @@ struct SettingsView: View {
                 SettingRow(symbol: "square.grid.2x2", title: "拼图模板") {
                     Picker("拼图模板", selection: $journalLayout) {
                         ForEach(JournalLayoutMode.allCases) { layout in
-                            Text(layout.rawValue).tag(layout)
+                            Text(LocalizedStringKey(layout.rawValue)).tag(layout)
                         }
                     }
                     .labelsHidden()
@@ -542,7 +595,7 @@ struct SettingsView: View {
         SettingRow(symbol: "rectangle.split.2x1", title: "图片比例") {
             Picker("图片比例", selection: $ratio) {
                 ForEach(ArtworkRatio.allCases) { item in
-                    Text(item.rawValue).tag(item)
+                    Text(LocalizedStringKey(item.rawValue)).tag(item)
                 }
             }
             .labelsHidden()
@@ -555,7 +608,7 @@ struct SettingsView: View {
         SettingRow(symbol: templateStyle.symbol, title: "作品模板") {
             Picker("作品模板", selection: $templateStyle) {
                 ForEach(ArtworkTemplateStyle.allCases) { style in
-                    Label(style.rawValue, systemImage: style.symbol).tag(style)
+                    Label(LocalizedStringKey(style.rawValue), systemImage: style.symbol).tag(style)
                 }
             }
             .labelsHidden()
@@ -592,7 +645,7 @@ struct SettingsView: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(.headline)
                 .foregroundStyle(.secondary)
                 .padding(.leading, 20)
@@ -608,7 +661,7 @@ struct SettingsView: View {
             Image(systemName: symbol)
                 .font(.system(size: 18, weight: .medium))
                 .frame(width: 34)
-            Text(text)
+            Text(LocalizedStringKey(text))
                 .font(.subheadline)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -642,10 +695,10 @@ struct SettingRow<Trailing: View>: View {
                 .frame(width: 34)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.subheadline)
                 if let subtitle {
-                    Text(subtitle)
+                    Text(LocalizedStringKey(subtitle))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -876,7 +929,7 @@ private struct LingdongWorkPreviewView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(record.kindTitle)
+                        Text(LocalizedStringKey(record.kindTitle))
                             .font(.headline)
                         Text(
                             record.createdAt,

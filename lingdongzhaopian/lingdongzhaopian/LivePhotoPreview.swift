@@ -11,9 +11,9 @@ enum LivePhotoPreviewError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingVideo:
-            "实况照片的动态片段不可用，请确认原片已从 iCloud 下载。"
+            "实况照片的动态片段不可用，请确认原片已从 iCloud 下载。".appLocalized
         case .unreadableFrame:
-            "暂时无法播放这张实况照片，请重新选择原片后重试。"
+            "暂时无法播放这张实况照片，请重新选择原片后重试。".appLocalized
         }
     }
 }
@@ -119,12 +119,13 @@ enum LivePhotoPreview {
             let seconds = Double(elapsed.components.seconds)
                 + Double(elapsed.components.attoseconds) / 1_000_000_000_000_000_000
             guard seconds < primary.duration.seconds else { break }
+            let normalizedProgress = min(1, max(0, seconds / primary.duration.seconds))
 
             for source in sources {
                 let lastReadableSecond = max(0, source.duration.seconds - 1.0 / 600.0)
                 if let image = try await loadFrame(
                     from: source,
-                    at: min(seconds, lastReadableSecond),
+                    at: min(source.duration.seconds * normalizedProgress, lastReadableSecond),
                     attempts: 1,
                     timeout: .milliseconds(450)
                 ) {

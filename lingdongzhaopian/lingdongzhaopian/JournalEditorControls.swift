@@ -22,7 +22,7 @@ struct JournalEditorControls: View {
                 Spacer()
                 Picker("拼图模板", selection: $layout) {
                     ForEach(JournalLayoutMode.allCases) { item in
-                        Text(item.rawValue).tag(item)
+                        Text(LocalizedStringKey(item.rawValue)).tag(item)
                     }
                 }
                 .labelsHidden()

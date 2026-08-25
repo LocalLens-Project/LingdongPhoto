@@ -5,14 +5,14 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-enum ArtworkExportFormat: String, CaseIterable, Identifiable {
+enum ArtworkExportFormat: String, CaseIterable, Identifiable, Sendable {
     case jpeg = "JPEG"
     case png = "PNG"
     case heic = "HEIC"
 
     var id: String { rawValue }
 
-    var type: UTType {
+    nonisolated var type: UTType {
         switch self {
         case .jpeg: .jpeg
         case .png: .png
@@ -61,7 +61,7 @@ enum ArtworkExportResolution: String, CaseIterable, Identifiable {
     }
 }
 
-enum ArtworkMetadataPolicy: String, CaseIterable, Identifiable {
+enum ArtworkMetadataPolicy: String, CaseIterable, Identifiable, Sendable {
     case preserve = "完整保留"
     case removeLocation = "移除位置"
     case removeAll = "隐私净化"
@@ -84,8 +84,8 @@ enum ArtworkMetadataPolicy: String, CaseIterable, Identifiable {
         }
     }
 
-    var preservesLocation: Bool { self == .preserve }
-    var preservesMetadata: Bool { self != .removeAll }
+    nonisolated var preservesLocation: Bool { self == .preserve }
+    nonisolated var preservesMetadata: Bool { self != .removeAll }
 }
 
 enum ArtworkExportDestination: String, CaseIterable, Identifiable {
@@ -115,7 +115,7 @@ enum ExportTemporaryFile {
             .appendingPathComponent("lingdong-share", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = directory
-            .appendingPathComponent("灵动照片-\(Int(Date.now.timeIntervalSince1970))")
+            .appendingPathComponent("\("灵动照片".appLocalized)-\(Int(Date.now.timeIntervalSince1970))")
             .appendingPathExtension(format.fileExtension)
         try data.write(to: url, options: .atomic)
         return url
@@ -170,11 +170,7 @@ struct ExportCenterView: View {
                                     ? [.png]
                                     : ArtworkExportFormat.allCases
                             )
-                            Text(
-                                requiresTransparency
-                                    ? "\(resolution.detail) · PNG 保留票根圆角与镂空处的透明像素"
-                                    : "\(resolution.detail) · \(format.detail)"
-                            )
+                            Text(verbatim: exportDetail)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -193,8 +189,8 @@ struct ExportCenterView: View {
                                             .font(.system(size: 17, weight: .semibold))
                                             .frame(width: 28)
                                         VStack(alignment: .leading, spacing: 3) {
-                                            Text(policy.rawValue).font(.subheadline.weight(.semibold))
-                                            Text(policy.detail)
+                                            Text(LocalizedStringKey(policy.rawValue)).font(.subheadline.weight(.semibold))
+                                            Text(LocalizedStringKey(policy.detail))
                                                 .font(.caption2)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -237,7 +233,7 @@ struct ExportCenterView: View {
                             onExport()
                         }
                     } label: {
-                        Label(exportTitle, systemImage: destination.symbol)
+                        Label(LocalizedStringKey(exportTitle), systemImage: destination.symbol)
                             .font(.headline)
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity)
@@ -270,12 +266,23 @@ struct ExportCenterView: View {
         }
     }
 
+    private var exportDetail: String {
+        let resolutionDetail = resolution.detail.appLocalized
+        if requiresTransparency {
+            return String(
+                format: "%@ · PNG 保留票根圆角与镂空处的透明像素".appLocalized,
+                resolutionDetail
+            )
+        }
+        return "\(resolutionDetail) · \(format.detail.appLocalized)"
+    }
+
     private func exportSection<Content: View>(
         _ title: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(.headline)
                 .foregroundStyle(.secondary)
                 .padding(.leading, 14)
@@ -298,7 +305,7 @@ struct ExportCenterView: View {
         Button(action: action) {
             VStack(spacing: 7) {
                 Image(systemName: symbol).font(.system(size: 18, weight: .semibold))
-                Text(title).font(.caption.weight(.semibold))
+                Text(LocalizedStringKey(title)).font(.caption.weight(.semibold))
             }
             .foregroundStyle(
                 isSelected
@@ -327,11 +334,11 @@ struct ExportCenterView: View {
             Image(systemName: symbol)
                 .font(.system(size: 17, weight: .semibold))
                 .frame(width: 28)
-            Text(title).font(.subheadline.weight(.medium))
+            Text(LocalizedStringKey(title)).font(.subheadline.weight(.medium))
             Spacer()
             Picker(title, selection: selection) {
                 ForEach(values) { value in
-                    Text(value.rawValue).tag(value)
+                    Text(LocalizedStringKey(value.rawValue)).tag(value)
                 }
             }
             .labelsHidden()

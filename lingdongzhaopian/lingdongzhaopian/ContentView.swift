@@ -25,15 +25,16 @@ private enum PhotoSelectionOperation: Equatable {
     case replace(index: Int)
 }
 
-private enum Version200Audience: String {
+private enum Version210Audience: String {
     case upgradedFromPreviousVersion
-    case installed200
+    case installed210
 }
 
 struct ContentView: View {
     private static let ticketScannerIntroID = "ticketScanner"
     private static let albumIntroID = "photoAlbum"
     private static let colorRelationshipIntroID = "colorRelationship"
+    private static let videoToLivePhotoIntroID = "videoToLivePhoto"
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var systemColorScheme
@@ -81,8 +82,8 @@ struct ContentView: View {
     // for future releases, otherwise users would see the one-time hint again.
     @AppStorage("didShowLivePhotoPlaybackHint") private var didShowLivePhotoPlaybackHint = false
     @AppStorage("didShowLivePhotoPlaybackHintBuild1060") private var didShowLivePhotoPlaybackHintBuild1060 = false
-    @AppStorage("version200Audience") private var version200AudienceRaw = ""
-    @AppStorage("didShowVersion200Update") private var didShowVersion200Update = false
+    @AppStorage("version210Audience") private var version210AudienceRaw = ""
+    @AppStorage("didShowVersion210Update") private var didShowVersion210Update = false
     @AppStorage("didShowModeSelectionHint101") private var didShowModeSelectionHint101 = false
     @AppStorage("didShowTicketLandscapeHint") private var didShowTicketLandscapeHint = false
     @AppStorage("didShowTicketNarrativePrompt") private var didShowTicketNarrativePrompt = false
@@ -95,6 +96,10 @@ struct ContentView: View {
     @State private var images: [UIImage] = []
     @State private var palette = RGBColor.fallback
     @State private var palettePercentages = [Double](repeating: 0, count: 6)
+    @State private var colorInsightPage: ColorInsightPage = .palette
+    @State private var lightAnalysis: PhotoLightAnalysis?
+    @State private var activeLightToneRange: LightToneRange?
+    @State private var lightAnalysisTask: Task<Void, Never>?
     @State private var motionCardSamplingRect: CGRect?
     @State private var motionCardLocalPalette: [RGBColor]?
     @State private var motionCardLocalPercentages: [Double]?
@@ -113,6 +118,7 @@ struct ContentView: View {
     @State private var ticketScannerPresented = false
     @State private var albumPresented = false
     @State private var colorRelationshipPresented = false
+    @State private var videoToLivePhotoPresented = false
     @State private var toastMessage: String?
     @State private var errorTitle = "无法保存"
     @State private var saveErrorMessage = ""
@@ -125,6 +131,7 @@ struct ContentView: View {
     @State private var ticketStudioPresented = false
     @State private var ticketNarrativePromptPresented = false
     @State private var ticketMessage = ""
+    @State private var ticketSealedAtText = TicketTimeCalculator.nowFormatted()
     @State private var ticketMessagePromptPresented = false
     @State private var ticketMessageEditorPresented = false
     @State private var shouldExportAfterTicketMessageEditor = false
@@ -191,7 +198,7 @@ struct ContentView: View {
     @State private var isModeSelectionHintPresented = false
     @State private var isTicketLandscapeHintPresented = false
     @State private var publicGoodsCommitmentPresented = false
-    @State private var version200UpdatePresented = false
+    @State private var version210UpdatePresented = false
     @StateObject private var cameraWatermarkLibrary = CameraWatermarkLibrary()
 
     private var pickerLimit: Int {
@@ -300,23 +307,23 @@ struct ContentView: View {
     private var ticketIsSelfPerspective: Bool { ticketNarrativePerspective == .self }
     private var ticketMessagePromptTitle: String {
         if ticketIsEmotional {
-            return ticketIsSelfPerspective ? "还没有写下这次的备忘" : "还没有写下这次的寄语"
+            return (ticketIsSelfPerspective ? "还没有写下这次的备忘" : "还没有写下这次的寄语").appLocalized
         }
-        return "还没有写下这次的寄语"
+        return "还没有写下这次的寄语".appLocalized
     }
     private var ticketMessagePromptActionTitle: String {
         if ticketIsEmotional {
-            return ticketIsSelfPerspective ? "补充备忘" : "补充寄语"
+            return (ticketIsSelfPerspective ? "补充备忘" : "补充寄语").appLocalized
         }
-        return "补充寄语"
+        return "补充寄语".appLocalized
     }
     private var ticketMessagePromptMessage: String {
         if ticketIsEmotional {
             return ticketIsSelfPerspective
-                ? "这段备忘会随票根一起封存，扫描时可以看到。要在导出前补充吗？"
-                : "这段寄语会随票根一起封存，扫描时可以看到。要在导出前补充吗？"
+                ? "这段备忘会随票根一起封存，扫描时可以看到。要在导出前补充吗？".appLocalized
+                : "这段寄语会随票根一起封存，扫描时可以看到。要在导出前补充吗？".appLocalized
         }
-        return "寄语会显示在影像票根的公开信息中。要在导出前补充吗？"
+        return "寄语会显示在影像票根的公开信息中。要在导出前补充吗？".appLocalized
     }
     private var primaryMetadata: PhotoMetadata { selectedPhotos.first?.metadata ?? .empty }
     private var activeCameraWatermark: UIImage? {
@@ -347,7 +354,7 @@ struct ContentView: View {
             && !isModeSelectionHintPresented
             && modeSelectionHintTask == nil
             && !publicGoodsCommitmentPresented
-            && !version200UpdatePresented
+            && !version210UpdatePresented
             && !modeSelectionPresented
             && !settingsPresented
             && !isPickerPresented
@@ -356,7 +363,7 @@ struct ContentView: View {
         isEditorVisible
             && !didShowModeSelectionHint101
             && !publicGoodsCommitmentPresented
-            && !version200UpdatePresented
+            && !version210UpdatePresented
             && !modeSelectionPresented
             && !settingsPresented
             && !isPickerPresented
@@ -370,7 +377,7 @@ struct ContentView: View {
             && !isModeSelectionHintPresented
             && modeSelectionHintTask == nil
             && !publicGoodsCommitmentPresented
-            && !version200UpdatePresented
+            && !version210UpdatePresented
             && !modeSelectionPresented
             && !settingsPresented
             && !exportCenterPresented
@@ -383,7 +390,7 @@ struct ContentView: View {
             && mode == .travelTicket
             && !didShowTicketNarrativePrompt
             && !publicGoodsCommitmentPresented
-            && !version200UpdatePresented
+            && !version210UpdatePresented
             && !modeSelectionPresented
             && !settingsPresented
             && !exportCenterPresented
@@ -484,7 +491,7 @@ struct ContentView: View {
                 : nil,
             style: ticketNarrativeStyle == .emotional ? ticketNarrativeStyle.rawValue : nil,
             narrative: ticketNarrativeStyle == .emotional ? ticketNarrativePerspective.rawValue : nil,
-            sealedAt: TicketTimeCalculator.nowFormatted()
+            sealedAt: ticketSealedAtText
         )
     }
 
@@ -545,7 +552,7 @@ struct ContentView: View {
                         && !modeSelectionPresented
                         && !albumPresented
                         && !publicGoodsCommitmentPresented
-                        && !version200UpdatePresented
+                        && !version210UpdatePresented
                         && !isPickerPresented
                 ) {
                     resetComposition()
@@ -561,7 +568,7 @@ struct ContentView: View {
         .statusBarHidden(true)
         .sheet(isPresented: $publicGoodsCommitmentPresented) {
             PublicGoodsCommitmentView(
-                showsUpdateNext: shouldPresentVersion200Update,
+                showsUpdateNext: shouldPresentVersion210Update,
                 onNext: completePublicGoodsCommitment
             )
                 .environment(\.colorScheme, .dark)
@@ -571,8 +578,8 @@ struct ContentView: View {
                 .presentationBackground(.black)
                 .interactiveDismissDisabled()
         }
-        .sheet(isPresented: $version200UpdatePresented) {
-            Version200UpdateView(onNext: completeVersion200Update)
+        .sheet(isPresented: $version210UpdatePresented) {
+            Version210UpdateView(onNext: completeVersion210Update)
                 .environment(\.colorScheme, .dark)
                 .presentationDetents([.fraction(0.94)])
                 .presentationDragIndicator(.hidden)
@@ -643,6 +650,12 @@ struct ContentView: View {
             if newMode == .sketch {
                 scheduleSketchPreviewRefresh()
             }
+            if newMode != .colorPalette {
+                activeLightToneRange = nil
+            }
+        }
+        .onChange(of: colorInsightPage) { _, page in
+            if page != .light { activeLightToneRange = nil }
         }
         .onChange(of: privacyMosaicStrength) { _, _ in
             schedulePrivacyPreviewRefresh()
@@ -699,7 +712,8 @@ struct ContentView: View {
                 onSelect: selectCreationMode,
                 onOpenAlbum: openAlbum,
                 onOpenColorRelationship: openColorRelationship,
-                onScanTicket: openTicketScanner
+                onScanTicket: openTicketScanner,
+                onConvertVideo: openVideoToLivePhoto
             )
             .environment(\.colorScheme, systemColorScheme)
             .presentationDetents(isTicketLandscape ? [.large] : [.fraction(0.84)])
@@ -721,6 +735,10 @@ struct ContentView: View {
             ColorRelationshipFeatureView(
                 onOpenModeSelection: returnFromColorRelationshipToModeSelection
             )
+        }
+        .fullScreenCover(isPresented: $videoToLivePhotoPresented) {
+            VideoToLivePhotoScreen()
+                .environment(\.colorScheme, systemColorScheme)
         }
         .sheet(isPresented: $editCopyPresented) {
             ArtworkCopyEditor(
@@ -859,7 +877,7 @@ struct ContentView: View {
             ticketMessagePromptTitle,
             isPresented: $ticketMessagePromptPresented
         ) {
-            Button(ticketMessagePromptActionTitle) {
+            Button(LocalizedStringKey(ticketMessagePromptActionTitle)) {
                 Task { @MainActor in
                     await Task.yield()
                     ticketMessageEditorPresented = true
@@ -874,12 +892,12 @@ struct ContentView: View {
             }
             Button("取消", role: .cancel) {}
         } message: {
-            Text(ticketMessagePromptMessage)
+            Text(LocalizedStringKey(ticketMessagePromptMessage))
         }
         .alert(errorTitle, isPresented: $saveErrorPresented) {
             Button("好", role: .cancel) {}
         } message: {
-            Text(saveErrorMessage)
+            Text(LocalizedStringKey(saveErrorMessage))
         })
         .sheet(isPresented: $ticketNarrativePromptPresented) {
             TicketNarrativePromptView(
@@ -905,12 +923,6 @@ struct ContentView: View {
             }
             PhotoAssetLoader.cleanupStaleTemporaryResources()
             importSharedPhotoIfAvailable()
-#if DEBUG
-            await loadDebugPreviewIfNeeded()
-            if ProcessInfo.processInfo.arguments.contains("--album") {
-                albumPresented = true
-            }
-#endif
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
@@ -942,6 +954,7 @@ struct ContentView: View {
         }
         .onDisappear {
             stopLivePhotoPlayback()
+            lightAnalysisTask?.cancel()
             dismissTicketPrintExperience()
             dismissModeSelectionHint(animated: false)
             dismissLivePhotoHint(animated: false)
@@ -1031,6 +1044,9 @@ struct ContentView: View {
 
             ticketScannerIntro
                 .tag(Self.ticketScannerIntroID)
+
+            videoToLivePhotoIntro
+                .tag(Self.videoToLivePhotoIntroID)
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
         .ignoresSafeArea(edges: .bottom)
@@ -1074,6 +1090,24 @@ struct ContentView: View {
         )
     }
 
+    private var videoToLivePhotoIntro: some View {
+        introPage(
+            title: "视频转实况",
+            subtitle: "截取 3 秒相机视频并选择实况封面\n兼容视频优先保留原始动态画质",
+            symbol: "video.fill",
+            accent: Color(red: 0.72, green: 0.88, blue: 1.00),
+            showsJournalBadge: false,
+            showsVideoToLiveGlyph: true,
+            actionSymbol: "arrow.up.right",
+            actionAccessibilityLabel: "打开视频转实况",
+            actionAccessibilityHint: "选择视频并生成实况照片",
+            isBusy: false,
+            isActionDisabled: false,
+            showsImportStatus: false,
+            action: openVideoToLivePhoto
+        )
+    }
+
     private var albumIntro: some View {
         introPage(
             title: "影像相簿",
@@ -1114,6 +1148,7 @@ struct ContentView: View {
         symbol: String,
         accent: Color,
         showsJournalBadge: Bool,
+        showsVideoToLiveGlyph: Bool = false,
         actionSymbol: String,
         actionAccessibilityLabel: String,
         actionAccessibilityHint: String? = nil,
@@ -1125,12 +1160,20 @@ struct ContentView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            ModeGlyph(symbol: symbol, accent: accent)
-                .id(symbol)
-                .padding(.bottom, 55)
+            Group {
+                if showsVideoToLiveGlyph {
+                    VideoToLivePhotoGlyph(color: accent.opacity(0.94))
+                        .scaleEffect(1.4)
+                        .frame(width: 98, height: 98)
+                } else {
+                    ModeGlyph(symbol: symbol, accent: accent)
+                }
+            }
+            .id(symbol)
+            .padding(.bottom, 55)
 
             HStack(spacing: 7) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.custom("Songti SC", size: 24).weight(.medium))
                 if showsJournalBadge {
                     Circle()
@@ -1141,7 +1184,7 @@ struct ContentView: View {
             }
             .foregroundStyle(.white.opacity(0.94))
 
-            Text(subtitle)
+            Text(LocalizedStringKey(subtitle))
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.32))
                 .multilineTextAlignment(.center)
@@ -1184,7 +1227,7 @@ struct ContentView: View {
             .accessibilityHint(actionAccessibilityHint ?? "")
 
             if showsImportStatus && isBusy && !importStatus.isEmpty {
-                Text(importStatus)
+                Text(LocalizedStringKey(importStatus))
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.52))
                     .padding(.top, 12)
@@ -1201,11 +1244,12 @@ struct ContentView: View {
         CreationMode.allCases.map(\.rawValue) + [
             Self.albumIntroID,
             Self.colorRelationshipIntroID,
-            Self.ticketScannerIntroID
+            Self.ticketScannerIntroID,
+            Self.videoToLivePhotoIntroID
         ]
     }
 
-    private func editorView(in size: CGSize) -> some View {
+    private func editorView(in size: CGSize) -> AnyView {
         let ratioValue = editorRatio(in: size)
         let availableWidth = size.width - 32
         let canvasWidth: CGFloat
@@ -1224,18 +1268,23 @@ struct ContentView: View {
             // Leave room for the editor-only local color sampling controls below the artwork.
             let editorReserve: CGFloat = size.height < 760 ? 205 : 175
             canvasWidth = min(availableWidth, max(300, size.height - editorReserve) * ratioValue)
+        } else if mode == .colorPalette {
+            let editorReserve: CGFloat = colorInsightPage == .light
+                ? (size.height < 760 ? 470 : 430)
+                : 195
+            canvasWidth = min(availableWidth, max(248, size.height - editorReserve) * ratioValue)
         } else {
             // Extra-tall ratios must remain fully reachable on compact iPhones.
             canvasWidth = min(availableWidth, max(320, size.height - 130) * ratioValue)
         }
         let canvasHeight = canvasWidth / ratioValue
 
-        return VStack(spacing: 0) {
+        let content = VStack(spacing: 0) {
             HStack(spacing: 6) {
                 Text("灵动照片")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.78)
+                    .minimumScaleFactor(0.50)
                     .opacity(showAppTitle ? 1 : 0)
                     .accessibilityHidden(!showAppTitle)
 
@@ -1336,6 +1385,16 @@ struct ContentView: View {
             .padding(.top, 10)
             .zIndex(40)
 
+            if mode == .colorPalette {
+                ColorInsightSwitcher(
+                    selection: $colorInsightPage,
+                    reduceMotion: reduceMotion
+                )
+                .padding(.top, 10)
+                .zIndex(25)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
             if showsLivePlaybackControl {
                 HStack(spacing: 8) {
                     LivePhotoPlaybackButton(
@@ -1374,7 +1433,33 @@ struct ContentView: View {
             }
 
             artworkPreview(width: canvasWidth, height: canvasHeight)
-            .padding(.top, mode == .travelTicket ? 0 : (showsLivePlaybackControl ? 8 : 20))
+            .padding(.top, mode == .travelTicket
+                ? 0
+                : (mode == .colorPalette ? 10 : (showsLivePlaybackControl ? 8 : 20)))
+
+            if mode == .colorPalette, colorInsightPage == .light {
+                Group {
+                    if let lightAnalysis {
+                        LightAnalysisPanel(
+                            analysis: lightAnalysis,
+                            semantic: combinedSemantic,
+                            activeRange: $activeLightToneRange
+                        )
+                    } else {
+                        LightAnalysisLoadingPanel()
+                    }
+                }
+                .frame(width: min(canvasWidth, size.width - 36))
+                .padding(.top, 10)
+                .transition(
+                    reduceMotion
+                        ? .opacity
+                        : .asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .opacity
+                        )
+                )
+            }
 
             if mode == .motionCard, templateStyle != .immersive {
                 motionCardSamplingControls
@@ -1401,15 +1486,21 @@ struct ContentView: View {
             }
 
             if mode == .sketch {
-                SketchEditorControls(
-                    parameters: $sketchParameters,
-                    isRendering: isSketchRendering,
-                    onStyleChange: { style in
-                        sketchParameters = style.defaultParameters
-                    }
-                )
-                .padding(.horizontal, 18)
-                .padding(.top, 12)
+                ScrollView(.vertical) {
+                    SketchEditorControls(
+                        parameters: $sketchParameters,
+                        isRendering: isSketchRendering,
+                        onStyleChange: { style in
+                            sketchParameters = style.defaultParameters
+                        }
+                    )
+                    .padding(.horizontal, 18)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                }
+                .frame(height: size.height < 760 ? 190 : 230)
+                .scrollIndicators(.visible)
+                .scrollBounceBehavior(.basedOnSize)
             }
 
             if mode == .journal {
@@ -1461,6 +1552,21 @@ struct ContentView: View {
                 : (mode == .privacyMosaic ? 8 : 18))
         }
         .safeAreaPadding(.top)
+        .animation(
+            reduceMotion ? .easeOut(duration: 0.12) : .snappy(duration: 0.42, extraBounce: 0.04),
+            value: colorInsightPage
+        )
+
+        if mode == .colorPalette, colorInsightPage == .light {
+            return AnyView(
+                ScrollView(.vertical) {
+                    content
+                }
+                .scrollIndicators(.hidden)
+                .scrollDismissesKeyboard(.immediately)
+            )
+        }
+        return AnyView(content)
     }
 
     private var motionCardSamplingControls: some View {
@@ -1506,11 +1612,6 @@ struct ContentView: View {
         }
     }
 
-    /// iOS 17 can report a landscape scene while keeping the SwiftUI hit-test
-    /// tree in portrait coordinates after `requestGeometryUpdate`. That leaves
-    /// the ticket visible but makes every control appear frozen. Keep the scene
-    /// portrait on iOS 17 and rotate one correctly sized SwiftUI subtree instead;
-    /// visual and touch transforms then stay in the same coordinate space.
     private func legacyTicketLandscapeEditorView(in size: CGSize) -> AnyView {
         let landscapeSize = CGSize(
             width: max(size.width, size.height),
@@ -1660,7 +1761,11 @@ struct ContentView: View {
             ticketLayout: ticketLayout,
             ticketAppClipBaseURL: TicketEnvelope.configuredBaseURLString,
             ticketDeviceSealEnabled: ticketDeviceSealEnabled,
-            sketchImage: mode == .sketch ? sketchImage : nil
+            sketchImage: mode == .sketch ? sketchImage : nil,
+            showsColorPaletteOverlay: colorInsightPage == .palette,
+            lightToneOverlay: mode == .colorPalette && colorInsightPage == .light
+                ? lightAnalysis?.overlay(for: activeLightToneRange)
+                : nil
         )
         .frame(width: width, height: height)
         .scaleEffect(canvasRevealed ? 1 : 0.78)
@@ -1679,10 +1784,15 @@ struct ContentView: View {
         .gesture(activeCanvasGesture(canvasSize: CGSize(width: width, height: height)))
         .accessibilityLabel(
             mode == .privacyMosaic && isPrivacyPainting
-                ? "隐私马赛克预览，单指\(privacyBrushMode.rawValue)"
+                ? String(
+                    format: "隐私马赛克预览，单指：%@".appLocalized,
+                    privacyBrushMode.rawValue.appLocalized
+                )
                 : (mode == .sketch
                     ? "\(mode.title)预览，按照片实际比例预览"
-                    : "\(mode.title)预览，可拖拽或双指缩放")
+                    : (mode == .colorPalette && colorInsightPage == .light
+                        ? "光影解析预览，按照片实际比例完整显示"
+                        : "\(mode.title)预览，可拖拽或双指缩放"))
         )
         .accessibilityAction(named: "编辑作品文字") {
             if mode == .motionCard
@@ -1708,6 +1818,13 @@ struct ContentView: View {
         if mode == .sketch {
             // Sketch is aspect-fit at the photo's native ratio — the preview
             // already matches the actual image, so pan/zoom is disabled.
+            return AnyGesture(DragGesture(minimumDistance: 100_000).map { _ in () })
+        }
+
+        if mode == .colorPalette, colorInsightPage == .light {
+            // The light-analysis page deliberately shows the complete source;
+            // disabling composition gestures prevents an old zoom/offset from
+            // making the preview appear cropped again.
             return AnyGesture(DragGesture(minimumDistance: 100_000).map { _ in () })
         }
 
@@ -2137,7 +2254,7 @@ struct ContentView: View {
     private func toast(text: String) -> some View {
         VStack {
             Spacer()
-            Text(text)
+            Text(LocalizedStringKey(text))
                 .font(.system(size: 13, weight: .medium))
                 .padding(.horizontal, 18)
                 .frame(height: 43)
@@ -2189,7 +2306,10 @@ struct ContentView: View {
             privacyMasks = detected
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             showToast(
-                "发现 \(detected.count) 处隐私内容，点击马赛克区域可取消",
+                String(
+                    format: "发现 %lld 处隐私内容，点击马赛克区域可取消".appLocalized,
+                    Int64(detected.count)
+                ),
                 duration: 3.6
             )
         }
@@ -2400,13 +2520,18 @@ struct ContentView: View {
             canvasRevealed = false
             paletteRevealStage = 0
             generationProgress = 0
-            importStatus = "正在读取照片与拍摄信息…"
+            importStatus = "正在读取照片与拍摄信息…".appLocalized
         }
 
         var imported: [SelectedPhoto] = []
         var firstImportError: Error?
         for (index, selection) in pickerSelections.prefix(pickerLimit).enumerated() {
-            importStatus = "正在识别第 \(index + 1) 张，共 \(min(pickerSelections.count, pickerLimit)) 张的画面内容…"
+            importStatus = String(
+                format: "正在识别第 %lld 张，共 %lld 张的画面内容…".appLocalized,
+                locale: .current,
+                Int64(index + 1),
+                Int64(min(pickerSelections.count, pickerLimit))
+            )
             // Always retain the paired resource while this photo is selected.
             // The Live export setting can then be changed without reselecting it.
             do {
@@ -2439,6 +2564,7 @@ struct ContentView: View {
             motionCardLocalPalette = nil
             motionCardLocalPercentages = nil
             ticketMessage = ""
+            ticketSealedAtText = TicketTimeCalculator.nowFormatted()
             skippedTicketMessageForCurrentPhoto = false
             journalTransforms = Array(repeating: JournalPhotoTransform(), count: combined.count)
             selectedJournalIndex = mode == .journal ? 0 : nil
@@ -2462,10 +2588,11 @@ struct ContentView: View {
                 selectedJournalIndex = index
             }
         }
-        importStatus = "正在分析整张照片的感知色彩…"
+        importStatus = "正在分析整张照片的感知色彩…".appLocalized
         let paletteResult = combinedPaletteResult(from: combined.map(\.image))
         selectedPhotos = combined
         images = combined.map(\.image)
+        scheduleLightAnalysis(for: combined.first?.image)
         if operation == .replaceAll {
             resetPrivacyEdits(for: images.first)
             if mode == .sketch {
@@ -2554,10 +2681,33 @@ struct ContentView: View {
         }
     }
 
+    private func scheduleLightAnalysis(for image: UIImage?) {
+        lightAnalysisTask?.cancel()
+        lightAnalysis = nil
+        activeLightToneRange = nil
+        guard let image else { return }
+        lightAnalysisTask = Task {
+            let result = await PhotoLightAnalyzer.analyze(image)
+            guard !Task.isCancelled else { return }
+            lightAnalysis = result
+            lightAnalysisTask = nil
+        }
+    }
+
     private func editorRatio(in screenSize: CGSize) -> CGFloat {
         if mode == .spectrumWallpaper {
             let bounds = UIScreen.main.bounds
             return min(max(bounds.width / bounds.height, 0.43), 0.50)
+        }
+        if mode == .colorPalette,
+           colorInsightPage == .light,
+           let image = images.first,
+           image.size.height > 0 {
+            // Light analysis is about reading the whole photograph. Match the
+            // preview canvas to the source image so a landscape photo can use
+            // the full available width without being cropped into the artwork
+            // ratio selected for the palette/export view.
+            return min(max(image.size.width / image.size.height, 0.25), 6.00)
         }
         if mode == .privacyMosaic, let image = images.first, image.size.height > 0 {
             return min(max(image.size.width / image.size.height, 0.35), 2.40)
@@ -2589,6 +2739,20 @@ struct ContentView: View {
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(240))
             ticketScannerPresented = true
+        }
+    }
+
+    private func openVideoToLivePhoto() {
+        modeSelectionPresented = false
+        dismissModeSelectionHint()
+        dismissLivePhotoHint()
+        dismissTicketLandscapeHint()
+        if isTicketLandscape {
+            setTicketLandscape(false)
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            videoToLivePhotoPresented = true
         }
     }
 
@@ -2714,7 +2878,20 @@ struct ContentView: View {
     }
 
     private func presentExportCenter() {
+        if mode == .travelTicket,
+           ticketCodeStyle == .verificationQR,
+           #unavailable(iOS 18.0) {
+            Task {
+                guard await validateTicketCodeForIOS17Export() else { return }
+                presentExportCenterAfterTicketValidation()
+            }
+            return
+        }
         if mode == .travelTicket, !validateTicketCodeForExport() { return }
+        presentExportCenterAfterTicketValidation()
+    }
+
+    private func presentExportCenterAfterTicketValidation() {
         if mode == .privacyMosaic {
             finishPrivacyPainting()
             if exportMetadataPolicy == .preserve {
@@ -2722,6 +2899,35 @@ struct ContentView: View {
             }
         }
         exportCenterPresented = true
+    }
+
+    private func validateTicketCodeForIOS17Export() async -> Bool {
+        let payload = ticketPayload
+        let baseURLString = TicketEnvelope.configuredBaseURLString
+        let deviceSealEnabled = ticketDeviceSealEnabled
+        let result = await Task.detached(priority: .userInitiated) {
+            () -> Result<Void, Error> in
+            do {
+                _ = try TicketEnvelope.invocationURL(
+                    for: payload,
+                    baseURLString: baseURLString,
+                    signer: deviceSealEnabled ? TicketDeviceSealService.shared : nil
+                )
+                return .success(())
+            } catch {
+                return .failure(error)
+            }
+        }.value
+        switch result {
+        case .success:
+            return true
+        case let .failure(error):
+            presentSaveError(
+                error.localizedDescription,
+                title: "无法生成验证二维码"
+            )
+            return false
+        }
     }
 
     private func performConfiguredExport() {
@@ -2826,9 +3032,22 @@ struct ContentView: View {
             } else {
                 exportSketchImage = nil
             }
+            let ticketCodeImageOverride = await ios17TicketCodeImageForArtwork()
+            if mode == .travelTicket,
+               usesInAppTicketLandscape,
+               ticketCodeImageOverride == nil {
+                if presentsTicketPrinter {
+                    await failTicketPrintExperience("票根编码生成失败，请稍后重试。")
+                } else {
+                    saveState = .idle
+                    presentSaveError("票根编码生成失败，请稍后重试。")
+                }
+                return
+            }
             guard let renderedImage = renderArtwork(
                 pixelWidth: pixelWidth,
-                sketchImageOverride: exportSketchImage
+                sketchImageOverride: exportSketchImage,
+                ticketCodeImageOverride: ticketCodeImageOverride
             ) else {
                 if presentsTicketPrinter {
                     await failTicketPrintExperience("作品渲染失败，请稍后重试。")
@@ -2875,11 +3094,16 @@ struct ContentView: View {
                             renderArtwork(
                                 replacingImages: frames,
                                 pixelWidth: videoPixelWidth,
-                                sketchImageOverride: exportSketchImage
+                                sketchImageOverride: exportSketchImage,
+                                ticketCodeImageOverride: ticketCodeImageOverride
                             )
                         },
                         progress: { progress in
-                            toastMessage = "正在生成 Live Photo… \(Int((progress * 100).rounded()))%"
+                            toastMessage = String(
+                                format: "正在生成 Live Photo… %lld%%".appLocalized,
+                                locale: .current,
+                                Int64((progress * 100).rounded())
+                            )
                         }
                     )
                 } else if destination == .photoLibrary {
@@ -2910,13 +3134,15 @@ struct ContentView: View {
                     )
                 } else {
                     showToast("正在编码 \(effectiveFormat.rawValue) 静态作品…", duration: 30)
-                    let data = try ArtworkExporter.encodedStillData(
-                        image,
-                        metadata: metadata,
-                        originalImageData: originalData,
-                        format: effectiveFormat,
-                        metadataPolicy: metadataPolicy
-                    )
+                    let data = try await Task.detached(priority: .userInitiated) {
+                        try ArtworkExporter.encodedStillData(
+                            image,
+                            metadata: metadata,
+                            originalImageData: originalData,
+                            format: effectiveFormat,
+                            metadataPolicy: metadataPolicy
+                        )
+                    }.value
                     if validatesTicketAlpha,
                        !TicketArtworkAlphaMask.hasExpectedTransparency(
                             pngData: data,
@@ -2935,7 +3161,12 @@ struct ContentView: View {
                         sharedExportFile = item
                     }
                 }
-                LingdongWorkArchive.record(image: image, mode: mode)
+                // Archiving re-encodes the artwork twice and writes to disk; it
+                // must never delay the save confirmation on the main actor.
+                let archiveMode = mode
+                Task.detached(priority: .utility) {
+                    LingdongWorkArchive.record(image: image, mode: archiveMode)
+                }
                 toastTask?.cancel()
                 withAnimation(.easeOut(duration: 0.2)) { toastMessage = nil }
                 withAnimation(.spring(response: 0.32, dampingFraction: 0.72)) {
@@ -3071,59 +3302,22 @@ struct ContentView: View {
         ticketPrintAnimationDeadline = nil
     }
 
-    private var shouldPresentVersion200Update: Bool {
-        version200AudienceRaw == Version200Audience.upgradedFromPreviousVersion.rawValue
-            && !didShowVersion200Update
+    private var shouldPresentVersion210Update: Bool {
+        version210AudienceRaw == Version210Audience.upgradedFromPreviousVersion.rawValue
+            && !didShowVersion210Update
     }
 
     private func configureLaunchExperience() {
-#if DEBUG
-        let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("--version200-upgrade") {
-            version200AudienceRaw = Version200Audience.upgradedFromPreviousVersion.rawValue
-            didShowVersion200Update = false
-            didShowModeSelectionHint101 = false
-            didShowPublicGoodsCommitment = false
-            didAcknowledgeFreeNotice = false
-        } else if arguments.contains("--version200-fresh") {
-            version200AudienceRaw = Version200Audience.installed200.rawValue
-            didShowVersion200Update = false
-            didShowModeSelectionHint101 = false
-            didShowLivePhotoPlaybackHint = false
-            didShowLivePhotoPlaybackHintBuild1060 = false
-            didShowPublicGoodsCommitment = false
-            didAcknowledgeFreeNotice = false
-        } else if arguments.contains("--album") {
-            // Album UI and export validation should open directly without
-            // unrelated one-time launch experiences covering the test route.
-            didShowPublicGoodsCommitment = true
-            didAcknowledgeFreeNotice = true
-            didShowVersion200Update = true
-            didShowModeSelectionHint101 = true
-        } else if arguments.contains("--demo") {
-            // Existing screenshot/export fixtures should continue to open their
-            // requested screen unless a launch-experience argument is explicit.
-            didShowPublicGoodsCommitment = true
-            didAcknowledgeFreeNotice = true
-            if arguments.contains("--sketch") {
-                // Sketch demo should land directly on the editor without the
-                // v2.0.0 update sheet or mode-selection hint covering it.
-                didShowVersion200Update = true
-                didShowModeSelectionHint101 = true
-            }
-        }
-#endif
-
-        if version200AudienceRaw.isEmpty {
-            version200AudienceRaw = hasPreviousVersionInstallEvidence()
-                ? Version200Audience.upgradedFromPreviousVersion.rawValue
-                : Version200Audience.installed200.rawValue
+        if version210AudienceRaw.isEmpty {
+            version210AudienceRaw = hasPreviousVersionInstallEvidence()
+                ? Version210Audience.upgradedFromPreviousVersion.rawValue
+                : Version210Audience.installed210.rawValue
         }
 
         if !didShowPublicGoodsCommitment {
             publicGoodsCommitmentPresented = true
-        } else if shouldPresentVersion200Update {
-            version200UpdatePresented = true
+        } else if shouldPresentVersion210Update {
+            version210UpdatePresented = true
         }
     }
 
@@ -3142,7 +3336,9 @@ struct ContentView: View {
             "version101Audience",
             "didShowVersion101Update",
             "version102Audience",
-            "didShowVersion102Update"
+            "didShowVersion102Update",
+            "version200Audience",
+            "didShowVersion200Update"
         ]
         if legacyKeys.contains(where: { defaults.object(forKey: $0) != nil }) {
             return true
@@ -3161,9 +3357,9 @@ struct ContentView: View {
         return bundleDate.timeIntervalSince(containerDate) > 300
     }
 
-    private func completeVersion200Update() {
-        didShowVersion200Update = true
-        version200UpdatePresented = false
+    private func completeVersion210Update() {
+        didShowVersion210Update = true
+        version210UpdatePresented = false
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 80 : 460))
             presentModeSelectionHintIfNeeded()
@@ -3179,8 +3375,8 @@ struct ContentView: View {
 
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 80 : 360))
-            if shouldPresentVersion200Update {
-                version200UpdatePresented = true
+            if shouldPresentVersion210Update {
+                version210UpdatePresented = true
             } else {
                 presentModeSelectionHintIfNeeded()
             }
@@ -3466,7 +3662,8 @@ struct ContentView: View {
     private func renderArtwork(
         replacingImages replacements: [Int: UIImage] = [:],
         pixelWidth: CGFloat = 1080,
-        sketchImageOverride: UIImage? = nil
+        sketchImageOverride: UIImage? = nil,
+        ticketCodeImageOverride: UIImage? = nil
     ) -> UIImage? {
         guard mode != .sketch
                 || sketchImageOverride != nil
@@ -3538,6 +3735,7 @@ struct ContentView: View {
                 ticketLayout: ticketLayout,
                 ticketAppClipBaseURL: TicketEnvelope.configuredBaseURLString,
                 ticketDeviceSealEnabled: ticketDeviceSealEnabled,
+                ticketCodeImageOverride: ticketCodeImageOverride,
                 sketchImage: mode == .sketch
                     ? (sketchImageOverride ?? sketchImage)
                     : nil
@@ -3563,6 +3761,41 @@ struct ContentView: View {
         return masked
     }
 
+    private func ios17TicketCodeImageForArtwork() async -> UIImage? {
+        guard mode == .travelTicket else { return nil }
+        if #available(iOS 18.0, *) { return nil }
+
+        let style = ticketCodeStyle
+        let payload = ticketPayload
+        let baseURLString = TicketEnvelope.configuredBaseURLString
+        let deviceSealEnabled = ticketDeviceSealEnabled
+        let foreground = ArtworkCanvas.ticketCodeForeground(
+            palette: palette,
+            motionCardHeaderPalette: effectiveMotionCardPalette,
+            layout: ticketLayout
+        )
+        let pixelSize = style == .barcode
+            ? CGSize(width: 1_200, height: 400)
+            : CGSize(width: 900, height: 900)
+
+        return await Task.detached(priority: .userInitiated) {
+            try? TicketCodeRenderer.image(
+                for: style,
+                payload: payload,
+                baseURLString: baseURLString,
+                signer: deviceSealEnabled ? TicketDeviceSealService.shared : nil,
+                pixelSize: pixelSize,
+                foregroundColor: UIColor(
+                    red: foreground.red,
+                    green: foreground.green,
+                    blue: foreground.blue,
+                    alpha: 1
+                ),
+                backgroundColor: nil
+            )
+        }.value
+    }
+
     private func sketchExportLongEdge(
         for image: UIImage,
         pixelWidth: CGFloat
@@ -3581,7 +3814,7 @@ struct ContentView: View {
     private func showToast(_ message: String, duration: Double) {
         toastTask?.cancel()
         withAnimation(.spring(response: 0.32, dampingFraction: 0.76)) {
-            toastMessage = message
+            toastMessage = message.appLocalized
         }
         toastTask = Task {
             try? await Task.sleep(for: .seconds(duration))
@@ -3594,8 +3827,8 @@ struct ContentView: View {
         toastTask?.cancel()
         toastMessage = nil
         UINotificationFeedbackGenerator().notificationOccurred(.error)
-        errorTitle = title
-        saveErrorMessage = message
+        errorTitle = title.appLocalized
+        saveErrorMessage = message.appLocalized
         saveErrorPresented = true
     }
 
@@ -3610,10 +3843,30 @@ struct ContentView: View {
         )
     }
 
+    private func ticketCodeExportImageForCurrentSystem(
+        _ style: TicketCodeStyle
+    ) async throws -> UIImage {
+        if #available(iOS 18.0, *) {
+            return try ticketCodeExportImage(style)
+        }
+
+        let payload = ticketPayload
+        let baseURLString = TicketEnvelope.configuredBaseURLString
+        let deviceSealEnabled = ticketDeviceSealEnabled
+        return try await Task.detached(priority: .userInitiated) {
+            try TicketCodeRenderer.exportCard(
+                for: style,
+                payload: payload,
+                baseURLString: baseURLString,
+                signer: deviceSealEnabled ? TicketDeviceSealService.shared : nil
+            )
+        }.value
+    }
+
     private func saveTicketCodeToPhotos(_ style: TicketCodeStyle) {
         Task {
             do {
-                let image = try ticketCodeExportImage(style)
+                let image = try await ticketCodeExportImageForCurrentSystem(style)
                 try await ArtworkExporter.saveStill(
                     image,
                     metadata: .empty,
@@ -3632,6 +3885,25 @@ struct ContentView: View {
     }
 
     private func saveTicketCodeToFiles(_ style: TicketCodeStyle) {
+        if #unavailable(iOS 18.0) {
+            Task {
+                do {
+                    let image = try await ticketCodeExportImageForCurrentSystem(style)
+                    guard let data = image.pngData() else {
+                        throw ArtworkExportError.encodingFailed
+                    }
+                    let url = try ExportTemporaryFile.make(data: data, format: .png)
+                    documentExportFile = ExportedArtworkFile(url: url)
+                } catch {
+                    presentSaveError(
+                        error.localizedDescription,
+                        title: "无法导出票根编码"
+                    )
+                }
+            }
+            return
+        }
+
         do {
             let image = try ticketCodeExportImage(style)
             guard let data = image.pngData() else {
@@ -3648,6 +3920,25 @@ struct ContentView: View {
     }
 
     private func shareTicketCode(_ style: TicketCodeStyle) {
+        if #unavailable(iOS 18.0) {
+            Task {
+                do {
+                    let image = try await ticketCodeExportImageForCurrentSystem(style)
+                    guard let data = image.pngData() else {
+                        throw ArtworkExportError.encodingFailed
+                    }
+                    let url = try ExportTemporaryFile.make(data: data, format: .png)
+                    sharedExportFile = ExportedArtworkFile(url: url)
+                } catch {
+                    presentSaveError(
+                        error.localizedDescription,
+                        title: "无法分享票根编码"
+                    )
+                }
+            }
+            return
+        }
+
         do {
             let image = try ticketCodeExportImage(style)
             guard let data = image.pngData() else {
@@ -3689,693 +3980,6 @@ struct ContentView: View {
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         return artworkCopy
     }
-
-#if DEBUG
-    private func loadDebugPreviewIfNeeded() async {
-        guard ProcessInfo.processInfo.arguments.contains("--demo"), images.isEmpty else { return }
-        let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("--reset-live-hint") {
-            dismissLivePhotoHint(animated: false)
-            didShowLivePhotoPlaybackHint = false
-            didShowLivePhotoPlaybackHintBuild1060 = false
-        }
-        if arguments.contains("--reset-ticket-landscape-hint") {
-            dismissTicketLandscapeHint(animated: false)
-            didShowTicketLandscapeHint = false
-        }
-        if arguments.contains("--palette") { mode = .colorPalette }
-        if arguments.contains("--journal") { mode = .journal }
-        if arguments.contains("--stamp") { mode = .bubbleStamp }
-        if arguments.contains("--wallpaper") { mode = .spectrumWallpaper }
-        if arguments.contains("--privacy") { mode = .privacyMosaic }
-        if arguments.contains("--ticket") { mode = .travelTicket }
-        if arguments.contains("--sketch") {
-            mode = .sketch
-            let defaultStyle: SketchStyle = .watercolor
-            let styleArg = arguments
-                .first(where: { $0.hasPrefix("--sketch-style=") })?
-                .dropFirst("--sketch-style=".count)
-            let parsedStyle: SketchStyle?
-            if let styleArg {
-                switch String(styleArg) {
-                case "pencil": parsedStyle = .pencil
-                case "charcoal": parsedStyle = .charcoal
-                case "watercolor": parsedStyle = .watercolor
-                default: parsedStyle = SketchStyle(rawValue: String(styleArg))
-                }
-            } else {
-                parsedStyle = nil
-            }
-            sketchParameters = (parsedStyle ?? defaultStyle).defaultParameters
-        }
-        if arguments.contains("--ticket-barcode") {
-            ticketCodeStyleRaw = TicketCodeStyle.barcode.rawValue
-        }
-        if arguments.contains("--ticket-qr") {
-            ticketCodeStyleRaw = TicketCodeStyle.verificationQR.rawValue
-        }
-        if arguments.contains("--ticket-header-city") {
-            ticketHeaderModeRaw = TicketHeaderMode.city.rawValue
-        }
-        if arguments.contains("--ticket-header-blank") {
-            ticketHeaderModeRaw = TicketHeaderMode.custom.rawValue
-            ticketCustomHeader = ""
-        }
-        if arguments.contains("--ticket-city-chinese") {
-            ticketCityNameStyleRaw = TicketCityNameStyle.chinese.rawValue
-        }
-        if arguments.contains("--ticket-city-pinyin") {
-            ticketCityNameStyleRaw = TicketCityNameStyle.pinyin.rawValue
-        }
-        if arguments.contains("--ticket-layout-classic") {
-            ticketLayoutRaw = TicketLayoutStyle.classic.rawValue
-        }
-        if arguments.contains("--ticket-layout-vertical") {
-            ticketLayoutRaw = TicketLayoutStyle.vertical.rawValue
-        }
-        if arguments.contains("--ticket-layout-minimal") {
-            ticketLayoutRaw = TicketLayoutStyle.minimal.rawValue
-        }
-        if let debugMessage = arguments
-            .first(where: { $0.hasPrefix("--ticket-message=") })
-            .map({ String($0.dropFirst("--ticket-message=".count)) }) {
-            ticketMessage = String(
-                debugMessage.prefix(TicketPayload.messageCharacterLimit)
-            )
-        }
-        ratio = mode.defaultRatio
-        if mode == .travelTicket, ticketLayout == .vertical {
-            ratio = .threeFour
-        } else if mode == .travelTicket, ticketLayout == .classic {
-            ratio = ticketCanvasWidthMode == .compact ? .twentyOneNine
-                : ticketCanvasWidthMode == .standard ? .sixteenNine
-                : .fourThree
-        }
-        if arguments.contains("--ratio-square") { ratio = .oneOne }
-        if arguments.contains("--ratio-four-five") { ratio = .fourFive }
-        if arguments.contains("--ratio-nine-sixteen") { ratio = .nineSixteen }
-        if arguments.contains("--ratio-sixteen-nine") { ratio = .sixteenNine }
-        if arguments.contains("--template-classic") { templateStyleRaw = ArtworkTemplateStyle.classic.rawValue }
-        if arguments.contains("--template-airy") { templateStyleRaw = ArtworkTemplateStyle.airy.rawValue }
-        if arguments.contains("--template-immersive") { templateStyleRaw = ArtworkTemplateStyle.immersive.rawValue }
-        if arguments.contains("--journal-magazine") { journalLayoutRaw = JournalLayoutMode.magazine.rawValue }
-        if arguments.contains("--journal-filmstrip") { journalLayoutRaw = JournalLayoutMode.filmstrip.rawValue }
-        if arguments.contains("--verify-camera-watermark-brands") {
-            let cases: [(String?, String?, CameraWatermarkBrand, String)] = [
-                ("Canon", "Canon EOS R5", .canon, "Canon EOS R5"),
-                ("NIKON CORPORATION", "NIKON Z 8", .nikon, "Nikon Z 8"),
-                ("SONY", "ILCE-7RM2", .sony, "Sony α7R II"),
-                ("FUJIFILM", "X-T5", .fujifilm, "FUJIFILM X-T5"),
-                ("Panasonic", "DC-S5M2", .panasonic, "Panasonic LUMIX S5II"),
-                ("Leica Camera AG", "LEICA Q3", .leica, "Leica Q3"),
-                ("LEICA CAMERA AG", "LEICA M11-P", .leica, "Leica M11-P"),
-                ("Ernst Leitz Wetzlar", "M8 Digital Camera", .leica, "Leica M8 Digital Camera"),
-                (nil, "LEICA Q3 43", .leica, "Leica Q3 43"),
-                (nil, "M11-D", .leica, "Leica M11-D"),
-                ("Adobe", "LEICA Q3", .leica, "Leica Q3"),
-                ("Hasselblad", "X2D 100C", .hasselblad, "Hasselblad X2D 100C"),
-                ("DJI", "FC3411", .dji, "DJI Air 2S"),
-                ("Arashi Vision", "Insta360 X3", .insta360, "Insta360 X3")
-            ]
-            for (make, model, expectedBrand, expectedDisplayName) in cases {
-                let descriptor = CaptureDeviceDescriptor.resolve(make: make, model: model)
-                let brand = CameraWatermarkBrand.resolve(from: descriptor)
-                let passed = descriptor.category == .camera
-                    && brand == expectedBrand
-                    && descriptor.displayName == expectedDisplayName
-                print(
-                    "WATERMARK_BRAND_RESULT: \(passed ? "PASS" : "FAIL") | "
-                        + "\(make ?? "nil") \(model ?? "nil") | \(brand?.rawValue ?? "nil") | "
-                        + "\(descriptor.displayName ?? "nil")"
-                )
-            }
-        }
-        if let watermarkFixtureDirectory = arguments
-            .first(where: { $0.hasPrefix("--watermark-fixture-directory=") })
-            .map({ String($0.dropFirst("--watermark-fixture-directory=".count)) }) {
-            let fixtures: [(CameraWatermarkBrand, String)] = [
-                (.canon, "canon.png"),
-                (.nikon, "nikon.png"),
-                (.sony, "sony.png"),
-                (.fujifilm, "fujifilm.png"),
-                (.panasonic, "panasonic.png"),
-                (.leica, "leica.png"),
-                (.hasselblad, "hasselblad.png"),
-                (.dji, "dji.png"),
-                (.insta360, "insta.png")
-            ]
-            for (brand, fileName) in fixtures {
-                do {
-                    try cameraWatermarkLibrary.importPNG(
-                        from: URL(fileURLWithPath: watermarkFixtureDirectory)
-                            .appendingPathComponent(fileName),
-                        for: brand
-                    )
-                    if let importedImage = cameraWatermarkLibrary.image(for: brand) {
-                        print(
-                            "WATERMARK_FIXTURE_RESULT: PASS | \(brand.rawValue) | "
-                                + "\(Int(importedImage.size.width))x\(Int(importedImage.size.height))"
-                        )
-                    }
-                } catch {
-                    print(
-                        "WATERMARK_FIXTURE_RESULT: FAIL | \(brand.rawValue) | "
-                            + error.localizedDescription
-                    )
-                }
-            }
-            useCustomCameraWatermarks = true
-        }
-        if arguments.contains("--disable-camera-watermarks") {
-            useCustomCameraWatermarks = false
-        }
-        let fixturePath = arguments
-            .first(where: { $0.hasPrefix("--fixture-path=") })
-            .map { String($0.dropFirst("--fixture-path=".count)) }
-        let liveFixturePath = arguments
-            .first(where: { $0.hasPrefix("--live-fixture-path=") })
-            .map { String($0.dropFirst("--live-fixture-path=".count)) }
-        let liveFixtureURL = liveFixturePath.map { URL(fileURLWithPath: $0) }
-            .flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
-        let fixtureData = arguments.contains("--fixture")
-            ? fixturePath.flatMap { try? Data(contentsOf: URL(fileURLWithPath: $0)) }
-                ?? Bundle.main.url(forResource: "Fixture", withExtension: "jpeg").flatMap { try? Data(contentsOf: $0) }
-            : nil
-        let fallbackImage = arguments.contains("--literary-colors")
-            ? Self.debugLiteraryColorPreviewImage()
-            : Self.debugPreviewImage()
-        let data = fixtureData ?? fallbackImage.jpegData(compressionQuality: 0.94) ?? Data()
-        let image = UIImage(data: data) ?? fallbackImage
-        let fallbackMetadata = PhotoMetadata(
-            make: nil,
-            model: UIDevice.current.model,
-            lensModel: nil,
-            aperture: nil,
-            exposureTime: nil,
-            iso: nil,
-            focalLength: nil,
-            captureDate: .now,
-            latitude: nil,
-            longitude: nil,
-            altitude: nil,
-            placeName: "示例地点"
-        )
-        var debugMetadata = fixtureData.map(PhotoMetadata.read(from:)) ?? fallbackMetadata
-        if arguments.contains("--ticket-city-fixture") {
-            debugMetadata.latitude = 25.6065
-            debugMetadata.longitude = 100.2676
-            debugMetadata.placeName = "大理市 · 大理古城"
-        }
-        let debugDevice = debugMetadata.captureDevice
-        print(
-            "DEVICE_BADGE_RESULT: \(debugDevice.category.rawValue) | "
-                + "\(debugDevice.displayName ?? "nil") | \(debugDevice.systemImageName)"
-        )
-        if arguments.contains("--verify-fixture-provider"),
-           let fixturePath,
-           let provider = NSItemProvider(contentsOf: URL(fileURLWithPath: fixturePath)) {
-            do {
-                let loadedPhoto = try await PhotoAssetLoader.load(
-                    PhotoPickerSelection(itemProvider: provider),
-                    includeLiveResource: false
-                )
-                let providerDevice = loadedPhoto.metadata.captureDevice
-                print(
-                    "DEVICE_PROVIDER_RESULT: \(providerDevice.category.rawValue) | "
-                        + "\(providerDevice.displayName ?? "nil") | \(providerDevice.systemImageName)"
-                )
-            } catch {
-                print("DEVICE_PROVIDER_RESULT: FAIL | \(error.localizedDescription)")
-            }
-        }
-        let semantic = fixtureData == nil ? PhotoSemantic.generic : await PhotoContentAnalyzer.analyze(data)
-        print("VISION_RESULT: \(semantic.summary) | \(semantic.classificationLabels.joined(separator: ", "))")
-        let debugImages = mode == .journal && fixtureData == nil
-            ? (0..<5).map { Self.debugPreviewImage(variant: $0) }
-            : [image]
-        selectedPhotos = debugImages.map { debugImage in
-            SelectedPhoto(
-                image: debugImage,
-                originalData: fixtureData == nil
-                    ? (debugImage.jpegData(compressionQuality: 0.94) ?? data)
-                    : data,
-                metadata: debugMetadata,
-                semantic: semantic,
-                pairedVideoURL: liveFixtureURL,
-                isLivePhoto: liveFixtureURL != nil
-            )
-        }
-        images = selectedPhotos.map(\.image)
-        motionCardSamplingRect = nil
-        motionCardLocalPalette = nil
-        motionCardLocalPercentages = nil
-        journalTransforms = Array(repeating: JournalPhotoTransform(), count: images.count)
-        selectedJournalIndex = mode == .journal ? 0 : nil
-        resetPrivacyEdits(for: image)
-        if mode == .sketch {
-            sketchImage = nil
-            scheduleSketchPreviewRefresh()
-        }
-        if mode == .privacyMosaic, arguments.contains("--privacy-mask") {
-            privacyMasks = [
-                PrivacyMask(
-                    kind: .face,
-                    normalizedRect: CGRect(x: 0.32, y: 0.26, width: 0.24, height: 0.18)
-                ),
-                PrivacyMask(
-                    kind: .sensitiveText,
-                    normalizedRect: CGRect(x: 0.12, y: 0.72, width: 0.46, height: 0.08)
-                )
-            ]
-            privacyStrokes = [PrivacyStroke(
-                points: [
-                    CGPoint(x: 0.62, y: 0.62),
-                    CGPoint(x: 0.68, y: 0.66),
-                    CGPoint(x: 0.75, y: 0.63)
-                ],
-                normalizedWidth: privacyBrushWidth
-            )]
-        }
-        let result: PaletteResult
-        if arguments.contains("--literary-colors") {
-            result = PaletteResult(
-                colors: Self.debugLiteraryPalette,
-                percentages: Array(
-                    repeating: 100 / Double(Self.debugLiteraryPalette.count),
-                    count: Self.debugLiteraryPalette.count
-                )
-            )
-        } else if mode == .journal {
-            result = combinedPaletteResult(from: images)
-        } else {
-            result = PaletteExtractor.extract(from: image)
-        }
-        palette = result.colors
-        palettePercentages = result.percentages
-        artworkCopy = defaultCopy(metadata: debugMetadata, palette: result.colors, semantic: semantic)
-        isEditorVisible = true
-        canvasRevealed = true
-        paletteRevealStage = 4
-        generationProgress = 1
-        canSave = true
-        didAcknowledgeFreeNotice = true
-        // Mode changes reset the ratio through the normal settings observer.
-        // Reapply debug-only overrides after asynchronous fixture analysis so
-        // screenshot and export verification exercise the requested canvas.
-        if arguments.contains("--ratio-square") { ratio = .oneOne }
-        if arguments.contains("--ratio-four-five") { ratio = .fourFive }
-        if arguments.contains("--ratio-nine-sixteen") { ratio = .nineSixteen }
-        if arguments.contains("--ratio-sixteen-nine") { ratio = .sixteenNine }
-        Task {
-            try? await Task.sleep(for: .milliseconds(150))
-            if arguments.contains("--ratio-square") { ratio = .oneOne }
-            if arguments.contains("--ratio-four-five") { ratio = .fourFive }
-            if arguments.contains("--ratio-nine-sixteen") { ratio = .nineSixteen }
-            if arguments.contains("--ratio-sixteen-nine") { ratio = .sixteenNine }
-        }
-        if arguments.contains("--animate-later") {
-            Task {
-                try? await Task.sleep(for: .seconds(3))
-                startRevealSequence()
-            }
-        } else if arguments.contains("--animate") {
-            startRevealSequence()
-        }
-        presentLivePhotoHintIfNeeded()
-        if arguments.contains("--settings") { settingsPresented = true }
-        if arguments.contains("--mode-picker") { modeSelectionPresented = true }
-        if arguments.contains("--color-relationship") { colorRelationshipPresented = true }
-        if arguments.contains("--version-update") { version200UpdatePresented = true }
-        if arguments.contains("--export-center") { exportCenterPresented = true }
-        if mode == .travelTicket,
-           arguments.contains("--ticket-studio"),
-           !arguments.contains("--ticket-landscape") {
-            ticketStudioPresented = true
-        }
-        if mode == .travelTicket, arguments.contains("--ticket-landscape") {
-            Task {
-                try? await Task.sleep(for: .milliseconds(260))
-                enterTicketLandscape()
-                if arguments.contains("--ticket-studio") {
-                    try? await Task.sleep(for: .milliseconds(420))
-                    ticketStudioPresented = true
-                }
-            }
-        }
-        if mode == .travelTicket, arguments.contains("--ticket-verify") {
-            do {
-                let url = try TicketEnvelope.invocationURL(
-                    for: ticketPayload,
-                    signer: ticketEnvelopeSigner
-                )
-                verifiedTicket = try TicketEnvelope.decodeVerified(from: url)
-            } catch {
-                verifiedTicket = .unsigned(ticketPayload)
-            }
-        }
-        if mode == .travelTicket, arguments.contains("--ticket-message-prompt") {
-            Task {
-                try? await Task.sleep(for: .milliseconds(350))
-                saveArtwork()
-            }
-        }
-        if mode == .privacyMosaic, arguments.contains("--privacy-paint") {
-            isPrivacyPainting = true
-            privacyBrushMode = .paint
-        }
-        if arguments.contains("--debug-render") {
-            Task {
-                try? await Task.sleep(for: .milliseconds(400))
-                guard let rendered = renderArtwork(),
-                      let pngData = rendered.pngData(),
-                      let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
-                let baseName = "debug-render-\(mode.rawValue)"
-                try? pngData.write(
-                    to: directory.appendingPathComponent(baseName).appendingPathExtension("png"),
-                    options: .atomic
-                )
-                if let jpegData = try? ArtworkExporter.debugJPEGData(
-                    rendered,
-                    metadata: primaryMetadata,
-                    originalImageData: selectedPhotos.first?.originalData,
-                    preserveLocation: false
-                ) {
-                    try? jpegData.write(
-                        to: directory.appendingPathComponent(baseName).appendingPathExtension("jpg"),
-                        options: .atomic
-                    )
-                }
-            }
-        }
-        if arguments.contains("--debug-export-suite") {
-            Task {
-                try? await Task.sleep(for: .milliseconds(500))
-                guard let rendered = renderArtwork(pixelWidth: 2160),
-                      let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
-
-                var verificationMetadata = primaryMetadata
-                verificationMetadata.make = "LocalLens"
-                verificationMetadata.model = "Verification Camera"
-                verificationMetadata.captureDate = Date(timeIntervalSince1970: 1_700_000_000)
-                verificationMetadata.latitude = 31.2304
-                verificationMetadata.longitude = 121.4737
-                var report: [String] = []
-
-                for format in ArtworkExportFormat.allCases {
-                    for policy in ArtworkMetadataPolicy.allCases {
-                        do {
-                            let data = try ArtworkExporter.encodedStillData(
-                                rendered,
-                                metadata: verificationMetadata,
-                                originalImageData: nil,
-                                format: format,
-                                metadataPolicy: policy
-                            )
-                            let fileName = "export-\(format.fileExtension)-\(policy.id)"
-                            let url = directory
-                                .appendingPathComponent(fileName)
-                                .appendingPathExtension(format.fileExtension)
-                            try data.write(to: url, options: .atomic)
-
-                            let source = CGImageSourceCreateWithData(data as CFData, nil)
-                            let properties = source.flatMap {
-                                CGImageSourceCopyPropertiesAtIndex($0, 0, nil) as? [CFString: Any]
-                            } ?? [:]
-                            let hasGPS = properties[kCGImagePropertyGPSDictionary] != nil
-                            let tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any]
-                            let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any]
-                            let hasCamera = tiff?[kCGImagePropertyTIFFMake] != nil
-                                || tiff?[kCGImagePropertyTIFFModel] != nil
-                            let hasCaptureDate = exif?[kCGImagePropertyExifDateTimeOriginal] != nil
-                            let metadataPass: Bool
-                            switch policy {
-                            case .preserve:
-                                metadataPass = hasGPS && hasCamera && hasCaptureDate
-                            case .removeLocation:
-                                metadataPass = !hasGPS && hasCamera && hasCaptureDate
-                            case .removeAll:
-                                metadataPass = !hasGPS && !hasCamera && !hasCaptureDate
-                            }
-                            let dimensionsPass = rendered.cgImage?.width == 2160
-                            report.append(
-                                "\(metadataPass && dimensionsPass ? "PASS" : "FAIL") \(format.rawValue) \(policy.rawValue) \(rendered.cgImage?.width ?? 0)x\(rendered.cgImage?.height ?? 0) gps=\(hasGPS) camera=\(hasCamera) date=\(hasCaptureDate)"
-                            )
-                        } catch {
-                            report.append("FAIL \(format.rawValue) \(policy.rawValue): \(error.localizedDescription)")
-                        }
-                    }
-                }
-
-                try? report.joined(separator: "\n")
-                    .write(
-                        to: directory.appendingPathComponent("export-suite.txt"),
-                        atomically: true,
-                        encoding: .utf8
-                    )
-            }
-        }
-        if mode == .travelTicket,
-           arguments.contains("--debug-ticket-code-suite") {
-            Task {
-                try? await Task.sleep(for: .milliseconds(500))
-                guard let directory = FileManager.default.urls(
-                    for: .documentDirectory,
-                    in: .userDomainMask
-                ).first else { return }
-                var report: [String] = []
-                do {
-                    let url = try TicketEnvelope.invocationURL(
-                        for: ticketPayload,
-                        baseURLString: TicketEnvelope.configuredBaseURLString,
-                        signer: ticketEnvelopeSigner
-                    )
-                    let decoded = try TicketEnvelope.decode(from: url)
-                    report.append(
-                        decoded == ticketPayload.compacted(level: 0)
-                            ? "PASS QR payload round trip"
-                            : "FAIL QR payload round trip"
-                    )
-                    let verified = try TicketEnvelope.decodeVerified(from: url)
-                    report.append(
-                        verified.sealValidation.isValid
-                            ? "PASS device seal verification"
-                            : "FAIL device seal verification"
-                    )
-                    try url.absoluteString.write(
-                        to: directory.appendingPathComponent("ios-sealed-url.txt"),
-                        atomically: true,
-                        encoding: .utf8
-                    )
-
-                    if var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                       var items = components.queryItems,
-                       let index = items.firstIndex(where: {
-                           $0.name == TicketEnvelope.sealSignatureKey
-                       }),
-                       let value = items[index].value,
-                       let first = value.first {
-                        let replacement = first == "A" ? "B" : "A"
-                        items[index].value = String(replacement) + String(value.dropFirst())
-                        components.queryItems = items
-                        if let tamperedURL = components.url {
-                            let tampered = try TicketEnvelope.decodeVerified(from: tamperedURL)
-                            if case .invalid = tampered.sealValidation {
-                                report.append("PASS modified signature is rejected")
-                            } else {
-                                report.append("FAIL modified signature is rejected")
-                            }
-                        }
-                    }
-
-                    let androidURLFile = directory.appendingPathComponent(
-                        "android-sealed-url.txt"
-                    )
-                    if let value = try? String(contentsOf: androidURLFile),
-                       let androidURL = URL(string: value.trimmingCharacters(
-                           in: .whitespacesAndNewlines
-                       )),
-                       let androidTicket = try? TicketEnvelope.decodeVerified(
-                           from: androidURL
-                       ) {
-                        report.append(
-                            androidTicket.sealValidation.isValid
-                                ? "PASS Android device seal verification"
-                                : "FAIL Android device seal verification"
-                        )
-                    }
-
-                    for style in TicketCodeStyle.allCases {
-                        let image = try TicketCodeRenderer.exportCard(
-                            for: style,
-                            payload: ticketPayload,
-                            baseURLString: TicketEnvelope.configuredBaseURLString,
-                            signer: ticketEnvelopeSigner
-                        )
-                        guard let data = image.pngData() else {
-                            report.append("FAIL \(style.title) PNG encoding")
-                            continue
-                        }
-                        let name = style == .barcode
-                            ? "ticket-code-barcode.png"
-                            : "ticket-code-qr.png"
-                        try data.write(
-                            to: directory.appendingPathComponent(name),
-                            options: .atomic
-                        )
-                        report.append(
-                            image.size.width >= 1_200
-                                ? "PASS \(style.title) export"
-                                : "FAIL \(style.title) export size"
-                        )
-                    }
-                } catch {
-                    report.append("FAIL \(error.localizedDescription)")
-                }
-                try? report.joined(separator: "\n").write(
-                    to: directory.appendingPathComponent("ticket-code-suite.txt"),
-                    atomically: true,
-                    encoding: .utf8
-                )
-            }
-        }
-        if mode == .travelTicket,
-           arguments.contains("--debug-ticket-save-photos") {
-            Task {
-                try? await Task.sleep(for: .milliseconds(700))
-                guard let directory = FileManager.default.urls(
-                    for: .documentDirectory,
-                    in: .userDomainMask
-                ).first else { return }
-                let reportURL = directory.appendingPathComponent(
-                    "ticket-save-photos.txt"
-                )
-                do {
-                    let image = try ticketCodeExportImage(ticketCodeStyle)
-                    try await ArtworkExporter.saveStill(
-                        image,
-                        metadata: .empty,
-                        originalImageData: nil,
-                        format: .png,
-                        metadataPolicy: .removeAll
-                    )
-                    try? "PASS ticket code saved to Photos".write(
-                        to: reportURL,
-                        atomically: true,
-                        encoding: .utf8
-                    )
-                } catch {
-                    try? "FAIL \(error.localizedDescription)".write(
-                        to: reportURL,
-                        atomically: true,
-                        encoding: .utf8
-                    )
-                }
-            }
-        }
-        if mode == .privacyMosaic, arguments.contains("--privacy-render") {
-            Task {
-                try? await Task.sleep(for: .milliseconds(400))
-                guard let rendered = renderArtwork(),
-                      let data = rendered.pngData(),
-                      let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
-                try? data.write(to: directory.appendingPathComponent("privacy-render.png"), options: .atomic)
-                var debugMetadataWithLocation = primaryMetadata
-                debugMetadataWithLocation.latitude = 31.2304
-                debugMetadataWithLocation.longitude = 121.4737
-                if let jpeg = try? ArtworkExporter.debugJPEGData(
-                    rendered,
-                    metadata: debugMetadataWithLocation,
-                    originalImageData: selectedPhotos.first?.originalData,
-                    preserveLocation: false
-                ) {
-                    try? jpeg.write(
-                        to: directory.appendingPathComponent("privacy-render-no-location.jpg"),
-                        options: .atomic
-                    )
-                }
-            }
-        }
-    }
-
-    private static func debugPreviewImage(variant: Int = 0) -> UIImage {
-        let size = CGSize(width: 900, height: 1200)
-        return UIGraphicsImageRenderer(size: size).image { renderer in
-            let context = renderer.cgContext
-            let hues: [CGFloat] = [0.26, 0.06, 0.56, 0.78, 0.96]
-            let hue = hues[variant % hues.count]
-            let colors = [
-                UIColor(hue: hue, saturation: 0.30, brightness: 0.98, alpha: 1).cgColor,
-                UIColor(hue: hue, saturation: 0.62, brightness: 0.56, alpha: 1).cgColor
-            ] as CFArray
-            let gradient = CGGradient(
-                colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                colors: colors,
-                locations: [0, 1]
-            )!
-            context.drawLinearGradient(
-                gradient,
-                start: .zero,
-                end: CGPoint(x: size.width, y: size.height),
-                options: []
-            )
-
-            for row in 0..<5 {
-                for column in 0..<4 {
-                    let rect = CGRect(
-                        x: 70 + CGFloat(column) * 205,
-                        y: 130 + CGFloat(row) * 190,
-                        width: 150,
-                        height: 150
-                    )
-                    let tone = CGFloat((row + column) % 4) * 0.045
-                    UIColor(
-                        hue: (hue + tone * 0.12).truncatingRemainder(dividingBy: 1),
-                        saturation: 0.72 - tone,
-                        brightness: 0.54 + tone,
-                        alpha: 0.94
-                    ).setFill()
-                    context.fillEllipse(in: rect)
-                    UIColor.white.withAlphaComponent(0.16).setStroke()
-                    context.setLineWidth(8)
-                    context.strokeEllipse(in: rect.insetBy(dx: 18, dy: 18))
-                }
-            }
-        }
-    }
-
-    /// A deterministic six-stripe fixture for visually verifying literary
-    /// color names without depending on Photos, image compression or Vision.
-    private static let debugLiteraryPalette: [RGBColor] = [
-        RGBColor(red: 0x31 / 255, green: 0x35 / 255, blue: 0x41 / 255),
-        RGBColor(red: 0x60 / 255, green: 0x54 / 255, blue: 0x55 / 255),
-        RGBColor(red: 0x4A / 255, green: 0x52 / 255, blue: 0x57 / 255),
-        RGBColor(red: 0xA8 / 255, green: 0xC9 / 255, blue: 0x28 / 255),
-        RGBColor(red: 0x35 / 255, green: 0x59 / 255, blue: 0x9A / 255),
-        RGBColor(red: 0xDB / 255, green: 0x6B / 255, blue: 0x73 / 255)
-    ]
-
-    private static func debugLiteraryColorPreviewImage() -> UIImage {
-        let size = CGSize(width: 900, height: 1200)
-        return UIGraphicsImageRenderer(size: size).image { renderer in
-            let stripeWidth = size.width / CGFloat(debugLiteraryPalette.count)
-            for index in debugLiteraryPalette.indices {
-                let color = debugLiteraryPalette[index]
-                renderer.cgContext.setFillColor(UIColor(
-                    red: color.red,
-                    green: color.green,
-                    blue: color.blue,
-                    alpha: 1
-                ).cgColor)
-                renderer.cgContext.fill(CGRect(
-                    x: CGFloat(index) * stripeWidth,
-                    y: 0,
-                    width: stripeWidth,
-                    height: size.height
-                ))
-            }
-        }
-    }
-#endif
 }
 
 private struct CreationModeSelectionView: View {
@@ -4387,6 +3991,7 @@ private struct CreationModeSelectionView: View {
     let onOpenAlbum: () -> Void
     let onOpenColorRelationship: () -> Void
     let onScanTicket: () -> Void
+    let onConvertVideo: () -> Void
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -4432,6 +4037,7 @@ private struct CreationModeSelectionView: View {
                     }
 
                     scanTicketCard
+                    videoToLivePhotoCard
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
@@ -4490,6 +4096,44 @@ private struct CreationModeSelectionView: View {
         .accessibilityHint("打开相机扫描灵动照片票根二维码")
     }
 
+    private var videoToLivePhotoCard: some View {
+        Button(action: onConvertVideo) {
+            HStack(spacing: 14) {
+                VideoToLivePhotoGlyph()
+                    .scaleEffect(0.72)
+                    .frame(width: 44, height: 52)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("视频转实况")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("截取 3 秒视频、选择实况封面，并优先保留原始动态画质")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 84, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
+        .buttonStyle(LiquidPressButtonStyle())
+        .liquidGlass(
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+            interactive: true,
+            variant: .clear
+        )
+        .accessibilityLabel("视频转实况")
+        .accessibilityHint("选择视频并生成实况照片")
+    }
+
     private var albumCard: some View {
         Button(action: onOpenAlbum) {
             VStack(alignment: .leading, spacing: 10) {
@@ -4507,6 +4151,8 @@ private struct CreationModeSelectionView: View {
                 Text("影像相簿")
                     .font(.headline)
                     .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
 
                 Text("把照片与灵动作品装订成书，横屏翻阅并输出打印 PDF")
                     .font(.caption)
@@ -4545,6 +4191,8 @@ private struct CreationModeSelectionView: View {
                 Text("色彩关系")
                     .font(.headline)
                     .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
 
                 Text("比较两张照片的共鸣、对照与过渡，并导出关系作品")
                     .font(.caption)
@@ -4588,19 +4236,24 @@ private struct CreationModeSelectionView: View {
                     }
                 }
 
-                Text(item.title)
+                Text(LocalizedStringKey(item.title))
                     .font(.headline)
                     .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.80)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                Text(item.subtitle)
+                Text(LocalizedStringKey(item.subtitle))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.leading)
-                    .lineLimit(3)
+                    .lineLimit(4)
+                    .minimumScaleFactor(0.86)
+                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(14)
-            .frame(maxWidth: .infinity, minHeight: 132, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 146, alignment: .topLeading)
             .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
         .buttonStyle(LiquidPressButtonStyle())
@@ -4685,7 +4338,7 @@ private struct ArtworkCopyEditor: View {
         NavigationStack {
             Form {
                 Section("系统识别") {
-                    Label(semantic.summary, systemImage: "viewfinder")
+                    Label(LocalizedStringKey(semantic.summary), systemImage: "viewfinder")
                         .font(.subheadline.weight(.semibold))
                     if !semantic.recognizedText.isEmpty {
                         Text("画面文字：\(semantic.recognizedText.prefix(2).joined(separator: " · "))")

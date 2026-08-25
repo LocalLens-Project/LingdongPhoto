@@ -13,6 +13,10 @@ struct PublicGoodsCommitmentView: View {
     @State private var qqGroupCopied = false
     @State private var emailCopied = false
 
+    private var isSimplifiedChineseLocalization: Bool {
+        Locale.preferredLanguages.first?.hasPrefix("zh-Hans") == true
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -46,54 +50,56 @@ struct PublicGoodsCommitmentView: View {
                             detail: "项目源代码持续公开；照片识别、色彩分析与作品渲染均在设备本地完成。稳定的资源支持保障长期迭代，开源机制守护用户的知情权与创作自由。"
                         )
 
-                        Button {
-                            UIPasteboard.general.string = "1050047342"
-                            withAnimation(.snappy) {
-                                qqGroupCopied = true
-                            }
-                            Task { @MainActor in
-                                try? await Task.sleep(for: .seconds(2))
+                        if isSimplifiedChineseLocalization {
+                            Button {
+                                UIPasteboard.general.string = "1050047342"
                                 withAnimation(.snappy) {
-                                    qqGroupCopied = false
+                                    qqGroupCopied = true
                                 }
-                            }
-                        } label: {
-                            HStack(alignment: .top, spacing: 14) {
-                                Image(systemName: "person.3.fill")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .frame(width: 28, height: 28)
-                                    .foregroundStyle(qqGroupCopied ? Color.green : Color.white)
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(verbatim: "用户交流群")
-                                        .font(.headline)
-                                        .foregroundStyle(Color.white)
-                                    if qqGroupCopied {
-                                        Text(verbatim: "群号已复制，请在 QQ 中搜索添加")
-                                            .font(.subheadline)
-                                            .foregroundStyle(Color.green)
-                                    } else {
-                                        Text(verbatim: "QQ 群：1050047342")
-                                            .font(.subheadline)
-                                            .foregroundStyle(Color.white) +
-                                        Text(verbatim: " · 遇到问题或想交流时欢迎加入")
-                                            .font(.subheadline)
-                                            .foregroundStyle(Color.white.opacity(0.72))
+                                Task { @MainActor in
+                                    try? await Task.sleep(for: .seconds(2))
+                                    withAnimation(.snappy) {
+                                        qqGroupCopied = false
                                     }
                                 }
+                            } label: {
+                                HStack(alignment: .top, spacing: 14) {
+                                    Image(systemName: "person.3.fill")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .frame(width: 28, height: 28)
+                                        .foregroundStyle(qqGroupCopied ? Color.green : Color.white)
 
-                                Spacer(minLength: 8)
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(verbatim: "用户交流群")
+                                            .font(.headline)
+                                            .foregroundStyle(Color.white)
+                                        if qqGroupCopied {
+                                            Text(verbatim: "群号已复制，请在 QQ 中搜索添加")
+                                                .font(.subheadline)
+                                                .foregroundStyle(Color.green)
+                                        } else {
+                                            Text(verbatim: "QQ 群：1050047342")
+                                                .font(.subheadline)
+                                                .foregroundStyle(Color.white) +
+                                            Text(verbatim: " · 遇到问题或想交流时欢迎加入")
+                                                .font(.subheadline)
+                                                .foregroundStyle(Color.white.opacity(0.72))
+                                        }
+                                    }
 
-                                Image(systemName: qqGroupCopied
-                                    ? "checkmark.circle.fill"
-                                    : "doc.on.clipboard")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(qqGroupCopied ? Color.green : Color.white.opacity(0.55))
+                                    Spacer(minLength: 8)
+
+                                    Image(systemName: qqGroupCopied
+                                        ? "checkmark.circle.fill"
+                                        : "doc.on.clipboard")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(qqGroupCopied ? Color.green : Color.white.opacity(0.55))
+                                }
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("复制 QQ 用户交流群号")
+                            .accessibilityHint("群号 1050047342 将被复制到剪贴板")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("复制 QQ 用户交流群号")
-                        .accessibilityHint("群号 1050047342 将被复制到剪贴板")
 
                         Button {
                             UIPasteboard.general.string = "help@locallens.cn"
@@ -114,18 +120,18 @@ struct PublicGoodsCommitmentView: View {
                                     .foregroundStyle(emailCopied ? .green : .white)
 
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(verbatim: "客服邮箱")
+                                    Text("客服邮箱")
                                         .font(.headline)
                                         .foregroundStyle(Color.white)
                                     if emailCopied {
-                                        Text(verbatim: "邮箱已复制")
+                                        Text("邮箱已复制")
                                             .font(.subheadline)
                                             .foregroundStyle(Color.green)
                                     } else {
                                         Text(verbatim: "help@locallens.cn")
                                             .font(.subheadline)
                                             .foregroundStyle(Color.white) +
-                                        Text(verbatim: " · 有问题或建议可随时邮件联系")
+                                        Text(" · 有问题或建议可随时邮件联系")
                                             .font(.subheadline)
                                             .foregroundStyle(Color.white.opacity(0.72))
                                     }
@@ -193,10 +199,10 @@ struct PublicGoodsCommitmentView: View {
                 .foregroundStyle(Color.white)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.headline)
                     .foregroundStyle(Color.white)
-                Text(detail)
+                Text(LocalizedStringKey(detail))
                     .font(.subheadline)
                     .foregroundStyle(Color.white.opacity(0.72))
                     .fixedSize(horizontal: false, vertical: true)

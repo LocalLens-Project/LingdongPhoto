@@ -43,6 +43,7 @@ struct TicketVerificationView: View {
     var body: some View {
         ZStack {
             TicketAmbientBackground(colors: colors)
+                .ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 18) {
@@ -254,7 +255,7 @@ struct TicketVerificationView: View {
     private var heroTicket: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
-                Label(sealBadgeTitle, systemImage: sealBadgeSymbol)
+                Label(LocalizedStringKey(sealBadgeTitle), systemImage: sealBadgeSymbol)
                     .font(.caption.weight(.bold))
                     .foregroundStyle(sealBadgeColor)
                     .padding(.horizontal, 12)
@@ -263,18 +264,18 @@ struct TicketVerificationView: View {
 
                 Spacer()
 
-                Text(payload.ticketID)
+                Text(LocalizedStringKey(payload.ticketID))
                     .font(.system(size: 12, weight: .semibold, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.62))
             }
 
             VStack(alignment: .leading, spacing: 7) {
-                Text(payload.title)
+                Text(LocalizedStringKey(payload.title))
                     .font(.system(size: 27, weight: .bold, design: .rounded))
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let subtitle = payload.subtitle {
-                    Text(subtitle)
+                    Text(LocalizedStringKey(subtitle))
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.68))
                         .fixedSize(horizontal: false, vertical: true)
@@ -338,9 +339,9 @@ struct TicketVerificationView: View {
             }
 
             VStack(alignment: .leading, spacing: 5) {
-                Text(sealPanelTitle)
+                Text(LocalizedStringKey(sealPanelTitle))
                     .font(.subheadline.weight(.bold))
-                Text(sealPanelDescription)
+                Text(LocalizedStringKey(sealPanelDescription))
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.62))
                     .fixedSize(horizontal: false, vertical: true)
@@ -406,17 +407,21 @@ struct TicketVerificationView: View {
                 let source: String
                 switch origin {
                 case .appleSecureEnclave:
-                    source = "这段回忆由 iPhone 安全隔区的设备密钥盖章封存"
+                    source = "这段回忆由 iPhone 安全隔区的设备密钥盖章封存".appLocalized
                 case .androidHardware:
-                    source = "这段回忆由 Android 硬件密钥盖章封存"
+                    source = "这段回忆由 Android 硬件密钥盖章封存".appLocalized
                 case .androidSoftware:
-                    source = "这段回忆由 Android 软件保护的密钥盖章封存"
+                    source = "这段回忆由 Android 软件保护的密钥盖章封存".appLocalized
                 case .simulatorTest:
-                    source = "这是模拟器测试封印，不代表真实硬件保护"
+                    source = "这是模拟器测试封印，不代表真实硬件保护".appLocalized
                 case .unknown:
-                    source = "这段回忆由兼容的 P-256 设备密钥盖章封存"
+                    source = "这段回忆由兼容的 P-256 设备密钥盖章封存".appLocalized
                 }
-                return "\(source)，从封存后内容没有发生变化。密钥编号 \(keyID)。"
+                return String(
+                    format: "%@，从封存后内容没有发生变化。密钥编号 %@。".appLocalized,
+                    source,
+                    keyID
+                )
             case .invalid:
                 return "票根的封印状态异常。你仍可查看内容，但请留意内容可能已被改写。"
             }
@@ -463,11 +468,11 @@ struct TicketVerificationView: View {
 
     private var messagePanel: some View {
         VStack(alignment: .leading, spacing: 13) {
-            Label(messagePanelTitle, systemImage: messagePanelSymbol)
+            Label(LocalizedStringKey(messagePanelTitle), systemImage: messagePanelSymbol)
                 .font(.headline)
 
             if let message = payload.message {
-                Text(message)
+                Text(LocalizedStringKey(message))
                     .font(.system(size: 17, weight: .medium, design: .rounded))
                     .foregroundStyle(.white.opacity(0.88))
                     .lineSpacing(5)
@@ -544,7 +549,7 @@ struct TicketVerificationView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "location")
                         .font(.caption.weight(.bold))
-                    Text(place)
+                    Text(LocalizedStringKey(place))
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.58))
                 }
@@ -566,29 +571,35 @@ struct TicketVerificationView: View {
             if payload.isSelfNarrative {
                 // 同一天或无法判断时间差：合并叙事
                 if gap == nil || gap! <= 0 {
-                    return "🕰️ 这是一段\(captureText)的回忆"
+                    return "🕰️ 这是一段(captureText)的回忆".appLocalized
+                        .replacingOccurrences(of: "(captureText)", with: captureText)
                 }
                 // 封存在拍摄之后：强调"今天的你封存了过去的回忆"
-                return "🕰️ \(captureText)的光影，由你封存成这枚票根"
+                return "🕰️ (captureText)的光影，由你封存成这枚票根".appLocalized
+                    .replacingOccurrences(of: "(captureText)", with: captureText)
             } else {
                 if gap == nil || gap! <= 0 {
-                    return "🌿 这是\(captureText)留下的一段光影"
+                    return "🌿 这是(captureText)留下的一段光影".appLocalized
+                        .replacingOccurrences(of: "(captureText)", with: captureText)
                 }
-                return "🌿 \(captureText)的光影，被创作者封存于此"
+                return "🌿 (captureText)的光影，被创作者封存于此".appLocalized
+                    .replacingOccurrences(of: "(captureText)", with: captureText)
             }
         } else {
             // 拍摄时间缺失
             if let sealText = TicketTimeCalculator.formattedTimeSinceSeal(payload.sealedAt) {
                 if payload.isSelfNarrative {
-                    return "🕰️ \(sealText)由你封存的一段回忆"
+                    return "🕰️ (sealText)由你封存的一段回忆".appLocalized
+                        .replacingOccurrences(of: "(sealText)", with: sealText)
                 } else {
-                    return "🌿 \(sealText)封存的一段光影"
+                    return "🌿 (sealText)封存的一段光影".appLocalized
+                        .replacingOccurrences(of: "(sealText)", with: sealText)
                 }
             }
             if payload.isSelfNarrative {
-                return "🕰️ 一段由你封存的回忆"
+                return "🕰️ 一段由你封存的回忆".appLocalized
             } else {
-                return "🌿 一段创作者封存的光影"
+                return "🌿 一段创作者封存的光影".appLocalized
             }
         }
     }
@@ -601,14 +612,14 @@ struct TicketVerificationView: View {
 
         if payload.isSelfNarrative {
             if let gap, gap > 0 {
-                return "那一刻的光、色与心情，被后来的你亲手封存于此。"
+                return "那一刻的光、色与心情，被后来的你亲手封存于此。".appLocalized
             }
-            return "这张票根由你亲手封存，记录了那一刻的光、色与心情。"
+            return "这张票根由你亲手封存，记录了那一刻的光、色与心情。".appLocalized
         } else {
             if let gap, gap > 0 {
-                return "创作者在那一刻按下快门，后来的TA将这段色彩与时间凝固于此。"
+                return "创作者在那一刻按下快门，后来的TA将这段色彩与时间凝固于此。".appLocalized
             }
-            return "创作者在那一刻按下快门，让这段色彩与时间凝固于此。"
+            return "创作者在那一刻按下快门，让这段色彩与时间凝固于此。".appLocalized
         }
     }
 
@@ -628,7 +639,7 @@ struct TicketVerificationView: View {
                                     .stroke(.white.opacity(0.22), lineWidth: 1)
                             }
 
-                        Text(entry.hex)
+                        Text(LocalizedStringKey(entry.hex))
                             .font(.system(size: 9, weight: .semibold, design: .monospaced))
                             .lineLimit(1)
 
@@ -665,10 +676,10 @@ struct TicketVerificationView: View {
                 ) {
                     ForEach(values) { value in
                         VStack(alignment: .leading, spacing: 5) {
-                            Label(value.label, systemImage: value.symbol)
+                            Label(LocalizedStringKey(value.label), systemImage: value.symbol)
                                 .font(.caption2.weight(.semibold))
                                 .foregroundStyle(.white.opacity(0.52))
-                            Text(value.value)
+                            Text(LocalizedStringKey(value.value))
                                 .font(.subheadline.weight(.semibold))
                                 .lineLimit(2)
                                 .minimumScaleFactor(0.78)
@@ -807,7 +818,9 @@ private struct TicketRevealTransitionLayer: View, Animatable {
                         height: surfaceHeight,
                         cornerRadius: cornerRadius,
                         perforationRadius: perforationRadius,
-                        shapeDetail: shapeDetail
+                        shapeDetail: shapeDetail,
+                        screenSize: proxy.size,
+                        surfaceTop: clipTop + feedOffset
                     )
                     .offset(y: feedOffset)
                 }
@@ -828,13 +841,28 @@ private struct TicketRevealTransitionLayer: View, Animatable {
         height: CGFloat,
         cornerRadius: CGFloat,
         perforationRadius: CGFloat,
-        shapeDetail: CGFloat
+        shapeDetail: CGFloat,
+        screenSize: CGSize,
+        surfaceTop: CGFloat
     ) -> some View {
-        TicketRevealIntroTicket(
-            ticket: ticket,
-            layout: layout,
-            colors: colors
-        )
+        ZStack {
+            // The expanded surface must be the exact same ambient field as the
+            // destination page. Cross-fading the printed ticket into it before
+            // the mask reaches the screen edges prevents a visible color seam.
+            TicketAmbientBackground(colors: colors)
+                .frame(width: screenSize.width, height: screenSize.height)
+                .position(
+                    x: width / 2,
+                    y: screenSize.height / 2 - surfaceTop
+                )
+
+            TicketRevealIntroTicket(
+                ticket: ticket,
+                layout: layout,
+                colors: colors
+            )
+            .opacity(shapeDetail)
+        }
         .frame(width: width, height: height)
         .mask {
             TicketRevealMaskView(
@@ -906,6 +934,7 @@ private struct TicketRevealIntroTicket: View {
     let colors: [Color]
 
     @State private var codeImage: UIImage?
+    @State private var codeIsLoading: Bool
 
     init(
         ticket: VerifiedTicket,
@@ -915,12 +944,18 @@ private struct TicketRevealIntroTicket: View {
         self.ticket = ticket
         self.layout = layout
         self.colors = colors
-        _codeImage = State(initialValue: try? TicketCodeRenderer.verificationImage(
-            for: ticket,
-            pixelSize: CGSize(width: 540, height: 540),
-            foregroundColor: .white,
-            backgroundColor: nil
-        ))
+        if #available(iOS 18.0, *) {
+            _codeImage = State(initialValue: try? TicketCodeRenderer.verificationImage(
+                for: ticket,
+                pixelSize: CGSize(width: 540, height: 540),
+                foregroundColor: .white,
+                backgroundColor: nil
+            ))
+            _codeIsLoading = State(initialValue: false)
+        } else {
+            _codeImage = State(initialValue: nil)
+            _codeIsLoading = State(initialValue: true)
+        }
     }
 
     private var payload: TicketPayload { ticket.payload }
@@ -949,11 +984,16 @@ private struct TicketRevealIntroTicket: View {
     }
 
     var body: some View {
-        switch layout {
-        case .classic:
-            classicTicket
-        case .vertical:
-            verticalTicket
+        Group {
+            switch layout {
+            case .classic:
+                classicTicket
+            case .vertical:
+                verticalTicket
+            }
+        }
+        .task(id: ticket.id) {
+            await generateCodeForIOS17IfNeeded()
         }
     }
 
@@ -1022,7 +1062,7 @@ private struct TicketRevealIntroTicket: View {
                 primary
                     .frame(height: photoHeight)
                     .overlay(alignment: .topTrailing) {
-                        Text(payload.ticketID)
+                        Text(LocalizedStringKey(payload.ticketID))
                             .font(.system(
                                 size: max(8, proxy.size.width * 0.028),
                                 weight: .bold,
@@ -1035,7 +1075,7 @@ private struct TicketRevealIntroTicket: View {
                 VStack(alignment: .leading, spacing: max(8, proxy.size.height * 0.012)) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(payload.title)
+                            Text(LocalizedStringKey(payload.title))
                                 .font(.system(
                                     size: max(16, proxy.size.width * 0.055),
                                     weight: .bold,
@@ -1044,7 +1084,7 @@ private struct TicketRevealIntroTicket: View {
                                 .lineLimit(2)
 
                             if let subtitle = payload.subtitle {
-                                Text(subtitle)
+                                Text(LocalizedStringKey(subtitle))
                                     .font(.system(size: max(9, proxy.size.width * 0.028)))
                                     .foregroundStyle(.white.opacity(0.68))
                                     .lineLimit(2)
@@ -1059,6 +1099,11 @@ private struct TicketRevealIntroTicket: View {
                                 .interpolation(.none)
                                 .aspectRatio(1, contentMode: .fit)
                                 .frame(width: proxy.size.width * 0.28)
+                        } else if codeIsLoading {
+                            ProgressView()
+                                .tint(.white)
+                                .frame(width: proxy.size.width * 0.28)
+                                .accessibilityLabel("正在生成票根编码…")
                         }
                     }
 
@@ -1085,7 +1130,7 @@ private struct TicketRevealIntroTicket: View {
                     }
 
                     if let place = payload.place {
-                        Text(place)
+                        Text(LocalizedStringKey(place))
                             .font(.system(size: 9, weight: .semibold, design: .rounded))
                             .foregroundStyle(.white.opacity(0.70))
                             .lineLimit(1)
@@ -1097,6 +1142,26 @@ private struct TicketRevealIntroTicket: View {
                 .background(panel)
             }
         }
+    }
+
+    @MainActor
+    private func generateCodeForIOS17IfNeeded() async {
+        if #available(iOS 18.0, *) { return }
+
+        codeImage = nil
+        codeIsLoading = true
+        let ticket = ticket
+        let image = await Task.detached(priority: .userInitiated) {
+            try? TicketCodeRenderer.verificationImage(
+                for: ticket,
+                pixelSize: CGSize(width: 540, height: 540),
+                foregroundColor: .white,
+                backgroundColor: nil
+            )
+        }.value
+        guard !Task.isCancelled, self.ticket == ticket else { return }
+        codeImage = image
+        codeIsLoading = false
     }
 }
 
@@ -1112,7 +1177,7 @@ private struct TicketRevealClassicStub: View {
             VStack(spacing: max(3, proxy.size.height * 0.012)) {
                 if let headerTitle = payload.headerTitle,
                    !headerTitle.isEmpty {
-                    Text(headerTitle)
+                    Text(LocalizedStringKey(headerTitle))
                         .font(.system(
                             size: max(13, proxy.size.width * 0.10),
                             weight: .black,
@@ -1124,7 +1189,7 @@ private struct TicketRevealClassicStub: View {
                         .multilineTextAlignment(.center)
                 }
 
-                Text(payload.title)
+                Text(LocalizedStringKey(payload.title))
                     .font(.system(
                         size: max(9, proxy.size.width * 0.052),
                         weight: .semibold,
@@ -1137,7 +1202,7 @@ private struct TicketRevealClassicStub: View {
 
                 VStack(spacing: 2) {
                     if let captureTime = payload.captureTime {
-                        Text(captureTime)
+                        Text(LocalizedStringKey(captureTime))
                     }
                     Text("NO.\(payload.ticketID.replacingOccurrences(of: "LD-", with: ""))")
                     Text(String(payload.fingerprint.suffix(8)))
@@ -1175,10 +1240,10 @@ private struct TicketRevealInfoValue: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.system(size: 7, weight: .bold, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.48))
-            Text(value)
+            Text(LocalizedStringKey(value))
                 .font(.system(size: 9, weight: .semibold, design: .rounded))
                 .lineLimit(2)
                 .minimumScaleFactor(0.64)
@@ -1267,7 +1332,7 @@ struct TicketVerificationErrorView: View {
                 Text("无法验证影像票根")
                     .font(.title2.bold())
 
-                Text(message)
+                Text(LocalizedStringKey(message))
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.62))
                     .multilineTextAlignment(.center)
@@ -1324,7 +1389,6 @@ private struct TicketAmbientBackground: View {
                 )
             }
         }
-        .ignoresSafeArea()
     }
 }
 

@@ -4,7 +4,7 @@
 import SwiftUI
 import UIKit
 
-enum CreationMode: String, CaseIterable, Identifiable {
+enum CreationMode: String, CaseIterable, Identifiable, Sendable {
     case motionCard
     case colorPalette
     case journal
@@ -16,50 +16,50 @@ enum CreationMode: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    nonisolated var title: String {
         switch self {
-        case .motionCard: "灵动卡片"
-        case .colorPalette: "琉璃色盘"
-        case .journal: "一键手帐"
-        case .bubbleStamp: "气泡印章"
-        case .spectrumWallpaper: "色谱壁纸"
-        case .privacyMosaic: "隐私马赛克"
-        case .travelTicket: "影像票根"
-        case .sketch: "影像素描"
+        case .motionCard: "灵动卡片".appLocalized
+        case .colorPalette: "光色解读".appLocalized
+        case .journal: "一键手帐".appLocalized
+        case .bubbleStamp: "气泡印章".appLocalized
+        case .spectrumWallpaper: "色谱壁纸".appLocalized
+        case .privacyMosaic: "隐私马赛克".appLocalized
+        case .travelTicket: "影像票根".appLocalized
+        case .sketch: "影像素描".appLocalized
         }
     }
 
     var subtitle: String {
         switch self {
-        case .motionCard: "封存地理与时间的印记，重塑身临其境的沉浸式体验"
-        case .colorPalette: "在如琉璃般的通透质感中，萃取影像的本源色彩"
-        case .journal: "选取 1～5 张照片，自动排版电子手帐"
-        case .bubbleStamp: "随心而动的有机气泡，捕捉影像跳动的呼吸节奏"
-        case .spectrumWallpaper: "拒绝千篇一律，每一次亮屏都是你的专属艺术创作"
-        case .privacyMosaic: "手动涂抹或智能识别人脸、车牌、二维码与敏感文字"
-        case .travelTicket: "让色彩、拍摄信息与可验证凭证共同封存一次旅程"
-        case .sketch: "把照片变成铅笔素描、炭笔速写或水彩绘画"
+        case .motionCard: "封存地理与时间的印记，重塑身临其境的沉浸式体验".appLocalized
+        case .colorPalette: "看见照片里的色彩，也读懂光影为何动人".appLocalized
+        case .journal: "选取 1～5 张照片，自动排版电子手帐".appLocalized
+        case .bubbleStamp: "将照片、文案、主色与真实拍摄参数组合成轻盈的气泡印章".appLocalized
+        case .spectrumWallpaper: "拒绝千篇一律，每一次亮屏都是你的专属艺术创作".appLocalized
+        case .privacyMosaic: "手动涂抹或智能识别人脸、车牌、二维码与敏感文字".appLocalized
+        case .travelTicket: "让色彩、拍摄信息与可验证凭证共同封存一次旅程".appLocalized
+        case .sketch: "把照片变成铅笔素描、炭笔速写或水彩绘画".appLocalized
         }
     }
 
     var introSubtitle: String {
         switch self {
         case .motionCard:
-            "拒绝平淡的叙事\n让每一段生动的记忆都拥有专属色彩"
+            "拒绝平淡的叙事\n让每一段生动的记忆都拥有专属色彩".appLocalized
         case .colorPalette:
-            "穿越影像的表象，重现色彩最本真的纯净美学"
+            "从琉璃色盘到光影解析\n让颜色与明暗都变得好懂".appLocalized
         case .journal:
-            "选取 1～5 张照片，自动排版电子手帐"
+            "选取 1～5 张照片，自动排版电子手帐".appLocalized
         case .bubbleStamp:
-            "记忆像气泡般轻盈跳动"
+            "记忆像气泡般轻盈跳动".appLocalized
         case .spectrumWallpaper:
-            "拒绝千篇一律\n每一次亮屏都是你的专属艺术创作"
+            "拒绝千篇一律\n每一次亮屏都是你的专属艺术创作".appLocalized
         case .privacyMosaic:
-            "让隐私留在画面之外\n手动涂抹或智能识别，安心分享每一张照片"
+            "让隐私留在画面之外\n手动涂抹或智能识别，安心分享每一张照片".appLocalized
         case .travelTicket:
-            "把一张照片变成可以被扫描、被验证的旅行凭证"
+            "把一张照片变成可以被扫描、被验证的旅行凭证".appLocalized
         case .sketch:
-            "在纸张质感上重绘影像\n铅笔、炭笔与水彩，三种笔意随手切换"
+            "在纸张质感上重绘影像\n铅笔、炭笔与水彩，三种笔意随手切换".appLocalized
         }
     }
 
@@ -442,7 +442,7 @@ struct RGBColor: Hashable {
             red: Double(red),
             green: Double(green),
             blue: Double(blue)
-        )
+        ).appLocalized
     }
 
     func adjusted(brightness: CGFloat = 0, saturation: CGFloat = 0) -> RGBColor {

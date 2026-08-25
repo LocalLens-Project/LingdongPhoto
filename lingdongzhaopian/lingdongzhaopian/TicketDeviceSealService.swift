@@ -30,11 +30,11 @@ enum TicketDeviceSealError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .secureEnclaveUnavailable:
-            "无法使用这台 iPhone 的安全隔区，请关闭“设备封印”后再生成二维码。"
+            "无法使用这台 iPhone 的安全隔区，请关闭“设备封印”后再生成二维码。".appLocalized
         case .keychain:
-            "无法读取这台设备保存的票根密钥，请稍后重试。"
+            "无法读取这台设备保存的票根密钥，请稍后重试。".appLocalized
         case .accessControl:
-            "无法建立安全隔区保护，请稍后重试。"
+            "无法建立安全隔区保护，请稍后重试。".appLocalized
         }
     }
 }
@@ -45,7 +45,7 @@ enum TicketDeviceSealError: LocalizedError {
 /// Simulators use an explicitly labelled test key because they have no Secure
 /// Enclave; the test origin is visible to every verifier and cannot be confused
 /// with a hardware-backed seal.
-final class TicketDeviceSealService: TicketEnvelopeSigning, @unchecked Sendable {
+nonisolated final class TicketDeviceSealService: TicketEnvelopeSigning, @unchecked Sendable {
     static let shared = TicketDeviceSealService()
 
     private let lock = NSLock()
@@ -73,13 +73,46 @@ final class TicketDeviceSealService: TicketEnvelopeSigning, @unchecked Sendable 
     func signature(for payloadData: Data) throws -> TicketEnvelopeSignature {
         let digest = Data(SHA256.hash(data: payloadData))
         lock.lock()
-        defer { lock.unlock() }
-
         if let cached = cachedSignatures[digest] {
+            lock.unlock()
             return cached
         }
+        lock.unlock()
+
+        let result = try makeSignature(for: payloadData)
+
+        lock.lock()
+        if cachedSignatures.count >= 16 {
+            cachedSignatures.removeAll(keepingCapacity: true)
+        }
+        cachedSignatures[digest] = result
+        lock.unlock()
+        return result
+    }
+
+    private func makeSignature(for payloadData: Data) throws -> TicketEnvelopeSignature {
+#if targetEnvironment(simulator)
+        return try simulatorSignature(for: payloadData)
+#else
+        guard SecureEnclave.isAvailable else {
+            throw TicketDeviceSealError.secureEnclaveUnavailable
+        }
+        do {
+            return try secureEnclaveSignature(for: payloadData)
+        } catch {
+            lock.lock()
+            let hasCachedKey = cachedPrivateKey != nil
+            lock.unlock()
+            guard hasCachedKey else { throw error }
+            cachedPrivateKey = nil
+            deleteKeychainData()
+            return try secureEnclaveSignature(for: payloadData)
+        }
+#endif
+    }
 
 #if targetEnvironment(simulator)
+    private func simulatorSignature(for payloadData: Data) throws -> TicketEnvelopeSignature {
         let key = try simulatorPrivateKey()
         let publicKey = key.publicKey.x963Representation
         let signingData = TicketEnvelopeSignature.signingData(
@@ -88,15 +121,16 @@ final class TicketDeviceSealService: TicketEnvelopeSigning, @unchecked Sendable 
             origin: .simulatorTest
         )
         let signature = try key.signature(for: signingData)
-        let result = TicketEnvelopeSignature(
+        return TicketEnvelopeSignature(
             publicKey: publicKey,
             signature: signature.derRepresentation,
             origin: .simulatorTest
         )
-#else
-        guard SecureEnclave.isAvailable else {
-            throw TicketDeviceSealError.secureEnclaveUnavailable
-        }
+    }
+#endif
+
+#if !targetEnvironment(simulator)
+    private func secureEnclaveSignature(for payloadData: Data) throws -> TicketEnvelopeSignature {
         let key = try secureEnclavePrivateKey()
         let publicKey = key.publicKey.x963Representation
         let signingData = TicketEnvelopeSignature.signingData(
@@ -105,19 +139,13 @@ final class TicketDeviceSealService: TicketEnvelopeSigning, @unchecked Sendable 
             origin: .appleSecureEnclave
         )
         let signature = try key.signature(for: signingData)
-        let result = TicketEnvelopeSignature(
+        return TicketEnvelopeSignature(
             publicKey: publicKey,
             signature: signature.derRepresentation,
             origin: .appleSecureEnclave
         )
-#endif
-
-        if cachedSignatures.count >= 16 {
-            cachedSignatures.removeAll(keepingCapacity: true)
-        }
-        cachedSignatures[digest] = result
-        return result
     }
+#endif
 
 #if targetEnvironment(simulator)
     private func simulatorPrivateKey() throws -> P256.Signing.PrivateKey {
@@ -137,13 +165,21 @@ final class TicketDeviceSealService: TicketEnvelopeSigning, @unchecked Sendable 
     }
 #else
     private func secureEnclavePrivateKey() throws -> SecureEnclave.P256.Signing.PrivateKey {
-        if let cachedPrivateKey { return cachedPrivateKey }
+        lock.lock()
+        if let cached = cachedPrivateKey {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+
         let key: SecureEnclave.P256.Signing.PrivateKey
-        if let stored = try keychainData() {
-            key = try SecureEnclave.P256.Signing.PrivateKey(
-                dataRepresentation: stored
-            )
+        if let stored = try keychainData(),
+           let restored = try? SecureEnclave.P256.Signing.PrivateKey(
+               dataRepresentation: stored
+           ) {
+            key = restored
         } else {
+            deleteKeychainData()
             var accessError: Unmanaged<CFError>?
             guard let accessControl = SecAccessControlCreateWithFlags(
                 nil,
@@ -159,7 +195,9 @@ final class TicketDeviceSealService: TicketEnvelopeSigning, @unchecked Sendable 
             )
             try storeKeychainData(key.dataRepresentation)
         }
+        lock.lock()
         cachedPrivateKey = key
+        lock.unlock()
         return key
     }
 #endif
@@ -193,6 +231,10 @@ final class TicketDeviceSealService: TicketEnvelopeSigning, @unchecked Sendable 
         guard addStatus == errSecSuccess else {
             throw TicketDeviceSealError.keychain(addStatus)
         }
+    }
+
+    private func deleteKeychainData() {
+        SecItemDelete(keychainIdentity as CFDictionary)
     }
 
     private var keychainIdentity: [String: Any] {

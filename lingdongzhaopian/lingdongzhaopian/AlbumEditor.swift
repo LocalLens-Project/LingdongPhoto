@@ -178,10 +178,13 @@ struct AlbumEditorView: View {
                 }
             } label: {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(project.title)
+                    Text(LocalizedStringKey(project.title))
                         .font(.headline)
                         .lineLimit(1)
-                    Text("\(project.format.title) · 自动保存")
+                    Text(verbatim: String(
+                        format: "%@ · 自动保存".appLocalized,
+                        project.format.title.appLocalized
+                    ))
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.55))
                 }
@@ -242,7 +245,16 @@ struct AlbumEditorView: View {
             .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
             .shadow(color: .black.opacity(0.30), radius: 24, y: 16)
             .overlay(alignment: .topLeading) {
-                Text(page.role == .cover ? "封面" : page.role == .backCover ? "封底" : "第 \(selectedPageIndex + 1) 页")
+                Text(
+                    page.role == .cover
+                        ? "封面".appLocalized
+                        : page.role == .backCover
+                            ? "封底".appLocalized
+                            : String(
+                                format: "第 %lld 页".appLocalized,
+                                Int64(selectedPageIndex + 1)
+                            )
+                )
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.white.opacity(0.78))
                     .padding(.horizontal, 10)
@@ -251,7 +263,7 @@ struct AlbumEditorView: View {
                     .offset(x: 8, y: 8)
             }
 
-            Text(page.layout.title)
+            Text(LocalizedStringKey(page.layout.title))
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.48))
         }
@@ -299,7 +311,14 @@ struct AlbumEditorView: View {
                         }
                         .buttonStyle(LiquidPressButtonStyle())
                         .id(page.id)
-                        .accessibilityLabel(index == 0 ? "封面" : "第 \(index + 1) 页")
+                        .accessibilityLabel(
+                            index == 0
+                                ? "封面".appLocalized
+                                : String(
+                                    format: "第 %lld 页".appLocalized,
+                                    Int64(index + 1)
+                                )
+                        )
                     }
                 }
                 .padding(.horizontal, 18)
@@ -750,14 +769,16 @@ struct AlbumEditorView: View {
 
     private func generateExport(project: AlbumProject, kind: AlbumPDFKind) {
         isExporting = true
-        Task { @MainActor in
-            await Task.yield()
+        let pageImages = store.pageImages(projectID: project.id)
+        Task {
             do {
-                let result = try AlbumExportService.export(
-                    project: project,
-                    images: store.pageImages(projectID: project.id),
-                    kind: kind
-                )
+                let result = try await Task.detached(priority: .userInitiated) {
+                    try AlbumExportService.export(
+                        project: project,
+                        images: pageImages,
+                        kind: kind
+                    )
+                }.value
                 withAnimation(AlbumMotion.present) {
                     exportPanelPresented = false
                     exportResult = result
@@ -801,7 +822,7 @@ struct AlbumEditorView: View {
             VStack(spacing: 4) {
                 Image(systemName: symbol)
                     .font(.system(size: 17, weight: .semibold))
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.caption2.weight(.semibold))
             }
             .foregroundStyle(.white)
@@ -887,7 +908,10 @@ private struct AlbumSourceChooserOverlay: View {
                     symbol: "wand.and.stars.inverse",
                     title: "从灵动作品选择",
                     detail: workCount > 0
-                        ? "已有 \(workCount) 件本地导出作品，默认完整显示不裁字"
+                        ? String(
+                            format: "已有 %lld 件本地导出作品，默认完整显示不裁字".appLocalized,
+                            Int64(workCount)
+                        )
                         : "其他创作模式成功导出后会自动加入；也可从照片导入旧作品",
                     recommended: expectation == .work,
                     action: onChooseWork
@@ -916,7 +940,7 @@ private struct AlbumSourceChooserOverlay: View {
                     .background(Color.black.opacity(0.06), in: Circle())
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
-                        Text(title).font(.headline)
+                        Text(LocalizedStringKey(title)).font(.headline)
                         if recommended {
                             Text("推荐")
                                 .font(.system(size: 9, weight: .bold))
@@ -926,7 +950,7 @@ private struct AlbumSourceChooserOverlay: View {
                                 .foregroundStyle(.blue)
                         }
                     }
-                    Text(detail)
+                    Text(LocalizedStringKey(detail))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.leading)
@@ -997,7 +1021,7 @@ struct LingdongWorkGrid: View {
                                 .stroke(isSelected ? Color.blue : .clear, lineWidth: 3)
                         }
 
-                        Text(record.kindTitle)
+                        Text(LocalizedStringKey(record.kindTitle))
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
@@ -1175,9 +1199,9 @@ private struct AlbumTextEditorOverlay: View {
                             UISelectionFeedbackGenerator().selectionChanged()
                         } label: {
                             VStack(spacing: 4) {
-                                Text(fontStyle.sample)
+                                Text(LocalizedStringKey(fontStyle.sample))
                                     .font(sampleFont(fontStyle))
-                                Text(fontStyle.title)
+                                Text(LocalizedStringKey(fontStyle.title))
                                     .font(.system(size: 9, weight: .semibold))
                             }
                             .foregroundStyle(selectedFontStyle == fontStyle ? Color.white : Color.primary)
@@ -1218,7 +1242,7 @@ private struct AlbumTextEditorOverlay: View {
         multiline: Bool = false
     ) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             if multiline {
@@ -1271,7 +1295,7 @@ private struct AlbumAddPageOverlay: View {
                                     .font(.system(size: 17, weight: .semibold))
                                     .frame(width: 36, height: 36)
                                     .background(Color.black.opacity(0.05), in: Circle())
-                                Text(layout.title)
+                                Text(LocalizedStringKey(layout.title))
                                     .font(.subheadline.weight(.semibold))
                                 Spacer(minLength: 0)
                             }
@@ -1319,7 +1343,7 @@ private struct AlbumPageOptionsOverlay: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Label(title, systemImage: symbol)
+            Label(LocalizedStringKey(title), systemImage: symbol)
                 .font(.headline)
                 .foregroundStyle(tint)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1346,7 +1370,15 @@ private struct AlbumExportOverlay: View {
     var body: some View {
         AlbumBottomOverlay(onDismiss: isExporting ? {} : onCancel) {
             VStack(alignment: .leading, spacing: 16) {
-                overlayHeader(title: "导出整本相簿", subtitle: "\(project.format.title) · \(project.pages.count) 页", onClose: onCancel)
+                overlayHeader(
+                    title: "导出整本相簿",
+                    subtitle: String(
+                        format: "%@ · %lld 页".appLocalized,
+                        project.format.title.appLocalized,
+                        Int64(project.pages.count)
+                    ),
+                    onClose: onCancel
+                )
 
                 ForEach(AlbumPDFKind.allCases) { kind in
                     Button {
@@ -1359,8 +1391,8 @@ private struct AlbumExportOverlay: View {
                                 .frame(width: 42, height: 42)
                                 .background(Color.black.opacity(0.05), in: Circle())
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(kind.title).font(.headline)
-                                Text(kind.detail)
+                                Text(LocalizedStringKey(kind.title)).font(.headline)
+                                Text(LocalizedStringKey(kind.detail))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .multilineTextAlignment(.leading)
@@ -1382,12 +1414,24 @@ private struct AlbumExportOverlay: View {
                 }
 
                 if project.emptySlotCount > 0 {
-                    Label("仍有 \(project.emptySlotCount) 个空位；导出时会保持留白，不会显示加号。", systemImage: "square.dashed")
+                    Label(
+                        String(
+                            format: "仍有 %lld 个空位；导出时会保持留白，不会显示加号。".appLocalized,
+                            Int64(project.emptySlotCount)
+                        ),
+                        systemImage: "square.dashed"
+                    )
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }
                 if lowResolutionCount > 0 {
-                    Label("有 \(lowResolutionCount) 张图片用于大幅打印时可能不够清晰。", systemImage: "exclamationmark.triangle")
+                    Label(
+                        String(
+                            format: "有 %lld 张图片用于大幅打印时可能不够清晰。".appLocalized,
+                            Int64(lowResolutionCount)
+                        ),
+                        systemImage: "exclamationmark.triangle"
+                    )
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }
@@ -1397,7 +1441,13 @@ private struct AlbumExportOverlay: View {
                         if isExporting {
                             ProgressView().tint(.primary)
                         } else {
-                            Label("生成 \(selectedKind.title)", systemImage: selectedKind.symbol)
+                            Label(
+                                String(
+                                    format: "生成 %@".appLocalized,
+                                    selectedKind.title.appLocalized
+                                ),
+                                systemImage: selectedKind.symbol
+                            )
                         }
                     }
                     .font(.headline)
@@ -1430,7 +1480,7 @@ private struct AlbumExportCompleteOverlay: View {
                 VStack(spacing: 5) {
                     Text("整本相簿已生成")
                         .font(.title3.weight(.bold))
-                    Text(result.kind.detail)
+                    Text(LocalizedStringKey(result.kind.detail))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -1457,7 +1507,7 @@ private struct AlbumExportCompleteOverlay: View {
         Button(action: action) {
             VStack(spacing: 6) {
                 Image(systemName: symbol).font(.system(size: 18, weight: .semibold))
-                Text(title).font(.caption2.weight(.semibold))
+                Text(LocalizedStringKey(title)).font(.caption2.weight(.semibold))
             }
             .foregroundStyle(.primary)
             .frame(maxWidth: .infinity)
@@ -1476,7 +1526,7 @@ private struct AlbumProgressOverlay: View {
             Color.black.opacity(0.42).ignoresSafeArea()
             VStack(spacing: 13) {
                 ProgressView().controlSize(.large)
-                Text(title).font(.subheadline.weight(.semibold))
+                Text(LocalizedStringKey(title)).font(.subheadline.weight(.semibold))
             }
             .padding(.horizontal, 24)
             .frame(height: 128)
@@ -1497,8 +1547,8 @@ private struct AlbumNoticeOverlay: View {
                 Image(systemName: "exclamationmark.circle")
                     .font(.system(size: 28, weight: .semibold))
                     .foregroundStyle(.orange)
-                Text(title).font(.title3.weight(.bold))
-                Text(message)
+                Text(LocalizedStringKey(title)).font(.title3.weight(.bold))
+                Text(LocalizedStringKey(message))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -1547,8 +1597,8 @@ private func overlayHeader(
 ) -> some View {
     HStack(spacing: 12) {
         VStack(alignment: .leading, spacing: 3) {
-            Text(title).font(.title3.weight(.bold))
-            Text(subtitle).font(.caption).foregroundStyle(.secondary)
+            Text(LocalizedStringKey(title)).font(.title3.weight(.bold))
+            Text(LocalizedStringKey(subtitle)).font(.caption).foregroundStyle(.secondary)
         }
         Spacer(minLength: 10)
         Button(action: onClose) {

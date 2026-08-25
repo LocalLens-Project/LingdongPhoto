@@ -53,6 +53,10 @@ enum RelationshipCopywriter {
     }
 
     static func compose(_ input: RelationshipCopyInput) -> RelationshipCopySet {
+        let activeLocalization = Bundle.main.preferredLocalizations.first ?? "zh-Hans"
+        if !activeLocalization.hasPrefix("zh-Hans") {
+            return localizedSummary(for: input)
+        }
         let picker = StablePicker(seed: stableSeed(for: input))
         let archetype = archetype(for: input)
         let focus = strongestFocus(for: input)
@@ -60,6 +64,41 @@ enum RelationshipCopywriter {
             resonance: resonanceCopy(input, archetype: archetype, focus: focus, picker: picker),
             contrast: contrastCopy(input, archetype: archetype, focus: focus, picker: picker),
             bridge: bridgeCopy(input, archetype: archetype, focus: focus, picker: picker)
+        )
+    }
+
+    private static func localizedSummary(
+        for input: RelationshipCopyInput
+    ) -> RelationshipCopySet {
+        let shared = input.sharedName.appLocalized
+        let left = input.contrastLeftName.appLocalized
+        let right = input.contrastRightName.appLocalized
+        let bridgeLeft = input.bridgeLeftName.appLocalized
+        let bridgeRight = input.bridgeRightName.appLocalized
+        return RelationshipCopySet(
+            resonance: RelationshipCopy(
+                title: "共同色".appLocalized,
+                narrative: String(
+                    format: "两张照片都含有%@，它成为最自然的视觉联系。".appLocalized,
+                    shared
+                )
+            ),
+            contrast: RelationshipCopy(
+                title: "明暗与色温".appLocalized,
+                narrative: String(
+                    format: "%@与%@形成最清晰的差异，让两张照片各自保持个性。".appLocalized,
+                    left,
+                    right
+                )
+            ),
+            bridge: RelationshipCopy(
+                title: "过渡色阶".appLocalized,
+                narrative: String(
+                    format: "从%@逐渐走向%@，中间色让变化自然连贯。".appLocalized,
+                    bridgeLeft,
+                    bridgeRight
+                )
+            )
         )
     }
 

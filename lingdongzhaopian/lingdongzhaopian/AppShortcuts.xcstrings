@@ -1,0 +1,93 @@
+{
+  "sourceLanguage" : "zh-Hans",
+  "strings" : {
+    "使用 ${applicationName} 提取照片色彩" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "needs_review",
+            "values" : [
+              "Extract photo colors with ${applicationName}"
+            ]
+          }
+        },
+        "zh-Hans" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "使用 ${applicationName} 提取照片色彩"
+            ]
+          }
+        },
+        "zh-Hant" : {
+          "stringSet" : {
+            "state" : "needs_review",
+            "values" : [
+              "使用 ${applicationName} 擷取照片色彩"
+            ]
+          }
+        }
+      }
+    },
+    "使用 ${applicationName} 清除照片元数据" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "needs_review",
+            "values" : [
+              "Remove photo metadata with ${applicationName}"
+            ]
+          }
+        },
+        "zh-Hans" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "使用 ${applicationName} 清除照片元数据"
+            ]
+          }
+        },
+        "zh-Hant" : {
+          "stringSet" : {
+            "state" : "needs_review",
+            "values" : [
+              "使用 ${applicationName} 清除照片中繼資料"
+            ]
+          }
+        }
+      }
+    },
+    "使用 ${applicationName} 生成色谱壁纸" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "needs_review",
+            "values" : [
+              "Create a spectrum wallpaper with ${applicationName}"
+            ]
+          }
+        },
+        "zh-Hans" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "使用 ${applicationName} 生成色谱壁纸"
+            ]
+          }
+        },
+        "zh-Hant" : {
+          "stringSet" : {
+            "state" : "needs_review",
+            "values" : [
+              "使用 ${applicationName} 產生色譜桌布"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.2"
+}

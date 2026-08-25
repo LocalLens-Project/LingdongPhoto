@@ -43,40 +43,40 @@ enum PhotoCategory: String, CaseIterable, Sendable {
 
     var displayName: String {
         switch self {
-        case .portrait: "人物肖像"
-        case .family: "亲友合影"
-        case .dog: "狗狗"
-        case .cat: "猫咪"
-        case .bird: "鸟类"
-        case .wildlife: "野生动物"
-        case .insect: "昆虫微距"
-        case .flower: "花卉与花园"
-        case .forest: "森林草木"
-        case .mountain: "山野风光"
-        case .water: "江河湖海"
-        case .beach: "海滩"
-        case .sky: "天空云层"
-        case .sunset: "日出日落"
-        case .snow: "冰雪"
-        case .rain: "雨景"
-        case .nature: "自然风景"
-        case .city: "城市天际线"
-        case .architecture: "建筑"
-        case .street: "街头记录"
-        case .night: "夜景"
-        case .food: "美食"
-        case .fruit: "水果与丰收"
-        case .cafe: "咖啡与甜点"
-        case .travel: "旅行见闻"
-        case .sport: "运动"
-        case .vehicle: "车辆与旅途"
-        case .music: "音乐现场"
-        case .book: "阅读"
-        case .document: "文字或截图"
-        case .celebration: "节日庆典"
-        case .farm: "田园农场"
-        case .interior: "室内空间"
-        case .generic: "日常瞬间"
+        case .portrait: "人物肖像".appLocalized
+        case .family: "亲友合影".appLocalized
+        case .dog: "狗狗".appLocalized
+        case .cat: "猫咪".appLocalized
+        case .bird: "鸟类".appLocalized
+        case .wildlife: "野生动物".appLocalized
+        case .insect: "昆虫微距".appLocalized
+        case .flower: "花卉与花园".appLocalized
+        case .forest: "森林草木".appLocalized
+        case .mountain: "山野风光".appLocalized
+        case .water: "江河湖海".appLocalized
+        case .beach: "海滩".appLocalized
+        case .sky: "天空云层".appLocalized
+        case .sunset: "日出日落".appLocalized
+        case .snow: "冰雪".appLocalized
+        case .rain: "雨景".appLocalized
+        case .nature: "自然风景".appLocalized
+        case .city: "城市天际线".appLocalized
+        case .architecture: "建筑".appLocalized
+        case .street: "街头记录".appLocalized
+        case .night: "夜景".appLocalized
+        case .food: "美食".appLocalized
+        case .fruit: "水果与丰收".appLocalized
+        case .cafe: "咖啡与甜点".appLocalized
+        case .travel: "旅行见闻".appLocalized
+        case .sport: "运动".appLocalized
+        case .vehicle: "车辆与旅途".appLocalized
+        case .music: "音乐现场".appLocalized
+        case .book: "阅读".appLocalized
+        case .document: "文字或截图".appLocalized
+        case .celebration: "节日庆典".appLocalized
+        case .farm: "田园农场".appLocalized
+        case .interior: "室内空间".appLocalized
+        case .generic: "日常瞬间".appLocalized
         }
     }
 }
@@ -334,7 +334,9 @@ enum PhotoCopywriter {
         let lexicon = lexicon(for: category)
         let seed = semantic.signature &+ UInt64(max(variant, 0)) &* 0x9E3779B97F4A7C15
         let chineseLead = lexicon.chineseLeads[index(seed, salt: 11, count: lexicon.chineseLeads.count)]
+            .appLocalized
         let chineseTail = lexicon.chineseTails[index(seed, salt: 29, count: lexicon.chineseTails.count)]
+            .appLocalized
         let englishLead = lexicon.englishLeads[index(seed, salt: 47, count: lexicon.englishLeads.count)]
         let englishTail = lexicon.englishTails[index(seed, salt: 71, count: lexicon.englishTails.count)]
         let emojiSets = matchingEmojiSets(for: semantic) ?? lexicon.emojiSets

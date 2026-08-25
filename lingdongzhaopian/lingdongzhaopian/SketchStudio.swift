@@ -630,7 +630,7 @@ struct SketchEditorControls: View {
                         onStyleChange(style)
                         UISelectionFeedbackGenerator().selectionChanged()
                     } label: {
-                        Label(style.rawValue, systemImage: style.symbol)
+                        Label(LocalizedStringKey(style.rawValue), systemImage: style.symbol)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(parameters.style == style ? .white : .primary.opacity(0.68))
                             .padding(.horizontal, 11)
@@ -719,19 +719,26 @@ struct SketchEditorControls: View {
         symbol: String,
         legend: String
     ) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Image(systemName: symbol)
                 .font(.system(size: 14, weight: .semibold))
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .layoutPriority(1)
             Slider(value: value, in: 0...1)
                 .tint(.primary)
-            Text(legend)
+                .frame(minWidth: 68)
+            Text(LocalizedStringKey(legend))
                 .font(.caption2.bold())
-                .frame(width: 30, alignment: .trailing)
+                .multilineTextAlignment(.trailing)
+                .lineLimit(2)
+                .minimumScaleFactor(0.72)
+                .frame(width: 72, alignment: .trailing)
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 12)
         .frame(height: 44)
         .liquidGlass(in: Capsule(), variant: .clear)
     }

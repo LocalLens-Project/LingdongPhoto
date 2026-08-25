@@ -34,20 +34,11 @@ final class TicketPrintLiveActivityController {
         )
 
         do {
-            if #available(iOS 18.0, *) {
-                activity = try Activity.request(
-                    attributes: attributes,
-                    content: content,
-                    pushType: nil,
-                    style: .transient
-                )
-            } else {
-                activity = try Activity.request(
-                    attributes: attributes,
-                    content: content,
-                    pushType: nil
-                )
-            }
+            activity = try Activity.request(
+                attributes: attributes,
+                content: content,
+                pushType: nil
+            )
             return true
         } catch {
             activity = nil

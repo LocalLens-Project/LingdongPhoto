@@ -98,8 +98,7 @@ final class TicketRevealLiveActivityController {
                     staleDate: Date.now.addingTimeInterval(20),
                     relevanceScore: 100
                 ),
-                pushType: nil,
-                style: .transient
+                pushType: nil
             )
             return true
         } catch {

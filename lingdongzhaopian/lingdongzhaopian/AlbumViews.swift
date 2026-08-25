@@ -76,7 +76,10 @@ struct AlbumRootView: View {
 
             if let deleteCandidate {
                 AlbumConfirmationOverlay(
-                    title: "删除《\(deleteCandidate.title)》？",
+                    title: String(
+                        format: "删除《%@》？".appLocalized,
+                        deleteCandidate.title.appLocalized
+                    ),
                     message: "相簿项目及其中保存的本地图片会被删除，此操作无法撤销。",
                     confirmTitle: "删除相簿",
                     isDestructive: true,
@@ -361,10 +364,14 @@ private struct AlbumLibraryCard: View {
 
             HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(project.title)
+                    Text(LocalizedStringKey(project.title))
                         .font(.subheadline.weight(.bold))
                         .lineLimit(1)
-                    Text("\(project.pages.count) 页 · \(project.filledSlotCount) 个内容")
+                    Text(verbatim: String(
+                        format: "%lld 页 · %lld 个内容".appLocalized,
+                        Int64(project.pages.count),
+                        Int64(project.filledSlotCount)
+                    ))
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.54))
                 }
@@ -381,7 +388,12 @@ private struct AlbumLibraryCard: View {
                 .buttonStyle(LiquidPressButtonStyle())
                 .liquidGlass(in: Circle(), interactive: true, variant: .clear)
                 .foregroundStyle(.white.opacity(0.82))
-                .accessibilityLabel("删除相簿 \(project.title)")
+                .accessibilityLabel(
+                    String(
+                        format: "删除相簿 %@".appLocalized,
+                        project.title
+                    )
+                )
             }
         }
     }
@@ -457,7 +469,14 @@ private struct AlbumTemplatePickerScreen: View {
                     .liquidGlass(in: Circle(), interactive: true, variant: .clear)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(showsVariants ? "\(selectedTheme.title)模板" : "选择相簿主题")
+                        Text(
+                            showsVariants
+                                ? String(
+                                    format: "%@模板".appLocalized,
+                                    selectedTheme.title.appLocalized
+                                )
+                                : "选择相簿主题".appLocalized
+                        )
                             .font(.system(size: 21, weight: .bold, design: .rounded))
                         Text(showsVariants ? "挑选最适合这本相簿的视觉版式" : "每个主题均提供 3 套原创版式")
                             .font(.caption)
@@ -511,7 +530,7 @@ private struct AlbumTemplatePickerScreen: View {
                                     withAnimation(AlbumMotion.select) { selectedFormat = format }
                                     UISelectionFeedbackGenerator().selectionChanged()
                                 } label: {
-                                    Text(format.shortTitle)
+                                    Text(LocalizedStringKey(format.shortTitle))
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(selectedFormat == format ? .black : .white)
                                         .frame(maxWidth: .infinity)
@@ -536,8 +555,14 @@ private struct AlbumTemplatePickerScreen: View {
                     } label: {
                         Label(
                             showsVariants
-                                ? "使用“\(selectedTemplate.title)”创建"
-                                : "进入“\(selectedTemplate.title)”模板选择",
+                                ? String(
+                                    format: "使用“%@”创建".appLocalized,
+                                    selectedTemplate.title.appLocalized
+                                )
+                                : String(
+                                    format: "进入“%@”模板选择".appLocalized,
+                                    selectedTemplate.title.appLocalized
+                                ),
                             systemImage: showsVariants ? "book.closed" : "rectangle.stack"
                         )
                             .font(.headline)
@@ -594,16 +619,20 @@ private struct AlbumTemplatePickerScreen: View {
                 .frame(width: 124, height: 122)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Label(theme.title, systemImage: theme.symbol)
+                    Label(LocalizedStringKey(theme.title), systemImage: theme.symbol)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white.opacity(0.58))
-                    Text(featured.title)
+                    Text(LocalizedStringKey(featured.title))
                         .font(.title3.weight(.bold))
-                    Text("\(templates.count) 套版式 · \(featured.subtitle)")
+                    Text(verbatim: String(
+                        format: "%lld 套版式 · %@".appLocalized,
+                        Int64(templates.count),
+                        featured.subtitle.appLocalized
+                    ))
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.68))
                         .multilineTextAlignment(.leading)
-                    Text(featured.detail)
+                    Text(LocalizedStringKey(featured.detail))
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.46))
                         .lineLimit(2)
@@ -647,9 +676,9 @@ private struct AlbumTemplatePickerScreen: View {
 
                 HStack(alignment: .top, spacing: 6) {
                     VStack(alignment: .leading, spacing: 4) {
-                    Text(template.title)
+                    Text(LocalizedStringKey(template.title))
                             .font(.subheadline.weight(.bold))
-                    Text(template.subtitle)
+                    Text(LocalizedStringKey(template.subtitle))
                             .font(.caption2)
                             .foregroundStyle(.white.opacity(0.58))
                             .lineLimit(2)
@@ -713,13 +742,13 @@ private struct AlbumTemplateMiniature: View {
         switch template.style {
         case .editorialLetter, .quietCompanion, .cleanCanvas:
             VStack(spacing: size.height * 0.06) {
-                Text(template.title)
+                Text(LocalizedStringKey(template.title))
                     .font(.system(size: max(7, size.width * 0.10), weight: .semibold, design: .serif))
                     .foregroundStyle(ink)
                     .lineLimit(1)
                 Rectangle().fill(.white.opacity(0.88))
                     .frame(width: size.width * 0.58, height: size.height * 0.48)
-                Text(template.style.shortTitle.uppercased())
+                Text(template.style.shortTitle.appLocalized.uppercased())
                     .font(.system(size: max(4, size.width * 0.037), weight: .bold, design: .monospaced))
                     .foregroundStyle(ink.opacity(0.62))
             }
@@ -727,7 +756,7 @@ private struct AlbumTemplateMiniature: View {
         case .coastPostcard, .trailJournal:
             VStack(spacing: size.height * 0.04) {
                 HStack {
-                    Text(template.title).font(.system(size: max(7, size.width * 0.09), weight: .bold, design: .rounded))
+                    Text(LocalizedStringKey(template.title)).font(.system(size: max(7, size.width * 0.09), weight: .bold, design: .rounded))
                     Spacer()
                     Circle().stroke(ink.opacity(0.5), lineWidth: 1).frame(width: size.width * 0.18)
                 }
@@ -741,7 +770,7 @@ private struct AlbumTemplateMiniature: View {
                 HStack {
                     Text("01 / 24").font(.system(size: 5, weight: .bold, design: .monospaced))
                     Spacer()
-                    Text(template.title).font(.system(size: max(7, size.width * 0.075), weight: .bold, design: .monospaced))
+                    Text(LocalizedStringKey(template.title)).font(.system(size: max(7, size.width * 0.075), weight: .bold, design: .monospaced))
                 }
                 Rectangle().fill(.black.opacity(0.74)).frame(height: size.height * 0.50)
                     .overlay {
@@ -760,7 +789,7 @@ private struct AlbumTemplateMiniature: View {
                 RoundedRectangle(cornerRadius: size.width * 0.28, style: .continuous)
                     .fill(.white.opacity(0.88))
                     .frame(width: size.width * 0.54, height: size.height * 0.52)
-                Text(template.title).font(.system(size: max(7, size.width * 0.09), weight: .semibold, design: .serif))
+                Text(LocalizedStringKey(template.title)).font(.system(size: max(7, size.width * 0.09), weight: .semibold, design: .serif))
                     .foregroundStyle(ink).offset(y: -size.height * 0.37)
             }
         case .sundayTable, .freeCollage:
@@ -769,7 +798,7 @@ private struct AlbumTemplateMiniature: View {
                     .rotationEffect(.degrees(-6)).offset(x: -size.width * 0.08, y: size.height * 0.08)
                 Rectangle().fill(.white.opacity(0.72)).frame(width: size.width * 0.48, height: size.height * 0.30)
                     .rotationEffect(.degrees(7)).offset(x: size.width * 0.12, y: size.height * 0.22)
-                Text(template.title).font(.system(size: max(7, size.width * 0.09), weight: .bold, design: .rounded))
+                Text(LocalizedStringKey(template.title)).font(.system(size: max(7, size.width * 0.09), weight: .bold, design: .rounded))
                     .foregroundStyle(ink).offset(y: -size.height * 0.34)
             }
         case .littleUniverse, .rainbowPlay, .playfulPaws:
@@ -780,7 +809,7 @@ private struct AlbumTemplateMiniature: View {
                 Image(systemName: template.theme.symbol)
                     .font(.system(size: max(14, size.width * 0.20), weight: .light))
                     .foregroundStyle(ink.opacity(0.52))
-                Text(template.title).font(.system(size: max(7, size.width * 0.09), weight: .bold, design: .rounded))
+                Text(LocalizedStringKey(template.title)).font(.system(size: max(7, size.width * 0.09), weight: .bold, design: .rounded))
                     .foregroundStyle(ink).offset(y: -size.height * 0.37)
             }
         }
@@ -1196,7 +1225,7 @@ struct AlbumPageCanvas: View {
                     Image(systemName: "plus")
                         .font(.system(size: max(12, min(frame.width, frame.height) * 0.13), weight: .light))
                     if frame.height > 45, frame.width > 65 {
-                        Text(slot.expectation.placeholderTitle)
+                        Text(LocalizedStringKey(slot.expectation.placeholderTitle))
                             .font(.system(size: max(8, min(12, frame.width * 0.065)), weight: .semibold))
                             .lineLimit(1)
                     }
@@ -1406,10 +1435,10 @@ struct AlbumConfirmationOverlay: View {
                     .foregroundStyle(isDestructive ? .red : .blue)
 
                 VStack(spacing: 7) {
-                    Text(title)
+                    Text(LocalizedStringKey(title))
                         .font(.title3.weight(.bold))
                         .multilineTextAlignment(.center)
-                    Text(message)
+                    Text(LocalizedStringKey(message))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -1422,7 +1451,7 @@ struct AlbumConfirmationOverlay: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                         .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
-                    Button(confirmTitle, action: onConfirm)
+                    Button(LocalizedStringKey(confirmTitle), action: onConfirm)
                         .font(.headline)
                         .foregroundStyle(isDestructive ? .red : .primary)
                         .frame(maxWidth: .infinity)

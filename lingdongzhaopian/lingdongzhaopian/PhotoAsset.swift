@@ -56,6 +56,9 @@ struct PhotoMetadata: Equatable {
 
     func ticketCityLabel(style: TicketCityNameStyle) -> String? {
         guard let city = ticketCityName, !city.isEmpty else { return nil }
+        if Bundle.main.preferredLocalizations.first?.hasPrefix("en") == true {
+            return city.uppercased()
+        }
         switch style {
         case .pinyin:
             let latin = city
@@ -75,7 +78,7 @@ struct PhotoMetadata: Equatable {
     }
 
     var captureTimeText: String {
-        guard let captureDate else { return "拍摄时间未记录" }
+        guard let captureDate else { return "拍摄时间未记录".appLocalized }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
         let components = calendar.dateComponents(
@@ -87,14 +90,17 @@ struct PhotoMetadata: Equatable {
               let day = components.day,
               let hour = components.hour,
               let minute = components.minute else {
-            return "拍摄时间未记录"
+            return "拍摄时间未记录".appLocalized
         }
         return String(format: "%04d/%02d/%02d, %02d:%02d", year, month, day, hour, minute)
     }
 
     var deviceLine: String? {
         guard let device = captureDevice.displayName else { return nil }
-        return "由 \(device) 记录这一瞬"
+        return String(
+            format: "由 %@ 记录这一瞬".appLocalized,
+            device
+        )
     }
 
     var cameraLensLine: String? {
@@ -276,11 +282,11 @@ enum PhotoImportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unreadableImage:
-            "无法读取所选照片，请换一张照片后重试。"
+            "无法读取所选照片，请换一张照片后重试。".appLocalized
         case .unreadableLivePhoto:
-            "无法读取所选实况照片的动态内容，请确认原片已从 iCloud 下载后重试。"
+            "无法读取所选实况照片的动态内容，请确认原片已从 iCloud 下载后重试。".appLocalized
         case .missingLivePhotoVideo:
-            "所选实况照片没有提供可用的配对视频，请在系统照片中确认它仍可播放后重试。"
+            "所选实况照片没有提供可用的配对视频，请在系统照片中确认它仍可播放后重试。".appLocalized
         }
     }
 }
@@ -506,18 +512,67 @@ enum PhotoAssetLoader {
 
     private static func reverseGeocode(_ location: CLLocation) async -> String? {
         do {
-            let placemarks = try await CLGeocoder().reverseGeocodeLocation(location, preferredLocale: Locale(identifier: "zh_CN"))
-            guard let place = placemarks.first else { return nil }
-            return [place.locality, place.subLocality, place.name]
-                .compactMap { $0 }
-                .reduce(into: [String]()) { result, component in
-                    if !result.contains(component) { result.append(component) }
-                }
-                .prefix(2)
-                .joined(separator: " · ")
+            let appLanguage = Bundle.main.preferredLocalizations.first
+                ?? Locale.preferredLanguages.first
+                ?? "zh-Hans"
+            let initialLocale: Locale
+            if appLanguage.hasPrefix("en") {
+                initialLocale = Locale(identifier: "en_US")
+            } else if appLanguage.hasPrefix("zh-Hant") {
+                initialLocale = Locale(identifier: "zh_TW")
+            } else {
+                initialLocale = Locale(identifier: "zh_CN")
+            }
+
+            let placemarks = try await CLGeocoder().reverseGeocodeLocation(
+                location,
+                preferredLocale: initialLocale
+            )
+            guard var place = placemarks.first else { return nil }
+
+            let chineseLanguageRegionCodes: Set<String> = ["CN", "HK", "MO", "TW"]
+            let shouldUseEnglishAddress = appLanguage.hasPrefix("en")
+                || place.isoCountryCode.map {
+                    !chineseLanguageRegionCodes.contains($0.uppercased())
+                } == true
+
+            if shouldUseEnglishAddress && !appLanguage.hasPrefix("en"),
+               let englishPlace = try? await CLGeocoder().reverseGeocodeLocation(
+                   location,
+                   preferredLocale: Locale(identifier: "en_US")
+               ).first {
+                place = englishPlace
+            }
+
+            return formattedPlaceName(from: place)
         } catch {
             return nil
         }
+    }
+
+    private static func formattedPlaceName(from place: CLPlacemark) -> String? {
+        let preferred = [
+            place.locality,
+            place.subLocality,
+            place.name,
+            place.subAdministrativeArea,
+            place.administrativeArea,
+            place.country
+        ]
+        let components = preferred
+            .compactMap { value -> String? in
+                guard let value else { return nil }
+                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed.isEmpty ? nil : trimmed
+            }
+            .reduce(into: [String]()) { result, component in
+                guard !result.contains(where: {
+                    $0.caseInsensitiveCompare(component) == .orderedSame
+                }) else { return }
+                result.append(component)
+            }
+        guard !components.isEmpty else { return nil }
+        return components.prefix(2).joined(separator: " · ")
     }
 
     private static func livePhotoResourceInfo(

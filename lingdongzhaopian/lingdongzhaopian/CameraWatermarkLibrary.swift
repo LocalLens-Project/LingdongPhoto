@@ -112,13 +112,13 @@ enum CameraWatermarkImportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notPNG:
-            "为了让图标水印保持清晰美观，请从“文件”App 选择 PNG 格式图片。"
+            "为了让图标水印保持清晰美观，请从“文件”App 选择 PNG 格式图片。".appLocalized
         case .unreadable:
-            "无法读取所选图片，请确认文件没有损坏后重试。"
+            "无法读取所选图片，请确认文件没有损坏后重试。".appLocalized
         case .emptyImage:
-            "所选 PNG 没有可见内容，请换一张带有可见图案的图片。"
+            "所选 PNG 没有可见内容，请换一张带有可见图案的图片。".appLocalized
         case .unableToSave:
-            "无法将图标水印保存到本机，请稍后重试。"
+            "无法将图标水印保存到本机，请稍后重试。".appLocalized
         }
     }
 }
@@ -500,7 +500,7 @@ struct CameraWatermarkManagerView: View {
         .alert("无法添加图标水印", isPresented: $isAlertPresented) {
             Button("知道了", role: .cancel) {}
         } message: {
-            Text(alertMessage)
+            Text(LocalizedStringKey(alertMessage))
         }
     }
 
@@ -508,7 +508,7 @@ struct CameraWatermarkManagerView: View {
     private func brandCard(_ brand: CameraWatermarkBrand) -> some View {
         let image = library.image(for: brand)
         VStack(spacing: 10) {
-            Text(brand.displayName)
+            Text(LocalizedStringKey(brand.displayName))
                 .font(.caption.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)

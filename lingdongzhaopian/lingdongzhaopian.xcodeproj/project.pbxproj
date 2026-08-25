@@ -35,6 +35,14 @@
 		E20000000000000000000009 /* TicketRevealLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000012 /* TicketRevealLiveActivityWidget.swift */; };
 		E2000000000000000000000A /* TicketClipLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000013 /* TicketClipLiveActivityWidget.swift */; };
 		EF7451A59C8232975D370AE7 /* LingdongTicketClip.app in Embed App Clips */ = {isa = PBXBuildFile; fileRef = 97A2AADF17BF830F10B7096F /* LingdongTicketClip.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F30000000000000000000002 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000001 /* Localizable.xcstrings */; };
+		F30000000000000000000003 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000001 /* Localizable.xcstrings */; };
+		F30000000000000000000004 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000001 /* Localizable.xcstrings */; };
+		F30000000000000000000005 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000001 /* Localizable.xcstrings */; };
+		F30000000000000000000006 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000001 /* Localizable.xcstrings */; };
+		F30000000000000000000008 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000007 /* InfoPlist.xcstrings */; };
+		F3000000000000000000000A /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F30000000000000000000009 /* InfoPlist.xcstrings */; };
+		F3000000000000000000000C /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F3000000000000000000000B /* InfoPlist.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -125,6 +133,10 @@
 		E20000000000000000000014 /* TicketClipActivity-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "TicketClipActivity-Info.plist"; sourceTree = "<group>"; };
 		E20000000000000000000015 /* TicketClipActivity.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = TicketClipActivity.entitlements; sourceTree = "<group>"; };
 		E20000000000000000000016 /* LingdongTicketClipActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LingdongTicketClipActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F30000000000000000000001 /* Localizable.xcstrings */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		F30000000000000000000007 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		F30000000000000000000009 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		F3000000000000000000000B /* InfoPlist.xcstrings */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -214,6 +226,7 @@
 		4B2A62013008AA4A00FD02F8 /* Config */ = {
 			isa = PBXGroup;
 			children = (
+				F30000000000000000000001 /* Localizable.xcstrings */,
 				4B2A62003008AA4A00FD02F8 /* Signing.xcconfig */,
 				4B2A62023008AA4A00FD02F8 /* Signing.local.example.xcconfig */,
 				B323DD16DF298BE45730FD7C /* AppClip-Info.plist */,
@@ -245,6 +258,7 @@
 		A761C9F65FB9429CC02DD438 /* LingdongTicketClip */ = {
 			isa = PBXGroup;
 			children = (
+				F30000000000000000000007 /* InfoPlist.xcstrings */,
 				E0CDD32762F90C740FFBC86B /* LingdongTicketClipApp.swift */,
 				670ECCEA792F07698153232F /* TicketClipRootView.swift */,
 			);
@@ -265,6 +279,7 @@
 		D1000000000000000000000E /* LingdongTicketActivity */ = {
 			isa = PBXGroup;
 			children = (
+				F30000000000000000000009 /* InfoPlist.xcstrings */,
 				D1000000000000000000000B /* TicketPrintLiveActivityWidget.swift */,
 			);
 			path = LingdongTicketActivity;
@@ -273,6 +288,7 @@
 		E20000000000000000000021 /* LingdongTicketClipActivity */ = {
 			isa = PBXGroup;
 			children = (
+				F3000000000000000000000B /* InfoPlist.xcstrings */,
 				E20000000000000000000013 /* TicketClipLiveActivityWidget.swift */,
 			);
 			path = LingdongTicketClipActivity;
@@ -426,10 +442,12 @@
 				};
 			};
 			buildConfigurationList = 4B2A61E73008AA4A00FD02F8 /* Build configuration list for PBXProject "lingdongzhaopian" */;
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				"zh-Hans",
+				"zh-Hant",
 				Base,
 			);
 			mainGroup = 4B2A61E33008AA4A00FD02F8;
@@ -453,6 +471,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F30000000000000000000002 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -460,6 +479,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F30000000000000000000003 /* Localizable.xcstrings in Resources */,
+				F30000000000000000000008 /* InfoPlist.xcstrings in Resources */,
 				BDF983752BD33D0D831DB26D /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -468,6 +489,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F30000000000000000000004 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -475,6 +497,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F30000000000000000000005 /* Localizable.xcstrings in Resources */,
+				F3000000000000000000000A /* InfoPlist.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -482,6 +506,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F30000000000000000000006 /* Localizable.xcstrings in Resources */,
+				F3000000000000000000000C /* InfoPlist.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -576,7 +602,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/AppClip.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601;
+				CURRENT_PROJECT_VERSION = 202616;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -589,7 +615,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.clip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -735,7 +761,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/App.entitlements;
-				CURRENT_PROJECT_VERSION = 202601;
+				CURRENT_PROJECT_VERSION = 202616;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/App-Info.plist";
@@ -752,7 +778,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -775,7 +801,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/App.entitlements;
-				CURRENT_PROJECT_VERSION = 202601;
+				CURRENT_PROJECT_VERSION = 202616;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/App-Info.plist";
@@ -792,7 +818,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -817,7 +843,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/AppClip.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601;
+				CURRENT_PROJECT_VERSION = 202616;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -830,7 +856,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.clip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -855,7 +881,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Config/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601;
+				CURRENT_PROJECT_VERSION = 202616;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/ShareExtension-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
@@ -865,7 +891,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SHARE_EXTENSION_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -887,7 +913,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Config/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601;
+				CURRENT_PROJECT_VERSION = 202616;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/ShareExtension-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
@@ -897,7 +923,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SHARE_EXTENSION_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -918,7 +944,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601;
+				CURRENT_PROJECT_VERSION = 202616;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -931,7 +957,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.TicketActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -952,7 +978,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601;
+				CURRENT_PROJECT_VERSION = 202616;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -965,7 +991,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.TicketActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -988,7 +1014,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = Config/TicketClipActivity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601;
+				CURRENT_PROJECT_VERSION = 202616;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -1001,7 +1027,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.clip.TicketActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1024,7 +1050,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = Config/TicketClipActivity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202601;
+				CURRENT_PROJECT_VERSION = 202616;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -1037,7 +1063,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.0;
+				MARKETING_VERSION = 2.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.clip.TicketActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

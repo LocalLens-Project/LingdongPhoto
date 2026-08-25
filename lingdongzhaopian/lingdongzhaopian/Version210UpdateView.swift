@@ -3,7 +3,7 @@
 
 import SwiftUI
 
-struct Version200UpdateView: View {
+struct Version210UpdateView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var reachedEnd = false
 
@@ -15,56 +15,31 @@ struct Version200UpdateView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("灵动照片 2.0.0（Build 202601）")
+                        Text("灵动照片 2.1.0（Build 202616）")
                             .font(.system(size: 13, weight: .semibold, design: .rounded))
                             .foregroundStyle(.secondary)
-                        Text("让每一张照片拥有更多表达")
+                        Text("让照片的色彩与光影更好懂")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                        Text("本次更新新增灵动卡片与影像票根的局部取色、影像素描、影像票根时光胶囊文案、横向票根宽度选择、影像相簿与色彩关系功能，重构轻 App 的票根验证体验，并带来部分界面优化与稳定性提升。")
+                        Text("本次更新新增英文与繁体中文翻译，加入光影解析功能，并修复部分已知问题。")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
 
                     VStack(alignment: .leading, spacing: 14) {
                         updateItem(
-                            symbol: "viewfinder",
-                            title: "灵动卡片与影像票根新增“局部取色”",
-                            detail: "在灵动卡片与影像票根（竖屏）中，均可框选照片中的指定区域单独提取颜色，生成更精准的背景取色效果；也可以随时调整选区或恢复整图取色。"
+                            symbol: "globe",
+                            title: "新增英文与繁体中文翻译",
+                            detail: "iOS 版现已支持简体中文、繁体中文与英文，并可自动跟随系统语言。"
                         )
                         updateItem(
-                            symbol: "pencil",
-                            title: "新增“影像素描”功能",
-                            detail: "把照片转化为铅笔素描、炭笔速写或水彩绘画，并可自由调整效果强度、笔触、色彩保留与纸面质感。所有影像处理均在设备端完成。"
+                            symbol: "waveform.path.ecg.rectangle",
+                            title: "新增“光影解析”功能",
+                            detail: "在琉璃色盘中切换到光影解析，即可查看照片的明暗分布、高光与暗部细节，以及简单易懂的说明。所有分析均在设备本机完成。"
                         )
                         updateItem(
-                            symbol: "clock.arrow.circlepath",
-                            title: "影像票根新增“时光胶囊”文案",
-                            detail: "扫描票根时，除了原有的标准信息展示，现在可以选择“时光胶囊”叙事风格——以“这是一段 X 天前的回忆”呈现拍摄时间与情感化叙述，并区分“写给未来的我”与“分享给朋友”两种视角。"
-                        )
-                        updateItem(
-                            symbol: "app.badge",
-                            title: "重构轻 App 使用逻辑",
-                            detail: "重新设计扫描影像票根后的轻 App 开场：在支持灵动岛的 iPhone 上，真实票根会继承扫描票根的主色并从灵动岛缓缓展开，随后覆盖全屏并展示完整验证内容；应用内扫描也同步采用一致的体验。"
-                        )
-                        updateItem(
-                            symbol: "rectangle.expand.vertical",
-                            title: "横向票根新增宽度选择",
-                            detail: "在“横向经典”版式下，新增“紧凑 / 标准 / 海报”三档宽度选择，适配锁屏小组件、日常分享与收藏展示等不同场景。"
-                        )
-                        updateItem(
-                            symbol: "book.closed",
-                            title: "新增“影像相簿”功能",
-                            detail: "把散落的影像装订成书。选择模板，加入普通照片或灵动作品，整本预览后可直接生成印刷 PDF 文件。"
-                        )
-                        updateItem(
-                            symbol: "point.3.connected.trianglepath.dotted",
-                            title: "新增“色彩关系”功能",
-                            detail: "选择两张照片，从共鸣、对照与过渡三种方式观察它们的共同色、色彩距离和连接色阶。支持横图、竖图与混合方向的完整展示，并可保存对比图或完整分析作品。所有分析均在设备本机完成。"
-                        )
-                        updateItem(
-                            symbol: "sparkles",
-                            title: "部分界面优化与稳定性提升",
-                            detail: "优化部分界面细节与交互体验，修复若干已知问题，提升整体运行稳定性。"
+                            symbol: "checkmark.seal",
+                            title: "修复部分已知问题",
+                            detail: "优化部分界面细节与运行稳定性，让整体使用体验更加流畅。"
                         )
                     }
                     }
@@ -117,7 +92,7 @@ struct Version200UpdateView: View {
                 )
                 .disabled(!reachedEnd)
                 .accessibilityHint(reachedEnd
-                    ? "关闭更新介绍，开始体验 2.0.0 的新功能"
+                    ? "关闭更新介绍，开始体验 2.1.0 的新功能"
                     : "请先将更新内容滚动到底部")
                 .padding(.horizontal, 22)
                 .padding(.top, 10)
@@ -127,13 +102,6 @@ struct Version200UpdateView: View {
             .background {
                 Color.black
                     .ignoresSafeArea()
-            }
-            .onAppear {
-#if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--update-scrolled") {
-                    reachedEnd = true
-                }
-#endif
             }
         }
     }
@@ -149,9 +117,9 @@ struct Version200UpdateView: View {
                 .frame(width: 28, height: 28)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.headline)
-                Text(detail)
+                Text(LocalizedStringKey(detail))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

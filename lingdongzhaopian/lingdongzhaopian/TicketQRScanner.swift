@@ -103,7 +103,7 @@ struct TicketQRScannerScreen: View {
 
             VStack(spacing: 8) {
                 if let feedback {
-                    Label(feedback, systemImage: "exclamationmark.triangle.fill")
+                    Label(LocalizedStringKey(feedback), systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 } else {
@@ -141,10 +141,10 @@ struct TicketQRScannerScreen: View {
                 .foregroundStyle(.white)
 
             VStack(spacing: 8) {
-                Text(unavailableTitle)
+                Text(LocalizedStringKey(unavailableTitle))
                     .font(.title2.bold())
 
-                Text(unavailableMessage)
+                Text(LocalizedStringKey(unavailableMessage))
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.66))
                     .multilineTextAlignment(.center)

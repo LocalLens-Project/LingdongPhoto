@@ -21,9 +21,9 @@ enum AlbumImportError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unavailable: "没有读取到可用图片，请重新选择。"
-        case .unreadable: "图片无法解码，请换一张后重试。"
-        case .writeFailed: "无法把图片保存到本地相簿项目。"
+        case .unavailable: "没有读取到可用图片，请重新选择。".appLocalized
+        case .unreadable: "图片无法解码，请换一张后重试。".appLocalized
+        case .writeFailed: "无法把图片保存到本地相簿项目。".appLocalized
         }
     }
 }
@@ -583,14 +583,13 @@ struct LingdongWorkRecord: Identifiable, Codable, Equatable {
 
 @MainActor
 enum LingdongWorkArchive {
-    private static let fileManager = FileManager.default
-    private static var rootURL: URL {
-        fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    nonisolated private static var rootURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("LingdongWorks", isDirectory: true)
     }
-    private static var indexURL: URL { rootURL.appendingPathComponent("works.json") }
+    nonisolated private static var indexURL: URL { rootURL.appendingPathComponent("works.json") }
 
-    static func records() -> [LingdongWorkRecord] {
+    nonisolated static func records() -> [LingdongWorkRecord] {
         guard let data = try? Data(contentsOf: indexURL) else { return [] }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -599,7 +598,7 @@ enum LingdongWorkArchive {
     }
 
     static func storageByteCount() -> Int64 {
-        guard let enumerator = fileManager.enumerator(
+        guard let enumerator = FileManager.default.enumerator(
             at: rootURL,
             includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey],
             options: [.skipsHiddenFiles]
@@ -625,14 +624,16 @@ enum LingdongWorkArchive {
         try writeIndex(remainingRecords)
 
         for record in deletedRecords {
-            try? fileManager.removeItem(at: rootURL.appendingPathComponent(record.fileName))
-            try? fileManager.removeItem(at: rootURL.appendingPathComponent(record.thumbnailFileName))
+            try? FileManager.default.removeItem(at: rootURL.appendingPathComponent(record.fileName))
+            try? FileManager.default.removeItem(at: rootURL.appendingPathComponent(record.thumbnailFileName))
         }
         return deletedRecords.count
     }
 
-    static func record(image: UIImage, mode: CreationMode) {
-        try? fileManager.createDirectory(at: rootURL, withIntermediateDirectories: true)
+    // Runs off the main actor: encoding a 3600 px copy plus a thumbnail and
+    // writing both to disk would otherwise freeze the UI right after a save.
+    nonisolated static func record(image: UIImage, mode: CreationMode) {
+        try? FileManager.default.createDirectory(at: rootURL, withIntermediateDirectories: true)
         guard let normalized = image.albumScaled(maxDimension: 3_600),
               let thumbnail = image.albumScaled(maxDimension: 640) else { return }
         let id = UUID()
@@ -662,8 +663,8 @@ enum LingdongWorkArchive {
             ), at: 0)
             try writeIndex(values)
         } catch {
-            try? fileManager.removeItem(at: rootURL.appendingPathComponent(fileName))
-            try? fileManager.removeItem(at: rootURL.appendingPathComponent(thumbnailFileName))
+            try? FileManager.default.removeItem(at: rootURL.appendingPathComponent(fileName))
+            try? FileManager.default.removeItem(at: rootURL.appendingPathComponent(thumbnailFileName))
         }
     }
 
@@ -676,8 +677,8 @@ enum LingdongWorkArchive {
         try AlbumImageImporter.load(url: rootURL.appendingPathComponent(record.fileName))
     }
 
-    private static func writeIndex(_ records: [LingdongWorkRecord]) throws {
-        try fileManager.createDirectory(at: rootURL, withIntermediateDirectories: true)
+    nonisolated private static func writeIndex(_ records: [LingdongWorkRecord]) throws {
+        try FileManager.default.createDirectory(at: rootURL, withIntermediateDirectories: true)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -686,14 +687,14 @@ enum LingdongWorkArchive {
 }
 
 extension UIImage {
-    var albumPixelSize: CGSize {
+    nonisolated var albumPixelSize: CGSize {
         if let cgImage {
             return CGSize(width: cgImage.width, height: cgImage.height)
         }
         return CGSize(width: size.width * scale, height: size.height * scale)
     }
 
-    func albumScaled(maxDimension: CGFloat) -> UIImage? {
+    nonisolated func albumScaled(maxDimension: CGFloat) -> UIImage? {
         let pixels = albumPixelSize
         let largest = max(pixels.width, pixels.height)
         guard largest > 0 else { return nil }

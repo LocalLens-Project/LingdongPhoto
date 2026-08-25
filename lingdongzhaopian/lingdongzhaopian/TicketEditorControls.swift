@@ -93,7 +93,7 @@ struct TicketEditorControls: View {
                 widthMode = item
             }
         } label: {
-            Text(item.rawValue)
+            Text(LocalizedStringKey(item.rawValue))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity)
@@ -118,7 +118,7 @@ struct TicketEditorControls: View {
                 Button {
                     layout = item
                 } label: {
-                    Label(item.rawValue, systemImage: item.symbol)
+                    Label(LocalizedStringKey(item.rawValue), systemImage: item.symbol)
                 }
             }
         } label: {
@@ -174,7 +174,7 @@ struct TicketEditorControls: View {
         HStack(spacing: 7) {
             Image(systemName: symbol)
                 .font(.system(size: 15, weight: .semibold))
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(.caption.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
@@ -217,10 +217,26 @@ struct TicketCodeStudioView: View {
     @State private var verificationPreviewTicket: VerifiedTicket?
     @State private var sealErrorMessage = ""
     @State private var sealErrorPresented = false
+    @State private var ios17CodeImage: UIImage?
+    @State private var ios17PreviewTicket: VerifiedTicket?
+    @State private var ios17CodeErrorMessage: String?
+    @State private var ios17CodeIsLoading = false
     @FocusState private var focusedField: TicketEditorFocus?
     @State private var keyboardHeight: CGFloat = 0
 
+    private var isEnglishLocalization: Bool {
+        Bundle.main.preferredLocalizations.first?.hasPrefix("en") == true
+    }
+
     private enum TicketEditorFocus { case message, header }
+
+    private struct CodeGenerationRequest: Equatable {
+        let style: TicketCodeStyle
+        let payload: TicketPayload
+        let baseURLString: String
+        let deviceSealEnabled: Bool
+        let usesDarkForeground: Bool
+    }
 
     private var signer: TicketEnvelopeSigning? {
         deviceSealEnabled ? TicketDeviceSealService.shared : nil
@@ -293,7 +309,22 @@ struct TicketCodeStudioView: View {
         return "开启后，这台 iPhone 会用安全隔区里的专属密钥给公开信息盖章。照片不会写入二维码，也不会上传。"
     }
 
-    private var codeImage: UIImage? {
+    private var usesIOS17BackgroundGeneration: Bool {
+        if #available(iOS 18.0, *) { return false }
+        return true
+    }
+
+    private var codeGenerationRequest: CodeGenerationRequest {
+        CodeGenerationRequest(
+            style: codeStyle,
+            payload: payload,
+            baseURLString: baseURLString,
+            deviceSealEnabled: deviceSealEnabled,
+            usesDarkForeground: colorScheme == .dark
+        )
+    }
+
+    private var synchronousCodeImage: UIImage? {
         try? TicketCodeRenderer.image(
             for: codeStyle,
             payload: payload,
@@ -305,6 +336,14 @@ struct TicketCodeStudioView: View {
             foregroundColor: colorScheme == .dark ? .white : .black,
             backgroundColor: nil
         )
+    }
+
+    private var displayedCodeImage: UIImage? {
+        usesIOS17BackgroundGeneration ? ios17CodeImage : synchronousCodeImage
+    }
+
+    private var isCodeLoading: Bool {
+        usesIOS17BackgroundGeneration && ios17CodeIsLoading
     }
 
     var body: some View {
@@ -405,17 +444,11 @@ struct TicketCodeStudioView: View {
         .alert("无法生成设备封印", isPresented: $sealErrorPresented) {
             Button("好", role: .cancel) {}
         } message: {
-            Text(sealErrorMessage)
+            Text(LocalizedStringKey(sealErrorMessage))
         }
-#if DEBUG
-        .task {
-            guard ProcessInfo.processInfo.arguments.contains("--ticket-preview") else {
-                return
-            }
-            try? await Task.sleep(for: .milliseconds(450))
-            openVerificationPreview()
+        .task(id: codeGenerationRequest) {
+            await generateCodeForIOS17IfNeeded(request: codeGenerationRequest)
         }
-#endif
     }
 
     private var codePicker: some View {
@@ -440,9 +473,9 @@ struct TicketCodeStudioView: View {
                                         .font(.system(size: 18, weight: .semibold))
                                 }
                             }
-                            Text(item.title)
+                            Text(LocalizedStringKey(item.title))
                                 .font(.subheadline.weight(.bold))
-                            Text(codeStyleSubtitle)
+                            Text(LocalizedStringKey(codeStyleSubtitle))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         }
@@ -477,20 +510,26 @@ struct TicketCodeStudioView: View {
         VStack(spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(codeStyle.title)
+                    Text(LocalizedStringKey(codeStyle.title))
                         .font(.headline)
-                    Text(payload.ticketID)
+                    Text(LocalizedStringKey(payload.ticketID))
                         .font(.caption.monospaced().weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.green)
-                    .accessibilityLabel("编码生成成功")
+                if isCodeLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel("正在生成票根编码…")
+                } else if displayedCodeImage != nil {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.green)
+                        .accessibilityLabel("编码生成成功")
+                }
             }
 
-            if let codeImage {
+            if let codeImage = displayedCodeImage {
                 Image(uiImage: codeImage)
                     .resizable()
                     .interpolation(.none)
@@ -506,11 +545,25 @@ struct TicketCodeStudioView: View {
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
+            } else if isCodeLoading {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("正在生成票根编码…")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: codeStyle == .barcode ? 118 : 250)
+                .accessibilityElement(children: .combine)
             } else {
                 ContentUnavailableView(
                     "无法生成编码",
                     systemImage: "exclamationmark.triangle",
-                    description: Text("请减少公开字段后重试。")
+                    description: Text(
+                        LocalizedStringKey(
+                            ios17CodeErrorMessage ?? "请减少公开字段后重试。"
+                        )
+                    )
                 )
             }
 
@@ -518,13 +571,17 @@ struct TicketCodeStudioView: View {
                 Button {
                     openVerificationPreview()
                 } label: {
-                    Label(verificationPreviewLabel, systemImage: "appclip")
+                    Label(LocalizedStringKey(verificationPreviewLabel), systemImage: "appclip")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .frame(height: 46)
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
+                .disabled(
+                    usesIOS17BackgroundGeneration
+                        && (isCodeLoading || ios17PreviewTicket == nil)
+                )
             }
         }
         .padding(18)
@@ -543,7 +600,7 @@ struct TicketCodeStudioView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(codeStyle == .barcode ? "真实可扫描的一维码" : "无需安装完整应用")
                     .font(.subheadline.weight(.bold))
-                Text(codeStyle.explanation)
+                Text(LocalizedStringKey(codeStyle.explanation))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -586,9 +643,9 @@ struct TicketCodeStudioView: View {
                                 .frame(width: 30)
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(style.title)
+                                Text(LocalizedStringKey(style.title))
                                     .font(.subheadline.weight(.bold))
-                                Text(style.description)
+                                Text(LocalizedStringKey(style.description))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -647,9 +704,9 @@ struct TicketCodeStudioView: View {
                                     .frame(width: 26)
 
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(perspective.title)
+                                    Text(LocalizedStringKey(perspective.title))
                                         .font(.subheadline.weight(.semibold))
-                                    Text(perspective.description)
+                                    Text(LocalizedStringKey(perspective.description))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                         .fixedSize(horizontal: false, vertical: true)
@@ -689,7 +746,7 @@ struct TicketCodeStudioView: View {
 
     private var privacyOptions: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(publicInfoTitle)
+            Text(LocalizedStringKey(publicInfoTitle))
                 .font(.headline)
                 .padding(.bottom, 12)
 
@@ -732,9 +789,9 @@ struct TicketCodeStudioView: View {
                     .frame(width: 30)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(sealToggleTitle)
+                    Text(LocalizedStringKey(sealToggleTitle))
                         .font(.subheadline.weight(.bold))
-                    Text(sealToggleSubtitle)
+                    Text(LocalizedStringKey(sealToggleSubtitle))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -747,7 +804,7 @@ struct TicketCodeStudioView: View {
                     .accessibilityLabel("设备封印")
             }
 
-            Text(deviceSealExplanation)
+            Text(LocalizedStringKey(deviceSealExplanation))
                 .font(.caption)
                 .foregroundStyle(
                     TicketDeviceSealService.shared.capability == .unavailable
@@ -779,6 +836,19 @@ struct TicketCodeStudioView: View {
     }
 
     private func openVerificationPreview() {
+        if usesIOS17BackgroundGeneration {
+            guard !ios17CodeIsLoading else { return }
+            if let ticket = ios17PreviewTicket {
+                verificationPreviewTicket = ticket
+                verificationPreviewPresented = true
+            } else {
+                sealErrorMessage = ios17CodeErrorMessage
+                    ?? "请减少公开字段后重试。".appLocalized
+                sealErrorPresented = true
+            }
+            return
+        }
+
         do {
             let url = try TicketEnvelope.invocationURL(
                 for: payload,
@@ -793,10 +863,66 @@ struct TicketCodeStudioView: View {
         }
     }
 
+    @MainActor
+    private func generateCodeForIOS17IfNeeded(
+        request: CodeGenerationRequest
+    ) async {
+        guard usesIOS17BackgroundGeneration else { return }
+
+        ios17CodeImage = nil
+        ios17PreviewTicket = nil
+        ios17CodeErrorMessage = nil
+        ios17CodeIsLoading = true
+
+        let result = await Task.detached(priority: .userInitiated) {
+            () -> Result<(UIImage, VerifiedTicket?), Error> in
+            do {
+                let signer: TicketEnvelopeSigning? = request.deviceSealEnabled
+                    ? TicketDeviceSealService.shared
+                    : nil
+                let previewTicket: VerifiedTicket?
+                if request.style == .verificationQR {
+                    let url = try TicketEnvelope.invocationURL(
+                        for: request.payload,
+                        baseURLString: request.baseURLString,
+                        signer: signer
+                    )
+                    previewTicket = try TicketEnvelope.decodeVerified(from: url)
+                } else {
+                    previewTicket = nil
+                }
+                let image = try TicketCodeRenderer.image(
+                    for: request.style,
+                    payload: request.payload,
+                    baseURLString: request.baseURLString,
+                    signer: signer,
+                    pixelSize: request.style == .barcode
+                        ? CGSize(width: 1_200, height: 300)
+                        : CGSize(width: 900, height: 900),
+                    foregroundColor: request.usesDarkForeground ? .white : .black,
+                    backgroundColor: nil
+                )
+                return .success((image, previewTicket))
+            } catch {
+                return .failure(error)
+            }
+        }.value
+
+        guard !Task.isCancelled, codeGenerationRequest == request else { return }
+        ios17CodeIsLoading = false
+        switch result {
+        case let .success((image, ticket)):
+            ios17CodeImage = image
+            ios17PreviewTicket = ticket
+        case let .failure(error):
+            ios17CodeErrorMessage = error.localizedDescription
+        }
+    }
+
     private var messageOptions: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text(messageSectionTitle)
+                Text(LocalizedStringKey(messageSectionTitle))
                     .font(.headline)
                 Spacer()
                 Text("\(message.count)/\(TicketPayload.messageCharacterLimit)")
@@ -806,7 +932,7 @@ struct TicketCodeStudioView: View {
 
             ZStack(alignment: .topLeading) {
                 if message.isEmpty {
-                    Text(messagePlaceholder)
+                    Text(LocalizedStringKey(messagePlaceholder))
                         .font(.body)
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 5)
@@ -832,7 +958,7 @@ struct TicketCodeStudioView: View {
                 in: RoundedRectangle(cornerRadius: 15, style: .continuous)
             )
 
-            Text(messageHint)
+            Text(LocalizedStringKey(messageHint))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -851,7 +977,7 @@ struct TicketCodeStudioView: View {
 
             Picker("标题来源", selection: $headerMode) {
                 ForEach(TicketHeaderMode.allCases) { item in
-                    Text(item.rawValue).tag(item)
+                    Text(LocalizedStringKey(item.rawValue)).tag(item)
                 }
             }
             .pickerStyle(.segmented)
@@ -872,21 +998,29 @@ struct TicketCodeStudioView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                Picker("城市显示", selection: $cityNameStyle) {
-                    ForEach(TicketCityNameStyle.allCases) { item in
-                        Text(item.rawValue).tag(item)
+                if !isEnglishLocalization {
+                    Picker("城市显示", selection: $cityNameStyle) {
+                        ForEach(TicketCityNameStyle.allCases) { item in
+                            Text(LocalizedStringKey(item.rawValue)).tag(item)
+                        }
                     }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
 
                 HStack(spacing: 8) {
                     Image(systemName: detectedCityName == nil
                         ? "location.slash"
                         : "location.fill")
-                    Text(
-                        detectedCityName.map { "已识别城市：\($0)" }
-                            ?? "照片没有可用定位，将显示 LINGDONG"
-                    )
+                    if let detectedCityName {
+                        Text(
+                            String(
+                                format: "已识别城市：%@".appLocalized,
+                                detectedCityName
+                            )
+                        )
+                    } else {
+                        Text("照片没有可用定位，将显示 LINGDONG")
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -947,10 +1081,10 @@ struct TicketCodeStudioView: View {
                 .frame(width: 30)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.subheadline.weight(.semibold))
                 if let subtitle {
-                    Text(subtitle)
+                    Text(LocalizedStringKey(subtitle))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1025,14 +1159,14 @@ struct TicketMessageEditorSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 14) {
-                Text(editorHint)
+                Text(LocalizedStringKey(editorHint))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 ZStack(alignment: .topLeading) {
                     if draft.isEmpty {
-                        Text(editorPlaceholder)
+                        Text(LocalizedStringKey(editorPlaceholder))
                             .foregroundStyle(.tertiary)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 9)
@@ -1057,7 +1191,7 @@ struct TicketMessageEditorSheet: View {
                 Spacer(minLength: 0)
             }
             .padding(20)
-            .navigationTitle(editorTitle)
+            .navigationTitle(LocalizedStringKey(editorTitle))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -1146,9 +1280,9 @@ struct TicketNarrativePromptView: View {
                                         )
 
                                     VStack(alignment: .leading, spacing: 5) {
-                                        Text(style.title)
+                                        Text(LocalizedStringKey(style.title))
                                             .font(.headline)
-                                        Text(style.description)
+                                        Text(LocalizedStringKey(style.description))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                             .fixedSize(horizontal: false, vertical: true)
@@ -1207,9 +1341,9 @@ struct TicketNarrativePromptView: View {
                                             .frame(width: 30)
 
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text(perspective.title)
+                                            Text(LocalizedStringKey(perspective.title))
                                                 .font(.subheadline.weight(.semibold))
-                                            Text(perspective.description)
+                                            Text(LocalizedStringKey(perspective.description))
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                                 .fixedSize(horizontal: false, vertical: true)

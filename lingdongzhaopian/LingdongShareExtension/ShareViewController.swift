@@ -650,7 +650,7 @@ private struct ShareImportView: View {
                                 ForEach(ShareCreationMode.allCases) { item in
                                     HStack(spacing: 13) {
                                         Image(systemName: item.symbol).frame(width: 28)
-                                        Text(item.title).font(.subheadline.weight(.semibold))
+                                        Text(LocalizedStringKey(item.title)).font(.subheadline.weight(.semibold))
                                         Spacer()
                                         Image(systemName: mode == item ? "checkmark.circle.fill" : "circle")
                                             .foregroundStyle(mode == item ? .blue : .secondary)
@@ -683,7 +683,7 @@ private struct ShareImportView: View {
                     .shareGlass(in: RoundedRectangle(cornerRadius: 26, style: .continuous))
 
                     if let errorMessage = model.errorMessage {
-                        Text(errorMessage)
+                        Text(LocalizedStringKey(errorMessage))
                             .font(.caption)
                             .foregroundStyle(.red)
                             .multilineTextAlignment(.center)
@@ -910,10 +910,10 @@ private enum ShareImportError: LocalizedError {
     case incompleteLivePhoto
     var errorDescription: String? {
         switch self {
-        case .cancelled: "用户取消共享导入。"
-        case .unreadableImage: "无法读取共享照片。"
-        case .unreadableLivePhoto: "无法读取共享的实况照片。"
-        case .incompleteLivePhoto: "共享的实况照片缺少关键帧或动态片段。"
+        case .cancelled: NSLocalizedString("用户取消共享导入。", comment: "")
+        case .unreadableImage: NSLocalizedString("无法读取共享照片。", comment: "")
+        case .unreadableLivePhoto: NSLocalizedString("无法读取共享的实况照片。", comment: "")
+        case .incompleteLivePhoto: NSLocalizedString("共享的实况照片缺少关键帧或动态片段。", comment: "")
         }
     }
 }

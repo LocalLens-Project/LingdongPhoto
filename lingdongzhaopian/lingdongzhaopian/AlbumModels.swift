@@ -4,7 +4,7 @@
 import CoreGraphics
 import Foundation
 
-struct AlbumColor: Codable, Equatable, Hashable {
+struct AlbumColor: Codable, Equatable, Hashable, Sendable {
     var red: Double
     var green: Double
     var blue: Double
@@ -23,14 +23,14 @@ struct AlbumColor: Codable, Equatable, Hashable {
         RGBColor(red: CGFloat(red), green: CGFloat(green), blue: CGFloat(blue))
     }
 
-    static let fallback = [
+    nonisolated static let fallback = [
         AlbumColor(red: 0.20, green: 0.31, blue: 0.25),
         AlbumColor(red: 0.55, green: 0.68, blue: 0.58),
         AlbumColor(red: 0.89, green: 0.82, blue: 0.70)
     ]
 }
 
-struct AlbumNormalizedRect: Codable, Equatable, Hashable {
+struct AlbumNormalizedRect: Codable, Equatable, Hashable, Sendable {
     var x: Double
     var y: Double
     var width: Double
@@ -43,7 +43,7 @@ struct AlbumNormalizedRect: Codable, Equatable, Hashable {
         self.height = height
     }
 
-    func rect(in bounds: CGRect) -> CGRect {
+    nonisolated func rect(in bounds: CGRect) -> CGRect {
         CGRect(
             x: bounds.minX + bounds.width * x,
             y: bounds.minY + bounds.height * y,
@@ -53,7 +53,7 @@ struct AlbumNormalizedRect: Codable, Equatable, Hashable {
     }
 }
 
-enum AlbumBookFormat: String, Codable, CaseIterable, Identifiable {
+enum AlbumBookFormat: String, Codable, CaseIterable, Identifiable, Sendable {
     case portraitA5
     case square
     case landscapeA4
@@ -76,7 +76,7 @@ enum AlbumBookFormat: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var millimeters: CGSize {
+    nonisolated var millimeters: CGSize {
         switch self {
         case .portraitA5: CGSize(width: 148, height: 210)
         case .square: CGSize(width: 210, height: 210)
@@ -84,7 +84,7 @@ enum AlbumBookFormat: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var aspectRatio: CGFloat {
+    nonisolated var aspectRatio: CGFloat {
         millimeters.width / millimeters.height
     }
 }
@@ -270,7 +270,7 @@ enum AlbumImageFit: String, Codable {
     case fit
 }
 
-struct AlbumAsset: Identifiable, Codable, Equatable {
+struct AlbumAsset: Identifiable, Codable, Equatable, Sendable {
     var id: UUID
     var kind: AlbumAssetKind
     var workKind: String?
@@ -282,7 +282,7 @@ struct AlbumAsset: Identifiable, Codable, Equatable {
     var captureDate: Date?
     var colors: [AlbumColor]
 
-    var aspectRatio: CGFloat {
+    nonisolated var aspectRatio: CGFloat {
         guard pixelHeight > 0 else { return 1 }
         return CGFloat(pixelWidth) / CGFloat(pixelHeight)
     }
@@ -294,7 +294,7 @@ struct AlbumAsset: Identifiable, Codable, Equatable {
     }
 }
 
-struct AlbumSlot: Identifiable, Codable, Equatable {
+struct AlbumSlot: Identifiable, Codable, Equatable, Sendable {
     var id: UUID
     var frame: AlbumNormalizedRect
     var expectation: AlbumSlotExpectation
@@ -334,9 +334,9 @@ struct AlbumSlot: Identifiable, Codable, Equatable {
         self.contentOffsetY = contentOffsetY
     }
 
-    var resolvedContentScale: Double { max(1, contentScale ?? 1) }
-    var resolvedContentOffsetX: Double { contentOffsetX ?? 0 }
-    var resolvedContentOffsetY: Double { contentOffsetY ?? 0 }
+    nonisolated var resolvedContentScale: Double { max(1, contentScale ?? 1) }
+    nonisolated var resolvedContentOffsetX: Double { contentOffsetX ?? 0 }
+    nonisolated var resolvedContentOffsetY: Double { contentOffsetY ?? 0 }
 }
 
 enum AlbumTextStyle: String, Codable {
@@ -349,7 +349,7 @@ enum AlbumTextStyle: String, Codable {
     case pageNumber
 }
 
-enum AlbumTextAlignment: String, Codable {
+enum AlbumTextAlignment: String, Codable, Sendable {
     case leading
     case center
     case trailing
@@ -413,7 +413,7 @@ struct AlbumTextBlock: Identifiable, Codable, Equatable {
     }
 }
 
-struct AlbumPage: Identifiable, Codable, Equatable {
+struct AlbumPage: Identifiable, Codable, Equatable, Sendable {
     var id: UUID
     var role: AlbumPageRole
     var layout: AlbumPageLayout
@@ -443,10 +443,10 @@ struct AlbumPage: Identifiable, Codable, Equatable {
 
     var filledSlotCount: Int { slots.lazy.filter { $0.assetID != nil }.count }
     var emptySlotCount: Int { slots.count - filledSlotCount }
-    var resolvedFontStyle: AlbumPageFontStyle { fontStyle ?? .template }
+    nonisolated var resolvedFontStyle: AlbumPageFontStyle { fontStyle ?? .template }
 }
 
-struct AlbumProject: Identifiable, Codable, Equatable {
+struct AlbumProject: Identifiable, Codable, Equatable, Sendable {
     var id: UUID
     var title: String
     var subtitle: String
@@ -468,12 +468,12 @@ struct AlbumProject: Identifiable, Codable, Equatable {
         pages.reduce(0) { $0 + $1.filledSlotCount }
     }
 
-    var resolvedDesignStyle: AlbumDesignStyle {
+    nonisolated var resolvedDesignStyle: AlbumDesignStyle {
         designStyle ?? AlbumTemplateCatalog.defaultStyle(for: theme)
     }
 }
 
-struct AlbumTemplateDescriptor: Identifiable, Equatable {
+struct AlbumTemplateDescriptor: Identifiable, Equatable, Sendable {
     let id: String
     let theme: AlbumTheme
     let title: String
@@ -485,8 +485,8 @@ struct AlbumTemplateDescriptor: Identifiable, Equatable {
     let layouts: [AlbumPageLayout]
 }
 
-enum AlbumTemplateCatalog {
-    static let templates: [AlbumTemplateDescriptor] = [
+enum AlbumTemplateCatalog: Sendable {
+    nonisolated static let templates: [AlbumTemplateDescriptor] = [
         AlbumTemplateDescriptor(
             id: "travel-editorial",
             theme: .travel,
@@ -710,15 +710,15 @@ enum AlbumTemplateCatalog {
         )
     ]
 
-    static func templates(for theme: AlbumTheme) -> [AlbumTemplateDescriptor] {
+    nonisolated static func templates(for theme: AlbumTheme) -> [AlbumTemplateDescriptor] {
         templates.filter { $0.theme == theme }
     }
 
-    static func featuredTemplate(for theme: AlbumTheme) -> AlbumTemplateDescriptor {
+    nonisolated static func featuredTemplate(for theme: AlbumTheme) -> AlbumTemplateDescriptor {
         templates(for: theme).first ?? templates[0]
     }
 
-    static func defaultStyle(for theme: AlbumTheme) -> AlbumDesignStyle {
+    nonisolated static func defaultStyle(for theme: AlbumTheme) -> AlbumDesignStyle {
         featuredTemplate(for: theme).style
     }
 
@@ -736,8 +736,8 @@ enum AlbumTemplateCatalog {
     ) -> AlbumProject {
         AlbumProject(
             id: UUID(),
-            title: descriptor.title,
-            subtitle: descriptor.subtitle,
+            title: descriptor.title.appLocalized,
+            subtitle: descriptor.subtitle.appLocalized,
             theme: descriptor.theme,
             designStyle: descriptor.style,
             format: format,
@@ -754,8 +754,9 @@ enum AlbumTemplateCatalog {
         theme: AlbumTheme,
         pageNumber: Int
     ) -> AlbumPage {
-        let headline = theme == .blank ? "写下这一页" : defaultSectionTitle(theme, pageNumber)
-        let caption = defaultCaption(theme)
+        let headline = (theme == .blank ? "写下这一页" : defaultSectionTitle(theme, pageNumber))
+            .appLocalized
+        let caption = defaultCaption(theme).appLocalized
         switch layout {
         case .coverWindow:
             return AlbumPage(
@@ -1038,8 +1039,15 @@ enum AlbumTemplateCatalog {
         var pages = descriptor.layouts.enumerated().map { index, layout in
             makePage(layout: layout, theme: descriptor.theme, pageNumber: index + 1)
         }
+        for pageIndex in pages.indices {
+            for blockIndex in pages[pageIndex].textBlocks.indices
+            where pages[pageIndex].textBlocks[blockIndex].isEditable {
+                pages[pageIndex].textBlocks[blockIndex].text =
+                    pages[pageIndex].textBlocks[blockIndex].text.appLocalized
+            }
+        }
         if !pages.isEmpty, !pages[0].textBlocks.isEmpty {
-            pages[0].textBlocks[0].text = descriptor.title
+            pages[0].textBlocks[0].text = descriptor.title.appLocalized
         }
         return pages
     }

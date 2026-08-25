@@ -51,7 +51,11 @@ struct RemovePhotoMetadataIntent: AppIntent {
             )
         }
         return .result(
-            value: IntentFile(data: data, filename: "净化照片.jpg", type: .jpeg),
+            value: IntentFile(
+                data: data,
+                filename: "\("净化照片".appLocalized).jpg",
+                type: .jpeg
+            ),
             dialog: IntentDialog("敏感元数据已全部移除。")
         )
     }
@@ -77,7 +81,11 @@ struct GenerateSpectrumWallpaperIntent: AppIntent {
             throw PhotoShortcutError.renderFailed
         }
         return .result(
-            value: IntentFile(data: data, filename: "色谱壁纸.jpg", type: .jpeg),
+            value: IntentFile(
+                data: data,
+                filename: "\("色谱壁纸".appLocalized).jpg",
+                type: .jpeg
+            ),
             dialog: IntentDialog("色谱壁纸已生成，全程未上传照片。")
         )
     }
@@ -114,8 +122,8 @@ private enum PhotoShortcutError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unreadableImage: "无法读取输入照片。"
-        case .renderFailed: "作品生成失败，请换一张照片后重试。"
+        case .unreadableImage: "无法读取输入照片。".appLocalized
+        case .renderFailed: "作品生成失败，请换一张照片后重试。".appLocalized
         }
     }
 }
