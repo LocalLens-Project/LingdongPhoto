@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2026 LocalLens-Project
-// SPDX-License-Identifier: AGPL-3.0-only
-
 import SwiftUI
 import UIKit
 
@@ -15,6 +12,8 @@ struct TicketVerificationView: View {
     @State private var entranceProgress: CGFloat = 0
     @State private var entranceVisible = true
     @State private var didRunEntrance = false
+    @State private var fingerprintCopied = false
+    @State private var showOriginalPhotoFinder = false
 
     init(
         ticket: VerifiedTicket,
@@ -49,6 +48,10 @@ struct TicketVerificationView: View {
                 VStack(spacing: 18) {
                     header
                     heroTicket
+
+                    if Self.originalPhotoFinderAvailable {
+                        originalPhotoFinderPanel
+                    }
                     if payload.isEmotionalStyle {
                         timeCapsulePanel
                     }
@@ -289,12 +292,77 @@ struct TicketVerificationView: View {
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
+
+                Button {
+                    UIPasteboard.general.string = payload.fingerprint
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        fingerprintCopied = true
+                    }
+                    Task {
+                        try? await Task.sleep(for: .seconds(1.6))
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            fingerprintCopied = false
+                        }
+                    }
+                } label: {
+                    Image(systemName: fingerprintCopied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(fingerprintCopied ? .green : .white.opacity(0.62))
+                        .frame(width: 26, height: 26)
+                        .background(.white.opacity(0.10), in: Circle())
+                        .overlay(Circle().stroke(.white.opacity(0.16), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel((fingerprintCopied ? "指纹已复制" : "复制指纹").appLocalized)
             }
             .foregroundStyle(.white.opacity(0.58))
         }
         .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
         .ticketGlass(cornerRadius: 30)
+    }
+
+    private static var originalPhotoFinderAvailable: Bool {
+        Bundle.main.object(forInfoDictionaryKey: "NSAppClip") == nil
+    }
+
+    private var originalPhotoFinderPanel: some View {
+        Button {
+            showOriginalPhotoFinder = true
+        } label: {
+            HStack(spacing: 13) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.88))
+                    .frame(width: 36, height: 36)
+                    .background(.white.opacity(0.12), in: Circle())
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("寻找本机原图")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("按指纹在本机相册精确匹配原图，仅本机处理")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.58))
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer(minLength: 6)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.42))
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .ticketGlass(cornerRadius: 24)
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showOriginalPhotoFinder) {
+            OriginalPhotoSearchSheet(payload: payload)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     private var sealBadgeTitle: String {
@@ -328,7 +396,7 @@ struct TicketVerificationView: View {
 
     private var sealPanel: some View {
         HStack(alignment: .top, spacing: 13) {
-            // 默认 SF Symbol 图标已替换为「灵动琉璃图标 + 设备品牌徽章」组合
+
             ZStack(alignment: .bottomTrailing) {
                 LingdongLiquidGlassIcon()
                     .scaleEffect(0.28)
@@ -352,12 +420,6 @@ struct TicketVerificationView: View {
         .ticketGlass(cornerRadius: 24)
     }
 
-    /// 根据设备封印校验结果映射到对应的徽章类型：
-    /// - "apple"：iPhone 安全隔区
-    /// - "android"：Android 硬件/软件保护的设备密钥
-    /// - "unknown"：未识别到来源（含模拟器测试）
-    /// - "unsigned"：无设备封印
-    /// - "invalid"：设备封印已失效 / 校验未通过
     private var sealDeviceType: String {
         switch ticket.sealValidation {
         case .unsigned:
@@ -569,24 +631,28 @@ struct TicketVerificationView: View {
 
         if let captureText {
             if payload.isSelfNarrative {
-                // 同一天或无法判断时间差：合并叙事
+
                 if gap == nil || gap! <= 0 {
                     return "🕰️ 这是一段(captureText)的回忆".appLocalized
                         .replacingOccurrences(of: "(captureText)", with: captureText)
                 }
-                // 封存在拍摄之后：强调"今天的你封存了过去的回忆"
+
+
                 return "🕰️ (captureText)的光影，由你封存成这枚票根".appLocalized
                     .replacingOccurrences(of: "(captureText)", with: captureText)
+                    .replacingOccurrences(of: "，", with: "\n")
             } else {
                 if gap == nil || gap! <= 0 {
                     return "🌿 这是(captureText)留下的一段光影".appLocalized
                         .replacingOccurrences(of: "(captureText)", with: captureText)
                 }
+
                 return "🌿 (captureText)的光影，被创作者封存于此".appLocalized
                     .replacingOccurrences(of: "(captureText)", with: captureText)
+                    .replacingOccurrences(of: "，", with: "\n")
             }
         } else {
-            // 拍摄时间缺失
+
             if let sealText = TicketTimeCalculator.formattedTimeSinceSeal(payload.sealedAt) {
                 if payload.isSelfNarrative {
                     return "🕰️ (sealText)由你封存的一段回忆".appLocalized
@@ -846,9 +912,7 @@ private struct TicketRevealTransitionLayer: View, Animatable {
         surfaceTop: CGFloat
     ) -> some View {
         ZStack {
-            // The expanded surface must be the exact same ambient field as the
-            // destination page. Cross-fading the printed ticket into it before
-            // the mask reaches the screen edges prevents a visible color seam.
+
             TicketAmbientBackground(colors: colors)
                 .frame(width: screenSize.width, height: screenSize.height)
                 .position(
@@ -1008,9 +1072,6 @@ private struct TicketRevealIntroTicket: View {
                 panel
                     .frame(height: stubHeight)
 
-                // Only the lower halves hang below the divider, mirroring
-                // the printed ticket where the stub scallops bulge into the
-                // body; the stub side above the divider stays flat.
                 HStack(spacing: 0) {
                     ForEach(0..<7, id: \.self) { _ in
                         TicketRevealScallop()
@@ -1252,9 +1313,6 @@ private struct TicketRevealInfoValue: View {
     }
 }
 
-/// A semicircle with its flat edge on top, bulging downward. Used for the
-/// divider scallops so the half circles only appear on the body side of the
-/// ticket, matching the printed artwork.
 private struct TicketRevealScallop: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
@@ -1354,7 +1412,7 @@ private struct TicketMetadataValue: Identifiable {
     var id: String { label }
 }
 
-private struct TicketAmbientBackground: View {
+struct TicketAmbientBackground: View {
     let colors: [Color]
 
     var body: some View {
@@ -1413,9 +1471,6 @@ private extension View {
     }
 }
 
-// MARK: - 灵动琉璃图标 + 设备品牌徽章
-// 用于替换 sealPanel 左侧的默认 SF Symbol 图标。
-
 private struct WaveShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
@@ -1437,36 +1492,31 @@ private struct GlassLens: View {
 
     var body: some View {
         ZStack {
-            // Base shadow
+
             Ellipse()
                 .fill(Color.black.opacity(0.3))
                 .frame(width: 80, height: 45)
                 .offset(y: 10)
                 .blur(radius: 5)
 
-            // Base shape
             Ellipse()
                 .fill(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing))
                 .frame(width: 80, height: 45)
                 .shadow(color: colors.last!.opacity(0.5), radius: 5, x: 0, y: 5)
 
-            // Inner highlight wave
             WaveShape()
                 .fill(LinearGradient(colors: [.white.opacity(waveOpacity), .clear], startPoint: .top, endPoint: .bottom))
                 .clipShape(Ellipse())
                 .frame(width: 80, height: 45)
 
-            // Inner bottom glow
             Ellipse()
                 .strokeBorder(LinearGradient(colors: [.clear, .white.opacity(0.6)], startPoint: .top, endPoint: .bottom), lineWidth: 1.5)
                 .frame(width: 80, height: 45)
 
-            // Top white border
             Ellipse()
                 .strokeBorder(LinearGradient(colors: [.white.opacity(0.9), .clear], startPoint: .top, endPoint: .bottom), lineWidth: 1.5)
                 .frame(width: 80, height: 45)
 
-            // Glare
             Circle()
                 .fill(Color.white)
                 .frame(width: 4, height: 4)
@@ -1480,21 +1530,19 @@ private struct GlassLens: View {
 struct LingdongLiquidGlassIcon: View {
     var body: some View {
         ZStack {
-            // Bottom layer
+
             GlassLens(
                 colors: [Color(red: 0.2, green: 0.8, blue: 0.6), Color(red: 0.0, green: 0.4, blue: 0.3)],
                 waveOpacity: 0.4,
                 offsetY: 20
             )
 
-            // Middle layer
             GlassLens(
                 colors: [Color(red: 0.5, green: 0.9, blue: 0.4), Color(red: 0.1, green: 0.6, blue: 0.4)],
                 waveOpacity: 0.5,
                 offsetY: 0
             )
 
-            // Top layer
             GlassLens(
                 colors: [Color(red: 0.9, green: 0.95, blue: 0.3), Color(red: 0.4, green: 0.8, blue: 0.2)],
                 waveOpacity: 0.6,
@@ -1506,11 +1554,11 @@ struct LingdongLiquidGlassIcon: View {
 }
 
 struct DeviceBrandBadge: View {
-    var deviceType: String // "apple"、"android"、"unknown"（未识别到）或 "unsigned"（无设备封印）
+    var deviceType: String
 
     var body: some View {
         ZStack {
-            // 半透明白底，与琉璃图标融合更自然
+
             Circle()
                 .fill(Color.white.opacity(0.72))
                 .frame(width: 14, height: 14)
@@ -1558,7 +1606,7 @@ struct DeviceBrandBadge: View {
                     .frame(width: 8, height: 8)
                     .foregroundColor(Color(red: 0.90, green: 0.25, blue: 0.22))
             } else {
-                // 未识别到设备来源：右下角显示问号，代表不知道是否为灵动照片应用生成
+
                 Text("?")
                     .font(.system(size: 10, weight: .heavy))
                     .foregroundColor(.black)

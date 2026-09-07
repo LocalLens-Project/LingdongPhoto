@@ -8,11 +8,13 @@ import UIKit
 final class InterfaceOrientationController {
     static let shared = InterfaceOrientationController()
 
-    private(set) var mask: UIInterfaceOrientationMask = .portrait
+    private(set) var mask: UIInterfaceOrientationMask = UIDevice.current.userInterfaceIdiom == .pad ? .all : .portrait
 
     private init() {}
 
     func request(_ newMask: UIInterfaceOrientationMask) {
+
+        guard UIDevice.current.userInterfaceIdiom != .pad else { return }
         mask = newMask
 
         for scene in UIApplication.shared.connectedScenes {
@@ -50,6 +52,10 @@ struct lingdongzhaopianApp: App {
         WindowGroup {
             ContentView()
                 .tint(.black)
+                .task {
+
+                    SupporterStore.shared.bootstrap()
+                }
         }
     }
 }

@@ -1042,40 +1042,42 @@ private struct AlbumWorkPickerOverlay: View {
     let onSelect: (LingdongWorkRecord) -> Void
 
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.50).ignoresSafeArea().onTapGesture(perform: onCancel)
-            VStack(spacing: 0) {
-                overlayHeader(
-                    title: "选择灵动作品",
-                    subtitle: "作品会完整放入页面，避免裁掉文字和票根信息",
-                    onClose: onCancel
-                )
-                .padding(.horizontal, 18)
-                .padding(.vertical, 16)
-
-                ScrollView {
-                    LingdongWorkGrid(records: records, onSelect: onSelect)
+        GeometryReader { geometry in
+            ZStack {
+                Color.black.opacity(0.50).ignoresSafeArea().onTapGesture(perform: onCancel)
+                VStack(spacing: 0) {
+                    overlayHeader(
+                        title: "选择灵动作品",
+                        subtitle: "作品会完整放入页面，避免裁掉文字和票根信息",
+                        onClose: onCancel
+                    )
                     .padding(.horizontal, 18)
-                    .padding(.bottom, 14)
-                }
+                    .padding(.vertical, 16)
 
-                Button(action: onImportFromPhotos) {
-                    Label("从系统照片导入以前的作品", systemImage: "photo.badge.plus")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .contentShape(Capsule())
+                    ScrollView {
+                        LingdongWorkGrid(records: records, onSelect: onSelect)
+                        .padding(.horizontal, 18)
+                        .padding(.bottom, 14)
+                    }
+
+                    Button(action: onImportFromPhotos) {
+                        Label("从系统照片导入以前的作品", systemImage: "photo.badge.plus")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(LiquidPressButtonStyle())
+                    .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 16)
                 }
-                .buttonStyle(LiquidPressButtonStyle())
-                .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
-                .padding(.horizontal, 18)
-                .padding(.bottom, 16)
+                .frame(maxHeight: geometry.size.height * 0.78)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 34, style: .continuous))
+                .padding(.horizontal, 12)
+                .padding(.top, 74)
             }
-            .frame(maxHeight: UIScreen.main.bounds.height * 0.78)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 34, style: .continuous))
-            .padding(.horizontal, 12)
-            .padding(.top, 74)
         }
     }
 }
@@ -1579,11 +1581,13 @@ private struct AlbumBottomOverlay<Content: View>: View {
                 .onTapGesture(perform: onDismiss)
             content()
                 .padding(20)
+                .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? 640 : .infinity)
                 .background(.regularMaterial, in: UnevenRoundedRectangle(
                     topLeadingRadius: 34,
                     topTrailingRadius: 34
                 ))
                 .shadow(color: .black.opacity(0.24), radius: 28, y: -8)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .ignoresSafeArea(edges: .bottom)
     }

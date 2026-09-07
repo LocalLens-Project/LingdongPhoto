@@ -2,13 +2,13 @@
 
 > **語言說明：** Android 版本目前暫不提供繁體中文；Android 介面目前仍為簡體中文。
 
-靈動照片是一款面向 iOS 與 Android 的本機優先照片創作工具。iOS 版本使用 SwiftUI，Android 版本使用 Kotlin 與 Jetpack Compose。兩個版本都能從照片中提取感知色彩、辨識畫面內容、讀取真實拍攝資訊，生成卡片、色盤、手帳、印章、桌布、隱私遮擋、可掃描驗證的影像票根與多頁影像相簿，並透過「色彩關係」比較兩張照片的共同色、對照色與連接色階。iOS 亦提供面向一般使用者、容易理解的光影解析，可把照片轉為鉛筆、炭筆或水彩風格的影像素描，並可選擇影片片段與封面來生成 Live Photo。
+靈動照片是一款面向 iOS 與 Android 的本機優先照片創作工具。iOS 版本使用 SwiftUI，Android 版本使用 Kotlin 與 Jetpack Compose。兩個版本都能從照片中提取感知色彩、辨識畫面內容、讀取真實拍攝資訊，生成卡片、色盤、手帳、印章、桌布、隱私遮擋、可掃描驗證的影像票根與多頁影像相簿，並透過「色彩關係」比較兩張照片的共同色、對照色與連接色階。iOS 亦提供面向一般使用者、容易理解的光影解析，可把照片轉為鉛筆、炭筆或水彩風格的影像素描，可選擇影片片段與封面來生成 Live Photo，並能以六張照片組成完整扇面的「流光摺扇」。
 
 **App Store 正式版：** [下載「靈動照片」](https://apps.apple.com/cn/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
 
 **Android 安裝套件：** [下載已簽署 APK](https://locallens.cn/LingdongPhoto-Android.apk)
 
-完全免費，無訂閱、無 App 內購買、無廣告。照片辨識、色彩分析與作品算繪均在裝置上完成。
+免費下載，無訂閱、無廣告；iOS 提供透過一次性購買取得的「支持我們」內容。照片辨識、色彩分析與作品算繪均在裝置上完成。
 
 ## Android 版本
 
@@ -66,10 +66,41 @@ Android 版本使用 Kotlin 與 Jetpack Compose 編寫，支援 Android 13 及�
 
 ### 創作模式與介面
 
-- 尚未加入照片時，可瀏覽八種創作模式，以及獨立的色彩關係、影像相簿、掃描驗證票根與影片轉實況入口。
-- 初始畫面可直接開啟「色彩關係」、「影像相簿」、「掃描驗證票根」或「影片轉實況」，無需先進入主編輯器。
+- 尚未加入照片時，可瀏覽八種創作模式，以及獨立的色彩關係、影像相簿、掃描驗證票根、影片轉實況與流光摺扇入口。
+- 初始畫面可直接開啟「色彩關係」、「影像相簿」、「掃描驗證票根」、「影片轉實況」或「流光摺扇」，無需先進入主編輯器。
 - 匯入照片後，可從同一個模式面板切換八種創作模式或開啟各項獨立工具，無需重新選圖。
 - 模式面板使用半透明 Liquid Glass，並跟隨系統淺色或深色外觀。
+
+### 靈動色卡與靈動月曆
+
+- 靈動色卡從照片提取主色，色條可向下、向左或向右延伸；調整大小不遮擋、不裁切照片。
+- 靈動月曆保留橫圖、直圖與方圖的原有比例，月曆面板等比配合畫面，並記錄拍攝日期與節氣。
+
+### 流光摺扇
+
+- 以六張照片組成完整展開的摺扇，每個扇面各自呈現一張照片。
+- 「自動尋色」會在裝置本機從已授權照片中尋找並組合同一色系的六張照片。
+- 「自由編排」可手動選擇最多六張照片，並逐個扇面換圖、拖曳與縮放，以精確調整取景。
+- 成品可儲存為 2400 × 1800 的透明 PNG。
+
+### 郵票、明信片與郵集
+
+- 郵票製作提供五種齒孔模板，可加入照片、標題、日期與字型，並收藏或儲存為 PNG。
+- 明信片提供四種版式，可組合照片、寄語、郵票與郵戳。
+- 郵集用於收藏帶定位的郵票、點亮城市足跡；長按郵票可自由旋轉。
+
+### 票根收藏、顯影與檔案
+
+- 票根集可將旅行、演出或某一段時光的影像票根整理分集。
+- 票根顯影會在裝置本機智慧辨識匯入的實體票照片，並重製為可驗證的影像票根。
+- 琉璃檔案以 Liquid Glass 檔案欄封存裝置、參數與座標的原始記錄。
+- 掃描票根後，「尋找本機原圖」可在本機相簿中尋找當初封存的原片。
+
+### 個人化與支持者內容
+
+- 尚未選擇照片時，可為所有功能首頁設定空白主介面的主色調。
+- 靈動卡片、氣泡印章與琉璃檔案的功能設定可直接從對應功能進入。
+- 一次性「支持我們」購買可解鎖節氣詩意色名、典藏票面、全部郵票與明信片模板、專屬 App 圖示及支持者標誌。
 
 ### 靈動卡片
 
@@ -225,7 +256,7 @@ iOS 使用 Apple Vision 辨識 34 類畫面，包括人像、家庭、貓狗、�
 - iOS 17.0 或更新版本
 - Xcode 26.0 或更新版本，以使用 iOS 26 Liquid Glass SDK
 - Swift 5 語言模式
-- iPhone；主介面以直向為主，橫向影像票根與整本相簿預覽支援橫向
+- iPhone 與 iPad；iPhone 主介面以直向為主，iPad 支援原生側邊欄、旋轉及可調整視窗
 
 ### Android
 
@@ -248,6 +279,14 @@ cp lingdongzhaopian/Config/Signing.local.example.xcconfig \
 
 在 `Signing.local.xcconfig` 填寫 `DEVELOPMENT_TEAM`、主應用程式、延伸功能、App Clip、父應用程式及 App Group 識別碼。建立對應 App ID，讓主應用程式與照片操作延伸功能共用 App Group，並設定 App Clip 的父應用程式關聯。之後選擇 iOS 17+ 模擬器或實機執行。
 
+公開儲存庫預設編譯 `SupporterStore.swift` 與 `TraditionalColorLexiconData.swift` 的非商業占位實作。取得相應商業授權並把商業原始碼保留在本機後，可在已被 Git 忽略的 `Signing.local.xcconfig` 加入：
+
+```xcconfig
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) COMMERCIAL_BUILD
+```
+
+本機商業工程會因此排除公開占位宣告，改為編譯 StoreKit 與完整色彩資料；公開克隆版本則不會引用未發布內容。除 Onboarding 截圖／GIF 與兩張模式入口選擇截圖外，公開儲存庫中新加入的產品圖片資源均以商業授權提示圖占位，並保留原資源名稱以維持 Asset Catalog 可建置。
+
 ### Android
 
 ```bash
@@ -266,14 +305,48 @@ Debug APK 會輸出至 `app/build/outputs/apk/debug/app-debug.apk`。如需簽�
 - App Clip 不申請照片讀寫、相機、位置或通知權限。
 - Android 使用系統選擇器與暫時分享 URI，透過 MediaStore 寫入；只宣告相機與震動，不宣告網路、位置或麥克風權限。
 
+## 專案結構
+
+```text
+.
+├── README.md / README_en.md / README_zhhant.md
+├── LICENSE / TRADEMARKS.md
+├── Android/lingdongzhaopian/    # Kotlin + Jetpack Compose 工程
+└── lingdongzhaopian/
+    ├── Config/                  # Plist、Entitlements 與簽署範本
+    ├── LingdongShareExtension/ # 「照片」操作延伸功能
+    ├── LingdongTicketActivity/ # 主應用程式 Live Activity
+    ├── LingdongTicketClip/     # App Clip 驗證入口
+    ├── LingdongTicketClipActivity/
+    ├── SharedActivity/         # 共用活動狀態與小工具
+    ├── SharedTicket/           # 票根編碼、驗證與尋找本機原圖
+    ├── lingdongzhaopian.xcodeproj/
+    └── lingdongzhaopian/
+        ├── Assets.xcassets/    # 公開商業授權提示占位資源
+        ├── OnboardingScreens/  # 可公開的引導截圖與 GIF
+        ├── Piaogence/          # 票根收藏、顯影與票面
+        ├── Postal/             # 郵票、明信片、郵集與城市解析
+        ├── PostalFonts/        # OFL 字型與完整授權文字
+        ├── Album*.swift
+        ├── ColorRelationship*.swift
+        ├── FanGalleryFeature.swift
+        ├── IPadWorkspace.swift
+        ├── ModeLauncherFeature.swift
+        ├── SupporterStore.swift             # 公開占位實作
+        ├── TraditionalColorLexiconData.swift # 公開占位資料
+        └── lingdongzhaopianApp.swift
+```
+
 ## 授權與商標
 
 原始碼依 [GNU Affero General Public License v3.0](./LICENSE)，即 `AGPL-3.0-only` 發布。複製、修改與再散布時必須遵守授權條款並提供對應原始碼；若修改後的程式透過網路向使用者提供服務，也必須向這些使用者提供對應原始碼。
+
+本儲存庫的開源授權僅適用於已公開的原始碼。所有圖片以及 App 內購買的商業內容均不屬於開源內容；如需商業授權，請聯絡我們。
 
 AGPL 原始碼授權不授予「靈動照片」名稱、專案品牌、Logo、App Icon、產品頁美術或行銷截圖的使用權。詳見 [TRADEMARKS.md](./TRADEMARKS.md)。若要商業散布、閉源整合或向應用程式商店提交修改版，請自行取得專業法律意見。
 
 ## 貢獻
 
-歡迎提交 Issue 與 Pull Request，例如新增畫面類別與文案、改善 Vision 或 ML Kit 權重、提升 OKLab 聚類速度與穩定性、支援 iPad 與 Android 大螢幕、補充測試及更多語言。提交前請確認對應平台的 Debug 與 Release 目標均可建置，且不要加入包含個人位置、EXIF 或可識別人物的測試照片。
+歡迎提交 Issue 與 Pull Request，例如新增畫面類別與文案、改善 Vision 或 ML Kit 權重、提升 OKLab 聚類速度與穩定性、繼續完善 iPad 多視窗與 Android 大螢幕、補充測試及更多語言。提交前請確認對應平台的 Debug 與 Release 目標均可建置，且不要加入包含個人位置、EXIF 或可識別人物的測試照片。
 
 靈動照片由 LocalLens Project 發起並以開源方式維護。LocalLens Project 是 **Wenzhou Dulan Network Technology Co., Ltd.** 旗下專注於本機優先軟體的專案，目前由該公司提供完整開發、維護與發布支援。

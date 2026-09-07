@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2026 LocalLens-Project
-// SPDX-License-Identifier: AGPL-3.0-only
-
 import Foundation
 
 enum CaptureDeviceCategory: String, Equatable {
@@ -29,6 +26,12 @@ struct CaptureDeviceDescriptor: Equatable {
     var systemImageName: String { category.systemImageName }
 
     var displayName: String? {
+
+        if category == .iPhone || category == .tablet,
+           let model = model?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !model.isEmpty {
+            return model
+        }
         let values = [manufacturer, model].compactMap { value -> String? in
             guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !value.isEmpty else { return nil }
@@ -177,9 +180,6 @@ struct CaptureDeviceDescriptor: Equatable {
         })?.manufacturer
     }
 
-    /// Leica JPEG/DNG derivatives are occasionally delivered without TIFF Make.
-    /// Restrict inference to distinctive digital Leica families so generic model
-    /// names from phones and other camera makers are not relabeled.
     private static func isLeicaModel(_ model: String) -> Bool {
         if containsAny(model, ["leica", "leitz"]) { return true }
         let patterns = [

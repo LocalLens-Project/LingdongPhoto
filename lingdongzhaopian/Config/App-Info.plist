@@ -35,6 +35,13 @@
             </array>
         </dict>
     </array>
+    <key>UIAppFonts</key>
+    <array>
+        <string>MaShanZheng-Regular.ttf</string>
+        <string>ZCOOLXiaoWei-Regular.ttf</string>
+        <string>LongCang-Regular.ttf</string>
+        <string>LXGWWenKaiLite-Regular.ttf</string>
+    </array>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
@@ -43,8 +50,10 @@
     <string>用于精确匹配您分享的实况照片并读取动态片段。照片仅在本机处理，不会上传；本应用已开源，可公开审查。</string>
     <key>NSSupportsLiveActivities</key>
     <true/>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>用于在现场拍摄邮票照片时记录城市，点亮您的邮集。相册照片直接读取自身定位，不申请设备定位权限。</string>
     <key>NSCameraUsageDescription</key>
-    <string>用于扫描由灵动照片生成的票根二维码。相机画面仅在本机识别，不会保存或上传。</string>
+    <string>用于扫描灵动照片票根二维码，以及拍摄制作邮票和明信片的照片。照片仅在本机处理，不会上传。</string>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>
@@ -54,6 +63,13 @@
     <true/>
     <key>UILaunchScreen</key>
     <dict/>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

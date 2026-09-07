@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2026 LocalLens-Project
-// SPDX-License-Identifier: AGPL-3.0-only
-
 import SwiftUI
 import UIKit
 
@@ -13,6 +10,9 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
     case privacyMosaic
     case travelTicket
     case sketch
+    case glassArchive
+    case paletteCard
+    case monthlyCalendar
 
     var id: String { rawValue }
 
@@ -26,6 +26,9 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
         case .privacyMosaic: "隐私马赛克".appLocalized
         case .travelTicket: "影像票根".appLocalized
         case .sketch: "影像素描".appLocalized
+        case .glassArchive: "琉璃档案".appLocalized
+        case .paletteCard: "灵动色卡".appLocalized
+        case .monthlyCalendar: "灵动月历".appLocalized
         }
     }
 
@@ -39,6 +42,9 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
         case .privacyMosaic: "手动涂抹或智能识别人脸、车牌、二维码与敏感文字".appLocalized
         case .travelTicket: "让色彩、拍摄信息与可验证凭证共同封存一次旅程".appLocalized
         case .sketch: "把照片变成铅笔素描、炭笔速写或水彩绘画".appLocalized
+        case .glassArchive: "液态玻璃档案栏，封存设备、参数与坐标的原始记录".appLocalized
+        case .paletteCard: "从照片里提取主色，合成可分享的极简色卡".appLocalized
+        case .monthlyCalendar: "照片化作月历壁纸，节气、主色与城市一同封存".appLocalized
         }
     }
 
@@ -60,6 +66,12 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
             "把一张照片变成可以被扫描、被验证的旅行凭证".appLocalized
         case .sketch:
             "在纸张质感上重绘影像\n铅笔、炭笔与水彩，三种笔意随手切换".appLocalized
+        case .glassArchive:
+            "液态玻璃封存拍摄档案\n设备、参数与坐标，一眼可考".appLocalized
+        case .paletteCard:
+            "照片与主色同框\n横竖皆成卡片".appLocalized
+        case .monthlyCalendar:
+            "把那一天收进月历\n节气与城市一同留印".appLocalized
         }
     }
 
@@ -73,6 +85,9 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
         case .privacyMosaic: "eye.slash"
         case .travelTicket: "ticket"
         case .sketch: "pencil.and.ruler"
+        case .glassArchive: "camera.aperture"
+        case .paletteCard: "swatchpalette"
+        case .monthlyCalendar: "calendar"
         }
     }
 
@@ -86,6 +101,9 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
         case .privacyMosaic: Color(red: 0.62, green: 0.84, blue: 1.00)
         case .travelTicket: Color(red: 0.98, green: 0.72, blue: 0.48)
         case .sketch: Color(red: 0.88, green: 0.84, blue: 0.74)
+        case .glassArchive: Color(red: 0.72, green: 0.86, blue: 0.95)
+        case .paletteCard: Color(red: 0.90, green: 0.76, blue: 0.55)
+        case .monthlyCalendar: Color(red: 0.74, green: 0.88, blue: 0.80)
         }
     }
 
@@ -95,9 +113,63 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
             .nineSixteen
         case .travelTicket:
             .twentyOneNine
+        case .glassArchive:
+            .original
+        case .paletteCard, .monthlyCalendar:
+            .original
         case .motionCard, .colorPalette, .bubbleStamp, .privacyMosaic, .sketch:
             .threeFour
         }
+    }
+}
+
+enum GlassArchiveMark: String, CaseIterable {
+    case apple
+    case camera
+
+    case none
+}
+
+enum GlassArchiveMarkResolver {
+
+    static func availableMarks(
+        for metadata: PhotoMetadata,
+        cameraWatermarkImage: UIImage?
+    ) -> [GlassArchiveMark] {
+        if metadata.captureDevice.category == .camera, cameraWatermarkImage != nil {
+            return [.camera, .apple]
+        }
+        if isAppleDevice(metadata.captureDevice.displayName) {
+            return [.apple]
+        }
+        return [.none]
+    }
+
+    static func automaticMark(
+        for metadata: PhotoMetadata,
+        cameraWatermarkImage: UIImage?
+    ) -> GlassArchiveMark {
+        availableMarks(for: metadata, cameraWatermarkImage: cameraWatermarkImage).first ?? .none
+    }
+
+    static func isAppleDevice(_ name: String?) -> Bool {
+        guard let name else { return false }
+        return name.hasPrefix("iPhone")
+            || name.hasPrefix("iPad")
+            || name.hasPrefix("iPod")
+            || name.hasPrefix("Apple")
+    }
+
+    static func nextMark(
+        after current: GlassArchiveMark,
+        for metadata: PhotoMetadata,
+        cameraWatermarkImage: UIImage?
+    ) -> GlassArchiveMark {
+        let marks = availableMarks(for: metadata, cameraWatermarkImage: cameraWatermarkImage)
+        guard let index = marks.firstIndex(of: current) else {
+            return marks.first ?? current
+        }
+        return marks[(index + 1) % marks.count]
     }
 }
 
@@ -174,7 +246,7 @@ enum JournalLayoutMode: String, CaseIterable, Identifiable {
 
 struct JournalPhotoTransform: Equatable {
     var scale: CGFloat = 1
-    /// Stored relative to the destination cell so it survives preview/export size changes.
+
     var normalizedOffset: CGSize = .zero
 }
 
@@ -294,8 +366,13 @@ enum PalettePanelGeometry {
     static let hitSlop: CGFloat = 8
 
     static func size(in canvasSize: CGSize, layout: PaletteLayoutMode) -> CGSize {
-        // Tall portrait artwork keeps the same palette footprint as 3:4 so formats
-        // such as 9:16 do not let the panel dominate the longer canvas.
+
+        if canvasSize.width > canvasSize.height * 1.18 {
+            let panelWidth = canvasSize.width * 0.90
+            let panelHeight = min(max(canvasSize.height * 0.32, 68), 92)
+            return CGSize(width: panelWidth, height: panelHeight)
+        }
+
         let widthReference = canvasSize.width <= canvasSize.height
             ? canvasSize.width
             : min(canvasSize.width, canvasSize.height * 1.35)
@@ -320,7 +397,9 @@ enum PalettePanelGeometry {
         let panelHeight = size(in: canvasSize, layout: layout).height
         let minimumY = verticalInset
         let maximumY = max(minimumY, canvasSize.height - verticalInset - panelHeight)
-        let baseY = layout == .bottom ? maximumY : minimumY
+        let usesBottomAnchor = layout == .bottom
+            || canvasSize.width > canvasSize.height * 1.18
+        let baseY = usesBottomAnchor ? maximumY : minimumY
         return min(max(proposedOffset, minimumY - baseY), maximumY - baseY)
     }
 
@@ -331,7 +410,9 @@ enum PalettePanelGeometry {
     ) -> CGRect {
         let panelSize = size(in: canvasSize, layout: layout)
         let maximumY = max(verticalInset, canvasSize.height - verticalInset - panelSize.height)
-        let baseY = layout == .bottom ? maximumY : verticalInset
+        let usesBottomAnchor = layout == .bottom
+            || canvasSize.width > canvasSize.height * 1.18
+        let baseY = usesBottomAnchor ? maximumY : verticalInset
         let visibleOffset = clampedOffset(offset, in: canvasSize, layout: layout)
         return CGRect(
             x: (canvasSize.width - panelSize.width) / 2,
@@ -348,6 +429,47 @@ enum PalettePanelGeometry {
     ) -> CGRect {
         frame(in: canvasSize, layout: layout, offset: offset)
             .insetBy(dx: -hitSlop, dy: -hitSlop)
+            .intersection(CGRect(origin: .zero, size: canvasSize))
+    }
+}
+
+enum GlassArchiveBarGeometry {
+    static let horizontalInsetScale: CGFloat = 0.045
+    static let bottomInsetScale: CGFloat = 0.035
+    static let heightScale: CGFloat = 0.088
+    static let minimumHeight: CGFloat = 56
+    static let maximumHeight: CGFloat = 96
+    static let markHitSlop: CGFloat = 12
+
+    static func barFrame(in canvasSize: CGSize) -> CGRect {
+        let width = canvasSize.width * (1 - horizontalInsetScale * 2)
+        let height = min(
+            max(canvasSize.width * heightScale, minimumHeight),
+            maximumHeight
+        )
+        return CGRect(
+            x: canvasSize.width * horizontalInsetScale,
+            y: canvasSize.height - canvasSize.width * bottomInsetScale - height,
+            width: width,
+            height: height
+        )
+    }
+
+    static func markFrame(in canvasSize: CGSize) -> CGRect {
+        let bar = barFrame(in: canvasSize)
+        let side = bar.height * 0.72
+        return CGRect(
+            x: bar.midX - side / 2,
+            y: bar.midY - side / 2,
+            width: side,
+            height: side
+        )
+        .insetBy(dx: -markHitSlop, dy: -markHitSlop)
+    }
+
+    static func hitFrame(in canvasSize: CGSize) -> CGRect {
+        barFrame(in: canvasSize)
+            .insetBy(dx: -8, dy: -8)
             .intersection(CGRect(origin: .zero, size: canvasSize))
     }
 }

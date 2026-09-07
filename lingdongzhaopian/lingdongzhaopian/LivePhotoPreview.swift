@@ -35,6 +35,11 @@ enum LivePhotoPreview {
         let nominalFrameRate: Float
     }
 
+    private struct FrameResult: @unchecked Sendable {
+        let index: Int
+        let image: UIImage?
+    }
+
     private enum FrameLoadingError: Error {
         case timedOut
     }
@@ -60,7 +65,10 @@ enum LivePhotoPreview {
                   let videoTrack else { continue }
             let generator = AVAssetImageGenerator(asset: asset)
             generator.appliesPreferredTrackTransform = true
-            generator.maximumSize = CGSize(width: 1_000, height: 1_000)
+            // This is an on-screen preview, not an export. Keeping decode size
+            // bounded makes a multi-photo composition much less likely to miss
+            // its presentation cadence on the first run.
+            generator.maximumSize = CGSize(width: 720, height: 720)
             generator.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 30)
             generator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 30)
             sources.append(
@@ -104,7 +112,6 @@ enum LivePhotoPreview {
         onFrame(currentFrames)
 
         let audioPlayer = AVPlayer(playerItem: AVPlayerItem(asset: primary.asset))
-        let playbackStartedAt = ContinuousClock.now
         audioPlayer.playImmediately(atRate: 1)
         defer {
             audioPlayer.pause()
@@ -113,23 +120,42 @@ enum LivePhotoPreview {
             }
         }
 
-        while true {
+        // Advance by decoded frame index rather than wall-clock time. The old
+        // wall-clock loop decoded every selected Live Photo serially; a single
+        // slow frame could consume most of a short clip, making playback appear
+        // to stop after a fraction of a second. Sources are decoded concurrently
+        // and a slow decode can lengthen a frame, but can no longer truncate the
+        // remainder of the Live Photo.
+        let frameCount = max(1, Int(ceil(primary.duration.seconds * frameRate)))
+        for frameIndex in 1...frameCount {
             try Task.checkCancellation()
-            let elapsed = playbackStartedAt.duration(to: .now)
-            let seconds = Double(elapsed.components.seconds)
-                + Double(elapsed.components.attoseconds) / 1_000_000_000_000_000_000
-            guard seconds < primary.duration.seconds else { break }
-            let normalizedProgress = min(1, max(0, seconds / primary.duration.seconds))
+            let frameStartedAt = ContinuousClock.now
+            let normalizedProgress = min(1, Double(frameIndex) / Double(frameCount))
 
-            for source in sources {
-                let lastReadableSecond = max(0, source.duration.seconds - 1.0 / 600.0)
-                if let image = try await loadFrame(
-                    from: source,
-                    at: min(source.duration.seconds * normalizedProgress, lastReadableSecond),
-                    attempts: 1,
-                    timeout: .milliseconds(450)
-                ) {
-                    currentFrames[source.index] = image
+            let results = try await withThrowingTaskGroup(of: FrameResult.self) { group in
+                for source in sources {
+                    group.addTask {
+                        let lastReadableSecond = max(0, source.duration.seconds - 1.0 / 600.0)
+                        let image = try await loadFrame(
+                            from: source,
+                            at: min(source.duration.seconds * normalizedProgress, lastReadableSecond),
+                            attempts: 1,
+                            timeout: .milliseconds(450)
+                        )
+                        return FrameResult(index: source.index, image: image)
+                    }
+                }
+
+                var decoded: [FrameResult] = []
+                for try await result in group {
+                    decoded.append(result)
+                }
+                return decoded
+            }
+
+            for result in results {
+                if let image = result.image {
+                    currentFrames[result.index] = image
                 }
             }
 
@@ -137,11 +163,10 @@ enum LivePhotoPreview {
             // successfully decoded frame and continue until the next request.
             onFrame(currentFrames)
 
-            let actualDuration = playbackStartedAt.duration(to: .now)
-            let actualElapsed = Double(actualDuration.components.seconds)
-                + Double(actualDuration.components.attoseconds) / 1_000_000_000_000_000_000
-            let nextFrameTime = (floor(seconds / frameInterval) + 1) * frameInterval
-            let delay = nextFrameTime - actualElapsed
+            let frameDuration = frameStartedAt.duration(to: .now)
+            let elapsed = Double(frameDuration.components.seconds)
+                + Double(frameDuration.components.attoseconds) / 1_000_000_000_000_000_000
+            let delay = frameInterval - elapsed
             if delay > 0 {
                 try await Task.sleep(for: .seconds(delay))
             }

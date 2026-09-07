@@ -40,3 +40,16 @@ build/
 *.tmp
 *.swp
 *~
+
+# Commercial (purchased) color lexicon data — never publish
+/lingdongzhaopian/lingdongzhaopian/TraditionalColorLexicon+Commercial.swift
+/lingdongzhaopian/lingdongzhaopian/TraditionalColorLexicon+Translations.swift
+
+# Commercial (paid) supporter store — never publish
+/lingdongzhaopian/lingdongzhaopian/SupporterStore+Commercial.swift
+
+# Local source image used to generate public commercial-license placeholders
+/lingdongzhaopian/business license.png
+
+# Translation working files
+/.tr_tmp/

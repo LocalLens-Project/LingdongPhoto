@@ -58,8 +58,7 @@ enum TicketIslandAvailability {
         screenSize: CGSize,
         safeAreaTop: CGFloat
     ) -> Bool {
-        guard UIDevice.current.userInterfaceIdiom == .phone,
-              screenSize.height >= screenSize.width else {
+        guard UIDevice.current.userInterfaceIdiom == .phone else {
             return false
         }
         let windowTopInset = UIApplication.shared.connectedScenes
@@ -71,9 +70,13 @@ enum TicketIslandAvailability {
             return true
         }
 
+
+
+
+
         let size = (
-            Int(screenSize.width.rounded()),
-            Int(screenSize.height.rounded())
+            Int(min(screenSize.width, screenSize.height).rounded()),
+            Int(max(screenSize.width, screenSize.height).rounded())
         )
         return [
             (393, 852),

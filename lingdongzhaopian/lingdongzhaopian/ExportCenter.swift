@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2026 LocalLens-Project
-// SPDX-License-Identifier: AGPL-3.0-only
-
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -130,10 +127,17 @@ struct ExportCenterView: View {
     @Binding var resolution: ArtworkExportResolution
     @Binding var metadataPolicy: ArtworkMetadataPolicy
     @Binding var destination: ArtworkExportDestination
+    @Binding var includesPoeticDetails: Bool
     let sourcePixelWidth: CGFloat
     let supportsLiveExport: Bool
     let requiresTransparency: Bool
+    let showsPoeticDetailsOption: Bool
+    let canIncludePoeticDetails: Bool
+    let onRequestSupport: () -> Void
     let onExport: () -> Void
+
+    @State private var poeticDetailsPromptPresented = false
+    @State private var poeticDetailsPromptDismissTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -214,6 +218,12 @@ struct ExportCenterView: View {
                         }
                     }
 
+                    if showsPoeticDetailsOption {
+                        exportSection("诗意色名") {
+                            poeticDetailsOptionRow
+                        }
+                    }
+
                     if supportsLiveExport {
                         Label(
                             destination == .photoLibrary
@@ -256,6 +266,103 @@ struct ExportCenterView: View {
                 }
             }
         }
+        .overlay(alignment: .bottom) {
+            if poeticDetailsPromptPresented && !canIncludePoeticDetails {
+                SupporterProUnlockPrompt(
+                    message: "支持我们，即可在导出作品中附带六种节气色名的可考出处。"
+                ) {
+                    poeticDetailsPromptDismissTask?.cancel()
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        poeticDetailsPromptPresented = false
+                    }
+                    onRequestSupport()
+                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, 22)
+                .transition(.scale(scale: 0.88).combined(with: .opacity))
+                .zIndex(100)
+            }
+        }
+        .animation(.spring(response: 0.32, dampingFraction: 0.80), value: poeticDetailsPromptPresented)
+        .onDisappear {
+            poeticDetailsPromptDismissTask?.cancel()
+        }
+    }
+
+    private func handlePoeticDetailsTap() {
+        if canIncludePoeticDetails {
+            includesPoeticDetails.toggle()
+            UISelectionFeedbackGenerator().selectionChanged()
+        } else {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            includesPoeticDetails = false
+            poeticDetailsPromptDismissTask?.cancel()
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                poeticDetailsPromptPresented = true
+            }
+            poeticDetailsPromptDismissTask = Task {
+                try? await Task.sleep(for: .seconds(6))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: 0.22)) {
+                    poeticDetailsPromptPresented = false
+                }
+            }
+        }
+    }
+
+    private var poeticDetailsOptionRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "text.quote")
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: 28)
+
+            poeticDetailsDescription
+
+            Spacer(minLength: 8)
+
+            SupporterLockedSwitch(
+                isOn: canIncludePoeticDetails && includesPoeticDetails,
+                isLocked: !canIncludePoeticDetails
+            )
+        }
+
+        .contentShape(Rectangle())
+        .onTapGesture(perform: handlePoeticDetailsTap)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("附带可考出处")
+        .accessibilityValue(poeticDetailsAccessibilityValue)
+        .accessibilityAction {
+            handlePoeticDetailsTap()
+        }
+        .onAppear {
+            if !canIncludePoeticDetails {
+                includesPoeticDetails = false
+            }
+        }
+    }
+
+    private var poeticDetailsDescription: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 7) {
+                Text("附带可考出处")
+                    .font(.subheadline.weight(.semibold))
+                if !canIncludePoeticDetails {
+                    ProBadge(compact: true)
+                }
+            }
+            Text((canIncludePoeticDetails
+                 ? "开启后，导出图片下方将附上六色的可考出处。"
+                 : "支持我们后可将可考出处一并导出。").appLocalized)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var poeticDetailsAccessibilityValue: String {
+        guard canIncludePoeticDetails else { return "需支持我们后开启".appLocalized }
+        return (includesPoeticDetails ? "已开启" : "已关闭").appLocalized
     }
 
     private var exportTitle: String {

@@ -2,11 +2,11 @@
 
 > **Language notice:** The Android version is currently not available in English. Its interface remains in Simplified Chinese for now.
 
-Lingdong Photo is a local-first photo creation app for iOS and Android. The iOS app is built with SwiftUI, while the Android app uses Kotlin and Jetpack Compose. Both versions can extract perceptual colors, understand image content, read real capture metadata, and create photo cards, palettes, journals, bubble stamps, wallpapers, privacy masks, verifiable Photo Tickets, and multi-page Photo Albums. Color Relationship compares the shared, contrasting, and transitional colors of two photos. The iOS version also includes a plain-language Light Analysis for everyday users, turns photos into pencil, charcoal, or watercolor sketches, and converts a selected video segment into a Live Photo with a user-selected key photo.
+Lingdong Photo is a local-first photo creation app for iOS and Android. The iOS app is built with SwiftUI, while the Android app uses Kotlin and Jetpack Compose. Both versions can extract perceptual colors, understand image content, read real capture metadata, and create photo cards, palettes, journals, bubble stamps, wallpapers, privacy masks, verifiable Photo Tickets, and multi-page Photo Albums. Color Relationship compares the shared, contrasting, and transitional colors of two photos. The iOS version also includes a plain-language Light Analysis for everyday users, turns photos into pencil, charcoal, or watercolor sketches, converts a selected video segment into a Live Photo with a user-selected key photo, and arranges six photos into a complete Flowing-Light Fan.
 
 **Official App Store release:** [Download Lingdong Photo](https://apps.apple.com/cn/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
 
-The app is completely free, with no subscriptions, in-app purchases, or advertising. Photo recognition, color analysis, and artwork rendering are performed on the device.
+The app is free to download, with no subscriptions or advertising. The iOS app offers optional “Support Us” content through a one-time purchase. Photo recognition, color analysis, and artwork rendering are performed on the device.
 
 ## Android version
 
@@ -64,10 +64,41 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 
 ### Creation modes and interface
 
-- Browse eight creation modes before adding photos, plus independent Color Relationship, Photo Album, Scan Photo Ticket, and Video to Live Photo entry points.
-- Open Color Relationship, Photo Album, Scan Photo Ticket, or Video to Live Photo directly from the initial screen without first entering the main editor.
+- Browse eight creation modes before adding photos, plus independent Color Relationship, Photo Album, Scan Photo Ticket, Video to Live Photo, and Flowing-Light Fan entry points.
+- Open Color Relationship, Photo Album, Scan Photo Ticket, Video to Live Photo, or Flowing-Light Fan directly from the initial screen without first entering the main editor.
 - After importing a photo, switch among the eight creation modes or open any independent tool from the same mode panel without selecting the photo again.
 - The mode picker uses translucent Liquid Glass and follows the system light or dark appearance.
+
+### Motion Palette and Motion Calendar
+
+- Motion Palette extracts dominant colors and extends the color strip below, left, or right without covering or cropping the photo.
+- Motion Calendar preserves landscape, portrait, and square aspect ratios while fitting a calendar panel that records the capture date and solar term.
+
+### Flowing-Light Fan
+
+- Arrange six photos across a complete open folding fan, with one photo presented independently on each panel.
+- Auto Color searches authorized photos on the device and combines six images from the same color family.
+- Free Arrangement accepts up to six manually selected photos and lets you replace, pan, and zoom each panel for precise framing.
+- Save the finished fan as a transparent 2400 × 1800 PNG.
+
+### Stamps, postcards, and Stamp Collection
+
+- Stamp Maker offers five perforation templates with photo, title, date, and font controls, and can collect the result or save it as PNG.
+- Postcard combines a photo, message, stamp, and postmark in four layouts.
+- Stamp Collection stores geotagged stamps, reveals visited cities, and supports free rotation with a long press.
+
+### Photo Ticket collections, developing, and archive
+
+- Photo Ticket Collections organize tickets from trips, performances, or meaningful periods.
+- Photo Ticket Developing recognizes an imported physical ticket on the device and recreates it as a verifiable Photo Ticket.
+- Glass Archive preserves original device, capture-setting, and coordinate records in a Liquid Glass archive panel.
+- Find Original on This Device scans a Photo Ticket and searches the local photo library for its original image.
+
+### Personalization and supporter content
+
+- Empty-screen Themes set a preferred primary color for every feature home screen before a photo is selected.
+- Motion Card, Bubble Stamp, and Glass Archive settings are available directly inside their respective tools.
+- A one-time Support Us purchase unlocks poetic solar-term color names, collector Photo Ticket designs, all stamp and postcard templates, exclusive app icons, and a supporter badge.
 
 ### Motion Card
 
@@ -224,7 +255,7 @@ What can be completed on the device should stay on the device.
 - iOS 17.0 or later
 - Xcode 26.0 or later for the iOS 26 Liquid Glass SDK
 - Swift 5 language mode
-- iPhone; the main interface is portrait-first, with landscape support for horizontal Photo Tickets and full-book preview
+- iPhone and iPad; the iPhone interface is portrait-first, while iPad supports a native sidebar, rotation, and resizable windows
 
 ### Android
 
@@ -247,6 +278,14 @@ cp lingdongzhaopian/Config/Signing.local.example.xcconfig \
 
 Fill in `DEVELOPMENT_TEAM`, the main app, extension, App Clip, parent app, and App Group identifiers in `Signing.local.xcconfig`. Create matching App IDs, share the App Group between the main app and Photos action extension, and configure the parent-app relationship for the App Clip. Then select an iOS 17+ simulator or device and run the project.
 
+The public repository builds the non-commercial fallback declarations in `SupporterStore.swift` and `TraditionalColorLexiconData.swift` by default. Licensed commercial source files remain local and are ignored by Git. A licensed local checkout enables them by adding the following line to `Signing.local.xcconfig`:
+
+```xcconfig
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) COMMERCIAL_BUILD
+```
+
+This excludes the public fallback declarations locally and compiles the StoreKit and complete color-data implementations without exposing them in the public repository. Except for Onboarding screenshots/GIFs and the two mode-entry selection screenshots, newly published product-image resources use commercial-license notice placeholders under their original asset names so that the public Asset Catalog remains buildable.
+
 ### Android
 
 ```bash
@@ -265,14 +304,48 @@ The Debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. For a s
 - The App Clip does not request Photos read/write, Camera, Location, or Notifications permission.
 - Android uses the system picker and temporary share URIs, writes through MediaStore, and declares Camera and Vibration but no Internet, Location, or Microphone permission.
 
+## Project structure
+
+```text
+.
+├── README.md / README_en.md / README_zhhant.md
+├── LICENSE / TRADEMARKS.md
+├── Android/lingdongzhaopian/    # Kotlin + Jetpack Compose project
+└── lingdongzhaopian/
+    ├── Config/                  # Plists, entitlements, and signing templates
+    ├── LingdongShareExtension/ # Photos action extension
+    ├── LingdongTicketActivity/ # Main-app Live Activity
+    ├── LingdongTicketClip/     # App Clip verification entry point
+    ├── LingdongTicketClipActivity/
+    ├── SharedActivity/         # Shared activity state and widgets
+    ├── SharedTicket/           # Ticket payload, verification, and local-original lookup
+    ├── lingdongzhaopian.xcodeproj/
+    └── lingdongzhaopian/
+        ├── Assets.xcassets/    # Public commercial-license notice placeholders
+        ├── OnboardingScreens/  # Publishable onboarding screenshots and GIFs
+        ├── Piaogence/          # Ticket collections, developing, and editions
+        ├── Postal/             # Stamps, postcards, collections, and city resolution
+        ├── PostalFonts/        # OFL fonts and complete license texts
+        ├── Album*.swift
+        ├── ColorRelationship*.swift
+        ├── FanGalleryFeature.swift
+        ├── IPadWorkspace.swift
+        ├── ModeLauncherFeature.swift
+        ├── SupporterStore.swift             # Public fallback
+        ├── TraditionalColorLexiconData.swift # Public fallback data
+        └── lingdongzhaopianApp.swift
+```
+
 ## License and trademarks
 
 Source code is released under the [GNU Affero General Public License v3.0](./LICENSE), `AGPL-3.0-only`. Copying, modification, and redistribution must follow the license and provide the corresponding source. Modified software offered as a network service must also make its corresponding source available to those users.
+
+The repository's open-source license applies only to source code that has been published. All images and commercial in-app-purchase content are excluded from the open-source release; contact us for commercial licensing.
 
 The AGPL source license does not grant rights to the Lingdong Photo name, project branding, logo, App Icon, product-page artwork, or marketing screenshots. See [TRADEMARKS.md](./TRADEMARKS.md). Seek professional legal advice before commercial distribution, closed-source integration, or submitting a modified version to an app store.
 
 ## Contributing
 
-Issues and pull requests are welcome, including new image categories and copy, improved Vision or ML Kit weighting, faster and more stable OKLab clustering, iPad and Android large-screen layouts, tests, and additional localizations. Before submitting code, build the relevant Debug and Release targets and do not include test photos containing personal location, EXIF, or identifiable people.
+Issues and pull requests are welcome, including new image categories and copy, improved Vision or ML Kit weighting, faster and more stable OKLab clustering, further iPad multiwindow and Android large-screen refinements, tests, and additional localizations. Before submitting code, build the relevant Debug and Release targets and do not include test photos containing personal location, EXIF, or identifiable people.
 
 Lingdong Photo is initiated and maintained as an open-source LocalLens Project. LocalLens Project is a local-first software initiative of **Wenzhou Dulan Network Technology Co., Ltd.**, which currently provides full development, maintenance, and release support.

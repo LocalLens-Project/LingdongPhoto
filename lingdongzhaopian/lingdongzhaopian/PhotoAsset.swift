@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2026 LocalLens-Project
-// SPDX-License-Identifier: AGPL-3.0-only
-
 import CoreLocation
 import Foundation
 import ImageIO
@@ -93,6 +90,72 @@ struct PhotoMetadata: Equatable {
             return "拍摄时间未记录".appLocalized
         }
         return String(format: "%04d/%02d/%02d, %02d:%02d", year, month, day, hour, minute)
+    }
+
+    var archiveTimeText: String? {
+        guard let captureDate else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let components = calendar.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second],
+            from: captureDate
+        )
+        guard let year = components.year,
+              let month = components.month,
+              let day = components.day,
+              let hour = components.hour,
+              let minute = components.minute,
+              let second = components.second else {
+            return nil
+        }
+        return String(
+            format: "%04d.%02d.%02d %02d:%02d:%02d",
+            year, month, day, hour, minute, second
+        )
+    }
+
+    var archiveSettingsLine: String? {
+        var values: [String] = []
+        if let focalLength, focalLength > 0 {
+            values.append("\(Self.compactDecimal(focalLength))mm")
+        }
+        if let aperture, aperture > 0 {
+            values.append("f/\(Self.compactDecimal(aperture))")
+        }
+        if let exposureTime, exposureTime > 0 {
+            if exposureTime < 1 {
+                values.append("1/\(max(1, Int((1 / exposureTime).rounded())))s")
+            } else {
+                values.append("\(Self.compactDecimal(exposureTime))s")
+            }
+        }
+        if let iso, iso > 0 { values.append("ISO\(iso)") }
+        guard !values.isEmpty else { return nil }
+        return values.joined(separator: " ")
+    }
+
+    var archiveCoordinateLine: String? {
+        guard let latitude, let longitude else { return nil }
+        return "\(Self.dms(latitude, isLatitude: true)) \(Self.dms(longitude, isLatitude: false))"
+    }
+
+    private static func dms(_ value: Double, isLatitude: Bool) -> String {
+        let hemisphere = isLatitude
+            ? (value >= 0 ? "N" : "S")
+            : (value >= 0 ? "E" : "W")
+        let totalSeconds = (abs(value) * 3600).rounded()
+        var degrees = Int(totalSeconds / 3600)
+        var minutes = Int(totalSeconds.truncatingRemainder(dividingBy: 3600) / 60)
+        var seconds = Int(totalSeconds.truncatingRemainder(dividingBy: 60))
+        if seconds == 60 {
+            seconds = 0
+            minutes += 1
+        }
+        if minutes == 60 {
+            minutes = 0
+            degrees += 1
+        }
+        return "\(degrees)°\(String(format: "%02d", minutes))'\(String(format: "%02d", seconds))\"\(hemisphere)"
     }
 
     var deviceLine: String? {
@@ -587,9 +650,6 @@ enum PhotoAssetLoader {
             )
         }
 
-        // PHLivePhoto is loaded from the system picker's item provider. Its
-        // resources therefore represent the item the user explicitly selected
-        // and don't require direct PhotoKit library access.
         let resources = PHAssetResource.assetResources(for: livePhoto)
         let imageResource = resources.first(where: { $0.type == .fullSizePhoto })
             ?? resources.first(where: { $0.type == .photo })

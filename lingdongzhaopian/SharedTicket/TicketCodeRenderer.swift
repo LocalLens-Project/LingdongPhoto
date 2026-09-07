@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2026 LocalLens-Project
-// SPDX-License-Identifier: AGPL-3.0-only
-
 import CoreImage
 import CoreImage.CIFilterBuiltins
 import UIKit
@@ -176,7 +173,7 @@ nonisolated enum TicketCodeRenderer {
         }
     }
 
-    private static func barcodeImage(
+    static func barcodeImage(
         value: String,
         pixelSize: CGSize,
         foregroundColor: UIColor,
@@ -201,7 +198,7 @@ nonisolated enum TicketCodeRenderer {
         )
     }
 
-    private static func qrImage(
+    static func qrImage(
         value: String,
         pixelSize: CGSize,
         foregroundColor: UIColor,

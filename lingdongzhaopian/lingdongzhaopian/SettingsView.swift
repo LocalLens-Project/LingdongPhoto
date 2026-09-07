@@ -1,16 +1,10 @@
-// SPDX-FileCopyrightText: 2026 LocalLens-Project
-// SPDX-License-Identifier: AGPL-3.0-only
-
 import SwiftUI
 import UIKit
 
 struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
     private static let maintenanceStatementText =
-        "💖 本开源项目由 Wenzhou Dulan Network Technology Co., Ltd. 倾力维护与托管。"
-    private static let maintenanceStatementFirstLine =
-        "💖 本开源项目由 Wenzhou Dulan Network Technology"
-    private static let maintenanceStatementContinuation =
-        "Co., Ltd. 倾力维护与托管。"
+        "本开源项目由 Wenzhou Dulan Network Technology Co., Ltd. 倾力维护与托管。"
 
     private static let sourceRepositoryURL = URL(
         string: "https://github.com/LocalLens-Project/LingdongPhoto"
@@ -20,26 +14,25 @@ struct SettingsView: View {
     )!
 
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var ratio: ArtworkRatio
     @Binding var showHexValues: Bool
-    @Binding var showDeviceInfo: Bool
-    @Binding var showBubbles: Bool
     @Binding var useCustomCameraWatermarks: Bool
     @Binding var gentleBackground: Bool
-    @Binding var templateStyle: ArtworkTemplateStyle
-    @Binding var motionCardHeaderStyle: MotionCardHeaderStyle
-    @Binding var journalLayout: JournalLayoutMode
     @ObservedObject var cameraWatermarkLibrary: CameraWatermarkLibrary
 
     @AppStorage("supportsLivePhotos") private var supportsLivePhotos = true
     @AppStorage("useLiteraryColorNames") private var useLiteraryColorNames = false
+    @AppStorage("poeticNamesEnabled") private var poeticNamesEnabled = false
+    @AppStorage("supporterUnlocked") private var supporterUnlocked = false
     @AppStorage("preservePaletteBackground") private var preservePaletteBackground = true
-    @AppStorage("showMoodCopy") private var showMoodCopy = false
     @AppStorage("paletteLayout") private var paletteLayoutRaw = PaletteLayoutMode.floating.rawValue
     @AppStorage("applyLiquidGlassOnExport") private var applyLiquidGlassOnExport = true
     @AppStorage("showAppTitle") private var showAppTitle = true
-    @AppStorage("showMissingCaptureTime") private var showMissingCaptureTime = true
+    @AppStorage("showSupporterBadge") private var showSupporterBadge = false
     @AppStorage("showPalettePercentages") private var showPalettePercentages = true
+    @AppStorage("emptyCanvasTheme") private var emptyCanvasThemeRaw = EmptyCanvasTheme.sky.rawValue
+    @AppStorage("modeLauncherStyle") private var modeLauncherStyleRaw = ModeLauncherStyle.floatingMenu.rawValue
     @State private var cameraWatermarkManagerPresented = false
     @State private var workManagerPresented = false
     @State private var sourceRepositoryConfirmationPresented = false
@@ -47,9 +40,28 @@ struct SettingsView: View {
     @State private var emailCopied = false
     @State private var savedWorkCount = 0
     @State private var savedWorkByteCount: Int64 = 0
+    @State private var supportUsPresented = false
+    @State private var poeticNamesNoticePresented = false
+    @State private var emptyCanvasThemePickerPresented = false
+    @State private var applicationIconPickerPresented = false
+    @State private var modeLauncherPickerPresented = false
+    @State private var supporterBadgePromptPresented = false
+    @State private var supporterBadgePromptDismissTask: Task<Void, Never>?
 
     private var isSimplifiedChineseLocalization: Bool {
         Locale.preferredLanguages.first?.hasPrefix("zh-Hans") == true
+    }
+    private var currentModeLauncherStyle: ModeLauncherStyle {
+        ModeLauncherStyle(rawValue: modeLauncherStyleRaw) ?? .floatingMenu
+    }
+    private var supportsIslandLauncher: Bool {
+        TicketIslandAvailability.isSupported(
+            screenSize: UIScreen.main.bounds.size,
+            safeAreaTop: UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .first(where: \.isKeyWindow)?.safeAreaInsets.top ?? 0
+        )
     }
 
     var body: some View {
@@ -60,12 +72,20 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 66)
                     .background(.ultraThinMaterial)
+                    .overlay(alignment: .trailing) {
+                        if UIDevice.current.userInterfaceIdiom == .pad {
+                            Button("完成") { dismiss() }
+                                .font(.body.weight(.semibold))
+                                .padding(.horizontal, 20)
+                                .frame(minHeight: 44)
+                                .accessibilityIdentifier("ipad.settings.done")
+                        }
+                    }
                     .zIndex(5)
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 28) {
-                        maintenanceStatement
-                        supportAndContactSection
+                        projectSupportSection
                         interfaceOptions
                         storageAndWorks
                         paletteOptions
@@ -74,13 +94,14 @@ struct SettingsView: View {
                         journalOptions
                         wallpaperOptions
                         privacyOptions
+                        supportAndContactSection
 
                         VStack(spacing: 10) {
-                            Text("版本 2.1.0 (Build 202616)")
+                            Text("版本 3.0.0 (Build 202620)")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
 
-                            Text("灵动照片 · 完全免费")
+                            Text("灵动照片 · 开源项目")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
 
@@ -92,7 +113,9 @@ struct SettingsView: View {
                             }
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.bottom, 28)
+
+                        maintenanceStatement
+                            .padding(.bottom, 28)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
@@ -109,6 +132,12 @@ struct SettingsView: View {
             .navigationDestination(isPresented: $workManagerPresented) {
                 LingdongWorkManagerView(onLibraryChanged: refreshWorkArchiveSummary)
             }
+            .navigationDestination(isPresented: $applicationIconPickerPresented) {
+                ApplicationIconPicker()
+            }
+            .navigationDestination(isPresented: $modeLauncherPickerPresented) {
+                ModeLauncherSettingsView(supportsIsland: supportsIslandLauncher)
+            }
             .toolbar(.hidden, for: .navigationBar)
             .onAppear(perform: refreshWorkArchiveSummary)
             .alert("将在默认浏览器中打开", isPresented: $sourceRepositoryConfirmationPresented) {
@@ -119,32 +148,81 @@ struct SettingsView: View {
             } message: {
                 Text("即将前往灵动照片的 GitHub 开源地址。本应用不会进行任何联网，网页内容将由系统默认浏览器加载。")
             }
+            .alert("二十四节气色名已开启", isPresented: $poeticNamesNoticePresented) {
+                Button("知道了", role: .cancel) {}
+                if !supporterUnlocked {
+                    Button("了解支持我们") {
+                        supportUsPresented = true
+                    }
+                }
+            } message: {
+                Text((supporterUnlocked
+                     ? "节气匹配色名与可考出处均可直接查看。"
+                     : "节气匹配色名可直接查看；可考出处需在“支持我们”后解锁。").appLocalized)
+            }
+            .fullScreenCover(isPresented: $supportUsPresented) {
+                SupportUsView {
+                    poeticNamesEnabled = true
+                }
+            }
+            .sheet(isPresented: $emptyCanvasThemePickerPresented) {
+                EmptyCanvasThemePicker(selection: emptyCanvasThemeBinding)
+                    .presentationDetents([.height(560)])
+                    .presentationDragIndicator(.hidden)
+                    .presentationCornerRadius(34)
+                    .presentationBackground(.ultraThinMaterial)
+            }
+        }
+        .onChange(of: supporterUnlocked) { _, unlocked in
+            if unlocked {
+                supporterBadgePromptDismissTask?.cancel()
+                withAnimation(.easeOut(duration: 0.18)) {
+                    supporterBadgePromptPresented = false
+                }
+            }
+        }
+        .onDisappear {
+            supporterBadgePromptDismissTask?.cancel()
+        }
+        .overlay(alignment: .bottom) {
+            if supporterBadgePromptPresented && !supporterUnlocked {
+                SupporterProUnlockPrompt(
+                    message: showAppTitle
+                        ? "支持我们，即可在“灵动照片”标题旁显示 PRO 标志。"
+                        : "支持我们即可在标题处显示 PRO 标志。"
+                ) {
+                    supporterBadgePromptDismissTask?.cancel()
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        supporterBadgePromptPresented = false
+                    }
+                    supportUsPresented = true
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
+                .transition(.scale(scale: 0.88).combined(with: .opacity))
+                .zIndex(100)
+            }
         }
     }
 
     private var maintenanceStatement: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ViewThatFits(in: .horizontal) {
-                Text(LocalizedStringKey(Self.maintenanceStatementText))
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-
-                VStack(spacing: 2) {
-                    Text(LocalizedStringKey(Self.maintenanceStatementFirstLine))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Text(LocalizedStringKey(Self.maintenanceStatementContinuation))
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-            }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        Text(LocalizedStringKey(Self.maintenanceStatementText))
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.tertiary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, 4)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Self.maintenanceStatementText)
+    }
+
+    private var projectSupportSection: some View {
+        VStack(spacing: 0) {
+            supportCraftButton
+                .padding(8)
+
+            Divider()
+                .padding(.horizontal, 18)
 
             Button {
                 sourceRepositoryConfirmationPresented = true
@@ -173,13 +251,64 @@ struct SettingsView: View {
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 18)
                 .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("打开灵动照片 GitHub 开源地址")
             .accessibilityHint("确认后将在系统默认浏览器中打开；本应用不会联网")
         }
+        .background(Color(UIColor.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+    }
+
+    private var supportCraftButton: some View {
+        Button {
+            supportUsPresented = true
+        } label: {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(spacing: 8) {
+                        Text((supporterUnlocked ? "感谢支持" : "支持我们").appLocalized)
+                            .font(.system(size: 20, weight: .black, design: .rounded))
+                        ProBadge(compact: true)
+                    }
+
+                    Text((supporterUnlocked
+                         ? "所有PRO功能都已解锁"
+                         : "开源项目 · 持续维护").appLocalized)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.68))
+                }
+
+                Spacer(minLength: 4)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 18)
+            .frame(maxWidth: .infinity, minHeight: 116, alignment: .leading)
+            .background {
+                ZStack {
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.08, green: 0.22, blue: 0.25),
+                            Color(red: 0.20, green: 0.38, blue: 0.41),
+                            Color(red: 0.38, green: 0.24, blue: 0.27)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+
+                    SupportCraftSheen(reduceMotion: reduceMotion)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 23, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 23, style: .continuous)
+                    .stroke(.white.opacity(0.16), lineWidth: 0.8)
+            }
+            .shadow(color: Color(red: 0.12, green: 0.35, blue: 0.38).opacity(0.18), radius: 16, y: 8)
+            .contentShape(RoundedRectangle(cornerRadius: 23, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel((supporterUnlocked ? "感谢支持，支持者礼物已解锁" : "支持我们，了解支持者礼物").appLocalized)
     }
 
     private var supportAndContactSection: some View {
@@ -194,7 +323,7 @@ struct SettingsView: View {
                         .foregroundStyle(Color.primary)
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("评分来支持我们")
+                        Text("评分")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.primary)
                         Text("前往 App Store 为灵动照片评分")
@@ -350,6 +479,15 @@ struct SettingsView: View {
                     value: $useLiteraryColorNames
                 )
                 sectionDivider
+                toggleRow(
+                    symbol: "text.book.closed",
+                    title: "以二十四节气替换",
+                    subtitle: "节气匹配色名可直接使用；\n可考出处需",
+                    showsProBadge: true,
+                    showsNewBadge: true,
+                    value: poeticNamesBinding
+                )
+                sectionDivider
                 toggleRow(symbol: "square", title: "导出图保留色盘背景", value: $preservePaletteBackground)
                 sectionDivider
                 SettingRow(
@@ -365,13 +503,125 @@ struct SettingsView: View {
     }
 
     private var interfaceOptions: some View {
-        settingsSection("界面选项") {
-            toggleRow(
-                symbol: "textformat",
-                title: "显示应用标题",
-                subtitle: "控制编辑界面左上角是否显示“灵动照片”，不影响导出作品。",
-                value: $showAppTitle
-            )
+        VStack(spacing: 10) {
+            settingsSection("界面选项") {
+                VStack(spacing: 0) {
+                    Button { applicationIconPickerPresented = true } label: {
+                        SettingRow(symbol: "app.badge", title: "更换应用图标", showsProBadge: true) {
+                            HStack(spacing: 9) {
+                                CurrentApplicationIcon()
+                                    .frame(width: 32, height: 32)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.bold)).foregroundStyle(.tertiary)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("settings.appIcon")
+                    sectionDivider
+
+                    Button { modeLauncherPickerPresented = true } label: {
+                        SettingRow(
+                            symbol: "rectangle.topthird.inset.filled",
+                            title: "模式入口方式",
+                            subtitle: "在浮光菜单与灵屿展开之间切换。"
+                        ) {
+                            HStack(spacing: 7) {
+                                Text(currentModeLauncherStyle.title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.bold)).foregroundStyle(.tertiary)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("settings.modeLauncher")
+                    sectionDivider
+
+                    Button {
+                        emptyCanvasThemePickerPresented = true
+                    } label: {
+                        SettingRow(
+                            symbol: "paintpalette",
+                            title: "空白主界面配色",
+                            subtitle: "调整尚未选择照片时所有功能主页的背景。",
+                            showsNewBadge: true
+                        ) {
+                            HStack(spacing: 9) {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(emptyCanvasTheme.gradient)
+                                    .frame(width: 32, height: 32)
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                            .stroke(.primary.opacity(0.12), lineWidth: 0.7)
+                                    }
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    sectionDivider
+
+                    toggleRow(
+                        symbol: "textformat",
+                        title: "显示应用标题",
+                        subtitle: "控制编辑界面左上角是否显示“灵动照片”，不影响导出作品。",
+                        value: $showAppTitle
+                    )
+
+                    sectionDivider
+
+                    Button(action: handleSupporterBadgeSettingTap) {
+                        SettingRow(
+                            symbol: "checkmark.seal",
+                            title: "显示支持者 PRO 标志",
+                            subtitle: "控制 PRO 标志在编辑页标题区域的显示。",
+                            usesProBadgeAsSymbol: true
+                        ) {
+                            SupporterLockedSwitch(
+                                isOn: supporterUnlocked && showSupporterBadge,
+                                isLocked: !supporterUnlocked
+                            )
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("显示支持者 Pro 标志")
+                    .accessibilityValue((supporterUnlocked ? (showSupporterBadge ? "已开启" : "已关闭") : "需支持我们后开启").appLocalized)
+                }
+            }
+
+        }
+        .animation(.spring(response: 0.34, dampingFraction: 0.84), value: supporterBadgePromptPresented)
+    }
+
+    private func handleSupporterBadgeSettingTap() {
+        if supporterUnlocked {
+            withAnimation(.snappy(duration: 0.24)) {
+                showSupporterBadge.toggle()
+            }
+            UISelectionFeedbackGenerator().selectionChanged()
+        } else {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            supporterBadgePromptDismissTask?.cancel()
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
+                supporterBadgePromptPresented = true
+            }
+            supporterBadgePromptDismissTask = Task {
+                try? await Task.sleep(nanoseconds: 6_000_000_000)
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: 0.24)) {
+                    supporterBadgePromptPresented = false
+                }
+            }
         }
     }
 
@@ -417,28 +667,6 @@ struct SettingsView: View {
     private var motionTips: some View {
         settingsSection("灵动卡片操作技巧") {
             VStack(spacing: 0) {
-                templateRow
-                sectionDivider
-                SettingRow(
-                    symbol: motionCardHeaderStyle.symbol,
-                    title: "顶部背景",
-                    subtitle: templateStyle == .immersive
-                        ? "沉浸模板没有独立顶部区域；切换为经典或留白模板后生效。"
-                        : "取色渐变会从照片代表色生成平滑过渡，并自动选择清晰的文字颜色。"
-                ) {
-                    Picker("顶部背景", selection: $motionCardHeaderStyle) {
-                        ForEach(MotionCardHeaderStyle.allCases) { style in
-                            Text(LocalizedStringKey(style.rawValue)).tag(style)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .tint(.blue)
-                    .disabled(templateStyle == .immersive)
-                }
-                sectionDivider
-                ratioRow
-                sectionDivider
                 tipRow(symbol: "arrow.up.and.down.and.arrow.left.and.right", text: "拖拽图片调整构图，双指捏合缩放")
                 sectionDivider
                 tipRow(symbol: "keyboard", text: "点击文字即可直接编辑")
@@ -448,20 +676,6 @@ struct SettingsView: View {
                 tipRow(symbol: "textformat.size", text: "调节大小：在文字下方空白处左右滑动")
                 sectionDivider
                 tipRow(symbol: "iphone.radiowaves.left.and.right", text: "晃动手机以恢复卡片初始视图")
-                sectionDivider
-                toggleRow(
-                    symbol: "quote.opening",
-                    title: "总是显示意境文案",
-                    subtitle: "即使图片存在位置信息，也优先显示根据画面内容与色彩生成的意境文案。",
-                    value: $showMoodCopy
-                )
-                sectionDivider
-                toggleRow(
-                    symbol: "calendar",
-                    title: "显示缺失拍摄时间提示",
-                    subtitle: "关闭后，照片没有日期信息时不显示“拍摄时间未记录”。",
-                    value: $showMissingCaptureTime
-                )
             }
         }
     }
@@ -470,10 +684,6 @@ struct SettingsView: View {
         settingsSection("气泡印章操作技巧") {
             VStack(spacing: 0) {
                 cameraWatermarkNavigationRow
-                sectionDivider
-                templateRow
-                sectionDivider
-                ratioRow
                 sectionDivider
                 tipRow(symbol: "arrow.up.and.down.and.arrow.left.and.right", text: "拖拽图片调整构图，双指捏合缩放")
                 sectionDivider
@@ -484,15 +694,6 @@ struct SettingsView: View {
                 tipRow(symbol: "textformat.size", text: "调节大小：在文字下方空白处左右滑动")
                 sectionDivider
                 tipRow(symbol: "bubbles.and.sparkles", text: "调节气泡大小：在气泡左侧空白区域上下滑动")
-                sectionDivider
-                toggleRow(
-                    symbol: "iphone",
-                    title: "显示手机和相机信息",
-                    subtitle: "根据照片 EXIF 自动识别设备类别、厂商与型号",
-                    value: $showDeviceInfo
-                )
-                sectionDivider
-                toggleRow(symbol: "seal", title: "显示气泡", value: $showBubbles)
             }
         }
     }
@@ -543,17 +744,6 @@ struct SettingsView: View {
             VStack(spacing: 0) {
                 tipRow(symbol: "info.circle", text: "使用顶部加号继续添加，选中缩略图后可替换、重排或删除；点击 Emoji 或文案可直接编辑")
                 sectionDivider
-                SettingRow(symbol: "square.grid.2x2", title: "拼图模板") {
-                    Picker("拼图模板", selection: $journalLayout) {
-                        ForEach(JournalLayoutMode.allCases) { layout in
-                            Text(LocalizedStringKey(layout.rawValue)).tag(layout)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .tint(.blue)
-                }
-                sectionDivider
                 ratioRow
                 sectionDivider
                 toggleRow(symbol: "livephoto", title: "支持 Live 图", value: $supportsLivePhotos)
@@ -568,7 +758,7 @@ struct SettingsView: View {
             VStack(spacing: 0) {
                 tipRow(symbol: "info.circle", text: "生成的壁纸仅适配当前设备尺寸")
                 sectionDivider
-                tipRow(symbol: "c.circle", text: "本应用完全免费；版权所有，禁止商业转售")
+                tipRow(symbol: "c.circle", text: "项目源代码公开；请通过官方渠道获取应用")
             }
         }
     }
@@ -604,23 +794,33 @@ struct SettingsView: View {
         }
     }
 
-    private var templateRow: some View {
-        SettingRow(symbol: templateStyle.symbol, title: "作品模板") {
-            Picker("作品模板", selection: $templateStyle) {
-                ForEach(ArtworkTemplateStyle.allCases) { style in
-                    Label(LocalizedStringKey(style.rawValue), systemImage: style.symbol).tag(style)
-                }
-            }
-            .labelsHidden()
-            .pickerStyle(.menu)
-            .tint(.blue)
-        }
-    }
-
     private var paletteLayoutBinding: Binding<PaletteLayoutMode> {
         Binding(
             get: { PaletteLayoutMode(rawValue: paletteLayoutRaw) ?? .floating },
             set: { paletteLayoutRaw = $0.rawValue }
+        )
+    }
+
+    private var poeticNamesBinding: Binding<Bool> {
+        Binding(
+            get: { poeticNamesEnabled },
+            set: { newValue in
+                poeticNamesEnabled = newValue
+                if newValue {
+                    poeticNamesNoticePresented = true
+                }
+            }
+        )
+    }
+
+    private var emptyCanvasTheme: EmptyCanvasTheme {
+        EmptyCanvasTheme(rawValue: emptyCanvasThemeRaw) ?? .sky
+    }
+
+    private var emptyCanvasThemeBinding: Binding<EmptyCanvasTheme> {
+        Binding(
+            get: { emptyCanvasTheme },
+            set: { emptyCanvasThemeRaw = $0.rawValue }
         )
     }
 
@@ -632,9 +832,17 @@ struct SettingsView: View {
         symbol: String,
         title: String,
         subtitle: String? = nil,
+        showsProBadge: Bool = false,
+        showsNewBadge: Bool = false,
         value: Binding<Bool>
     ) -> some View {
-        SettingRow(symbol: symbol, title: title, subtitle: subtitle) {
+        SettingRow(
+            symbol: symbol,
+            title: title,
+            subtitle: subtitle,
+            showsProBadge: showsProBadge,
+            showsNewBadge: showsNewBadge
+        ) {
             Toggle(title, isOn: value)
                 .labelsHidden()
         }
@@ -670,37 +878,368 @@ struct SettingsView: View {
     }
 }
 
+struct SupporterLockedSwitch: View {
+    let isOn: Bool
+    let isLocked: Bool
+
+    var body: some View {
+        Toggle("", isOn: .constant(isOn))
+            .labelsHidden()
+            .tint(Color(red: 0.34, green: 0.72, blue: 0.70))
+            .allowsHitTesting(false)
+            .overlay {
+                if isLocked {
+                    GeometryReader { geometry in
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .position(
+                                x: isOn ? geometry.size.width - 20 : 20,
+                                y: geometry.size.height / 2
+                            )
+                    }
+                    .allowsHitTesting(false)
+                }
+            }
+        .accessibilityHidden(true)
+    }
+}
+
+struct SupporterProUnlockPrompt: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let message: String
+    let onOpen: () -> Void
+
+    var body: some View {
+        HStack(spacing: 11) {
+            AnimatedSupporterProBadge()
+                .frame(width: 44, height: 44)
+
+            Text(LocalizedStringKey(message))
+                .font(.system(size: 13.5, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.94))
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button("打开", action: onOpen)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(Color(red: 0.55, green: 0.88, blue: 0.92))
+                .buttonStyle(.plain)
+                .padding(.leading, 2)
+        }
+        .padding(.leading, 10)
+        .padding(.trailing, 17)
+        .padding(.vertical, 10)
+        .background(
+            colorScheme == .dark
+                ? Color(red: 0.10, green: 0.11, blue: 0.12)
+                : Color(red: 0.33, green: 0.34, blue: 0.36),
+            in: RoundedRectangle(cornerRadius: 27, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 27, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.16), Color(red: 0.48, green: 0.80, blue: 0.82).opacity(0.22)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.7
+                )
+        }
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.32 : 0.18), radius: 18, y: 8)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+struct AnimatedSupporterProBadge: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var startedAt = Date()
+
+    private let letters = Array("PRO")
+    private let cycleDuration = 1.55
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { timeline in
+            let elapsed = timeline.date.timeIntervalSince(startedAt)
+            let time = elapsed.truncatingRemainder(dividingBy: cycleDuration)
+
+            HStack(spacing: 0.8) {
+                ForEach(letters.indices, id: \.self) { index in
+                    Text(String(letters[index]))
+                        .font(.system(size: 8.5, weight: .black, design: .rounded))
+                        .scaleEffect(reduceMotion ? 1 : letterScale(index: index, time: time))
+                }
+            }
+            .tracking(0.15)
+            .foregroundStyle(Color(red: 0.08, green: 0.16, blue: 0.20))
+            .frame(width: 37, height: 21)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.67, green: 0.90, blue: 0.92),
+                        Color(red: 0.95, green: 0.78, blue: 0.66)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ),
+                in: Capsule()
+            )
+            .overlay(Capsule().stroke(.white.opacity(0.68), lineWidth: 0.65))
+            .shadow(color: Color(red: 0.48, green: 0.78, blue: 0.82).opacity(0.24), radius: 6, y: 2)
+        }
+        .frame(width: 42, height: 42)
+        .onAppear { startedAt = Date() }
+        .accessibilityHidden(true)
+    }
+
+    private func letterScale(index: Int, time: TimeInterval) -> CGFloat {
+        let centers = [0.22, 0.52, 0.82]
+        let distance = abs(time - centers[index])
+        let wrappedDistance = min(distance, cycleDuration - distance)
+        let linearPulse = max(0, 1 - wrappedDistance / 0.31)
+        let easedPulse = 0.5 - 0.5 * cos(.pi * linearPulse)
+        return 1 + 0.20 * easedPulse
+    }
+}
+
+private struct EmptyCanvasThemePicker: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding private var selection: EmptyCanvasTheme
+    @State private var draft: EmptyCanvasTheme
+
+    private let columns = Array(
+        repeating: GridItem(.flexible(), spacing: 11),
+        count: 3
+    )
+
+    init(selection: Binding<EmptyCanvasTheme>) {
+        _selection = selection
+        _draft = State(initialValue: selection.wrappedValue)
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 8) {
+                        Text("主界面调色盘")
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                        NewBadge()
+                    }
+                    Text("选择尚未添加照片时的主页釉彩")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Button(action: dismiss.callAsFunction) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .frame(width: 38, height: 38)
+                        .background(.primary.opacity(0.06), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("取消选择主界面配色")
+            }
+
+            LazyVGrid(columns: columns, spacing: 11) {
+                ForEach(EmptyCanvasTheme.allCases) { theme in
+                    Button {
+                        withAnimation(.snappy(duration: 0.24)) {
+                            draft = theme
+                        }
+                        UISelectionFeedbackGenerator().selectionChanged()
+                    } label: {
+                        ZStack(alignment: .bottomLeading) {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(theme.gradient)
+
+                            LinearGradient(
+                                colors: [.clear, .black.opacity(0.34)],
+                                startPoint: .center,
+                                endPoint: .bottom
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                            Text(LocalizedStringKey(theme.rawValue))
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.92))
+                                .padding(10)
+
+                            if draft == theme {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .symbolRenderingMode(.palette)
+                                    .foregroundStyle(.white, .black.opacity(0.38))
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                                    .padding(8)
+                            }
+                        }
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(
+                                    draft == theme ? .white.opacity(0.88) : .white.opacity(0.15),
+                                    lineWidth: draft == theme ? 2 : 0.7
+                                )
+                        }
+                        .scaleEffect(draft == theme ? 0.96 : 1)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(theme.rawValue)主界面配色")
+                    .accessibilityAddTraits(draft == theme ? .isSelected : [])
+                }
+            }
+
+            Button {
+                selection = draft
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                dismiss()
+            } label: {
+                Text("确认应用 · \(draft.rawValue)")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(draft.gradient, in: Capsule())
+                    .overlay(Capsule().stroke(.white.opacity(0.28), lineWidth: 0.8))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 18)
+        .padding(.bottom, 16)
+    }
+}
+
+private struct SupportCraftSheen: View {
+    let reduceMotion: Bool
+
+    @State private var startedAt = Date()
+
+    private let cycleDuration = 2.8
+    private let activeStart = 0.65
+    private let activeDuration = 1.25
+
+    var body: some View {
+        GeometryReader { geometry in
+            TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: reduceMotion)) { timeline in
+                let elapsed = timeline.date.timeIntervalSince(startedAt)
+                let phase = elapsed.truncatingRemainder(dividingBy: cycleDuration)
+                let isActive = phase >= activeStart && phase <= activeStart + activeDuration
+                let progress = min(max((phase - activeStart) / activeDuration, 0), 1)
+                let bandWidth = geometry.size.width * 0.32
+                let travelStart = -bandWidth * 0.45
+                let travelEnd = geometry.size.width + bandWidth * 0.45
+                let centerX = travelStart + (travelEnd - travelStart) * progress
+                let fadeIn = min(progress / 0.14, 1)
+                let fadeOut = min((1 - progress) / 0.18, 1)
+                let envelope = isActive ? min(fadeIn, fadeOut) : 0
+
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .white.opacity(0.02), location: 0.15),
+                        .init(color: .white.opacity(0.10), location: 0.34),
+                        .init(color: .white.opacity(0.32), location: 0.50),
+                        .init(color: .white.opacity(0.10), location: 0.66),
+                        .init(color: .white.opacity(0.02), location: 0.85),
+                        .init(color: .clear, location: 1)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: bandWidth, height: geometry.size.height * 2.6)
+                .blur(radius: 12)
+                .rotationEffect(.degrees(8))
+                .position(x: centerX, y: geometry.size.height / 2)
+                .opacity(reduceMotion ? 0 : envelope)
+                .drawingGroup()
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 struct SettingRow<Trailing: View>: View {
     let symbol: String
     let title: String
     var subtitle: String?
+    var showsProBadge = false
+    var showsNewBadge = false
+    var usesProBadgeAsSymbol = false
     @ViewBuilder let trailing: () -> Trailing
 
     init(
         symbol: String,
         title: String,
         subtitle: String? = nil,
+        showsProBadge: Bool = false,
+        showsNewBadge: Bool = false,
+        usesProBadgeAsSymbol: Bool = false,
         @ViewBuilder trailing: @escaping () -> Trailing
     ) {
         self.symbol = symbol
         self.title = title
         self.subtitle = subtitle
+        self.showsProBadge = showsProBadge
+        self.showsNewBadge = showsNewBadge
+        self.usesProBadgeAsSymbol = usesProBadgeAsSymbol
         self.trailing = trailing
     }
 
     var body: some View {
         HStack(spacing: 16) {
-            Image(systemName: symbol)
-                .font(.system(size: 18, weight: .medium))
-                .frame(width: 34)
+            Group {
+                if usesProBadgeAsSymbol {
+                    ProBadge()
+                        .fixedSize()
+                } else {
+                    Image(systemName: symbol)
+                        .font(.system(size: 18, weight: .medium))
+                }
+            }
+            .frame(width: 34)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(LocalizedStringKey(title))
-                    .font(.subheadline)
+                HStack(spacing: 7) {
+                    Text(LocalizedStringKey(title))
+                        .font(.subheadline)
+                    if showsNewBadge {
+                        NewBadge()
+                            .fixedSize()
+                    }
+                }
                 if let subtitle {
-                    Text(LocalizedStringKey(subtitle))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    let lines = subtitle.split(separator: "\n", omittingEmptySubsequences: false)
+                    if showsProBadge, lines.count > 1 {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(LocalizedStringKey(String(lines[0])))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            HStack(alignment: .center, spacing: 6) {
+                                Text(LocalizedStringKey(lines.dropFirst().map(String.init).joined(separator: "\n")))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                ProBadge(compact: true)
+                                    .fixedSize()
+                            }
+                        }
+                    } else {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(LocalizedStringKey(subtitle))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if showsProBadge {
+                                ProBadge(compact: true)
+                                    .fixedSize()
+                            }
+                        }
+                    }
                 }
             }
 

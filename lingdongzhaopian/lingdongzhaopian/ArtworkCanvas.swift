@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2026 LocalLens-Project
-// SPDX-License-Identifier: AGPL-3.0-only
-
 import SwiftUI
 import UIKit
 
@@ -31,6 +28,7 @@ struct ArtworkCanvas: View {
     var paletteOffset: CGFloat = 0
     var paletteLayout: PaletteLayoutMode = .floating
     var useLiteraryColorNames = false
+    var usePoeticColorNames = false
     var preservePaletteBackground = true
     var applyLiquidGlassOnExport = true
     var isExporting = false
@@ -51,6 +49,19 @@ struct ArtworkCanvas: View {
     var sketchImage: UIImage? = nil
     var showsColorPaletteOverlay = true
     var lightToneOverlay: UIImage? = nil
+    var glassArchiveMark: GlassArchiveMark = .apple
+
+    var glassArchiveHidesMissingTime = false
+
+    var glassArchiveShowsLocation = true
+
+    var featurePaletteSide: FeaturePaletteSide = .bottom
+    var featurePaletteBandRatio: Double = 0.295
+    var featurePaletteSwatchOrder: [Int] = []
+    var featurePaletteSwatchMove: ((Int, Int) -> Void)? = nil
+    var featurePaletteBandRectChange: ((CGRect?) -> Void)? = nil
+    var featureCalendarCity: String?
+    var featureCalendarShowsLocation = true
 
     private var colors: [RGBColor] {
         let base = palette.isEmpty ? RGBColor.fallback : palette
@@ -133,6 +144,7 @@ struct ArtworkCanvas: View {
         case .bubbleStamp: 0
         case .spectrumWallpaper: 28
         case .travelTicket: 0
+        case .glassArchive, .paletteCard, .monthlyCalendar: 0
         default: 22
         }
     }
@@ -174,6 +186,36 @@ struct ArtworkCanvas: View {
             travelTicket(size: size)
         case .sketch:
             sketch(size: size)
+        case .glassArchive:
+            glassArchive(size: size)
+        case .paletteCard:
+            if let image = images.first {
+                PaletteCardCanvas(
+                    image: image,
+                    palette: palette,
+                    side: featurePaletteSide,
+                    bandRatio: featurePaletteBandRatio,
+                    percentages: palettePercentages,
+                    swatchOrder: featurePaletteSwatchOrder,
+                    showHexValues: showHexValues,
+                    useLiteraryColorNames: useLiteraryColorNames,
+                    usePoeticColorNames: usePoeticColorNames,
+                    showPalettePercentages: showPalettePercentages,
+                    isExporting: isExporting,
+                    onMoveSwatch: featurePaletteSwatchMove,
+                    onBandRectChange: featurePaletteBandRectChange
+                )
+            } else {
+                Color.clear
+            }
+        case .monthlyCalendar:
+            if let image = images.first {
+                MonthlyCalendarCanvas(image: image, palette: palette,
+                                      captureDate: metadata.captureDate, cityName: featureCalendarCity,
+                                      showsLocation: featureCalendarShowsLocation)
+            } else {
+                Color.clear
+            }
         }
     }
 
@@ -747,6 +789,7 @@ struct ArtworkCanvas: View {
     }
 
     private func colorPalette(size: CGSize) -> some View {
+        let usesLandscapeStrip = size.width > size.height * 1.18
         let visiblePaletteOffset = PalettePanelGeometry.clampedOffset(
             paletteOffset,
             in: size,
@@ -773,14 +816,17 @@ struct ArtworkCanvas: View {
 
             if showsColorPaletteOverlay {
                 VStack(spacing: 0) {
-                    if paletteLayout == .bottom { Spacer() }
+                    if paletteLayout == .bottom || usesLandscapeStrip { Spacer() }
 
                     palettePanel(size: size)
-                        .scaleEffect(paletteRevealStage >= 1 ? 1 : 0.86, anchor: paletteLayout == .bottom ? .bottom : .top)
+                        .scaleEffect(
+                            paletteRevealStage >= 1 ? 1 : 0.86,
+                            anchor: paletteLayout == .bottom || usesLandscapeStrip ? .bottom : .top
+                        )
                         .opacity(paletteRevealStage >= 1 ? 1 : 0)
                         .offset(y: visiblePaletteOffset)
 
-                    if paletteLayout != .bottom { Spacer() }
+                    if paletteLayout != .bottom, !usesLandscapeStrip { Spacer() }
                 }
                 .padding(.vertical, PalettePanelGeometry.verticalInset)
             }
@@ -811,8 +857,15 @@ struct ArtworkCanvas: View {
 
     @ViewBuilder
     private func palettePanel(size: CGSize) -> some View {
-        let isCompact = paletteLayout == .compact
+        let usesLandscapeStrip = size.width > size.height * 1.18
+        let isCompact = paletteLayout == .compact || usesLandscapeStrip
         let panelSize = PalettePanelGeometry.size(in: size, layout: paletteLayout)
+        let poeticEntries = usePoeticColorNames
+            ? TraditionalColorLexicon.uniqueMatches(
+                colors: Array(paletteSwatchColors.prefix(6)),
+                percentages: Array(percentages.prefix(6))
+            )
+            : []
         let panel = Group {
             if isCompact {
                 HStack(spacing: 4) {
@@ -820,13 +873,16 @@ struct ArtworkCanvas: View {
                         paletteSwatch(
                             index: index,
                             color: color,
+                            poeticName: poeticEntries.indices.contains(index)
+                                ? poeticEntries[index].localizedName
+                                : nil,
                             referenceWidth: panelSize.width,
                             compact: true
                         )
                     }
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 11)
+                .padding(.horizontal, usesLandscapeStrip ? 12 : 10)
+                .padding(.vertical, usesLandscapeStrip ? 8 : 11)
             } else {
                 let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
                 LazyVGrid(columns: columns, spacing: 11) {
@@ -834,6 +890,9 @@ struct ArtworkCanvas: View {
                         paletteSwatch(
                             index: index,
                             color: color,
+                            poeticName: poeticEntries.indices.contains(index)
+                                ? poeticEntries[index].localizedName
+                                : nil,
                             referenceWidth: panelSize.width,
                             compact: false
                         )
@@ -857,17 +916,14 @@ struct ArtworkCanvas: View {
                 .palettePanelOutline(colors: paletteSwatchColors)
         } else {
             panel
-                .liquidGlass(
-                    in: RoundedRectangle(cornerRadius: 22, style: .continuous),
-                    variant: .clear
-                )
-                .palettePanelOutline(colors: paletteSwatchColors)
+                .paletteLiquidGlassPanel(colors: paletteSwatchColors)
         }
     }
 
     private func paletteSwatch(
         index: Int,
         color: RGBColor,
+        poeticName: String?,
         referenceWidth: CGFloat,
         compact: Bool
     ) -> some View {
@@ -878,12 +934,16 @@ struct ArtworkCanvas: View {
                 .fill(color.color)
                 .frame(width: diameter, height: diameter)
                 .shadow(color: .black.opacity(0.12), radius: 7, y: 4)
-            if showHexValues || useLiteraryColorNames {
-                Text(useLiteraryColorNames ? color.literaryName : color.hex)
+            if showHexValues || useLiteraryColorNames || usePoeticColorNames {
+                Text(
+                    usePoeticColorNames
+                        ? (poeticName ?? color.poeticEntry().localizedName)
+                        : (useLiteraryColorNames ? color.literaryName : color.hex)
+                )
                     .font(.system(
                         size: max(5, referenceWidth * (compact ? 0.015 : 0.022)),
-                        weight: useLiteraryColorNames ? .semibold : .regular,
-                        design: useLiteraryColorNames ? .rounded : .monospaced
+                        weight: (useLiteraryColorNames || usePoeticColorNames) ? .semibold : .regular,
+                        design: (useLiteraryColorNames || usePoeticColorNames) ? .rounded : .monospaced
                     ))
                     .foregroundStyle(.white.opacity(0.90))
                     .lineLimit(1)
@@ -1117,6 +1177,14 @@ struct ArtworkCanvas: View {
                     )
                     .shadow(color: .white.opacity(0.16), radius: 0.8)
                     .shadow(color: .black.opacity(0.42), radius: 2.2, y: 1)
+            } else if showDeviceInfo, GlassArchiveMarkResolver.isAppleDevice(
+                metadata.captureDevice.displayName
+            ) {
+
+                Image(systemName: "applelogo")
+                    .font(.system(size: diameter, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: diameter, height: diameter)
             } else {
                 ZStack {
                     Circle().fill(fill)
@@ -1157,6 +1225,125 @@ struct ArtworkCanvas: View {
             multiplier = 1
         }
         return height * multiplier
+    }
+
+    private func glassArchive(size: CGSize) -> some View {
+        let barFrame = GlassArchiveBarGeometry.barFrame(in: size)
+        let barHeight = barFrame.height
+        let deviceName = metadata.captureDevice.displayName
+            ?? "未知设备".appLocalized
+        let recordedTime = metadata.archiveTimeText
+
+        let hidesMissingTime = recordedTime == nil && glassArchiveHidesMissingTime
+        let timeText = recordedTime ?? "时间未记录".appLocalized
+        let settingsLine = metadata.archiveSettingsLine
+        let coordinateLine = glassArchiveShowsLocation
+            ? metadata.archiveCoordinateLine
+            : nil
+
+        let bar = HStack(spacing: barHeight * 0.18) {
+            VStack(alignment: .leading, spacing: barHeight * 0.05) {
+
+                Text(LocalizedStringKey(deviceName))
+                    .font(.system(size: barHeight * 0.20, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.4)
+                    .allowsTightening(true)
+                if !hidesMissingTime {
+                    Text(LocalizedStringKey(timeText))
+                        .font(.system(size: barHeight * 0.185, weight: .medium))
+                        .opacity(0.82)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.4)
+                        .allowsTightening(true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if glassArchiveMark != .none {
+                glassArchiveMarkView(height: barHeight * 0.50)
+
+                Rectangle()
+                    .fill(.white.opacity(0.35))
+                    .frame(width: 1, height: barHeight * 0.50)
+            }
+
+            VStack(alignment: .leading, spacing: barHeight * 0.05) {
+                if let settingsLine {
+                    Text(settingsLine)
+                        .font(.system(size: barHeight * 0.23, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .allowsTightening(true)
+                }
+                if let coordinateLine {
+                    Text(coordinateLine)
+                        .font(.system(size: barHeight * 0.225, weight: .medium))
+                        .opacity(0.82)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .allowsTightening(true)
+                }
+                if settingsLine == nil && coordinateLine == nil {
+                    Text("拍摄信息未记录".appLocalized)
+                        .font(.system(size: barHeight * 0.24, weight: .medium))
+                        .opacity(0.72)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, barHeight * 0.34)
+        .frame(width: barFrame.width, height: barHeight)
+        .background {
+            if isExporting {
+                Capsule()
+                    .fill(.black.opacity(0.30))
+            }
+        }
+
+        .liquidGlass(in: Capsule(), variant: .clear)
+        .shadow(color: .black.opacity(0.20), radius: 12, y: 5)
+        .position(x: barFrame.midX, y: barFrame.midY)
+
+        return ZStack {
+            primaryPhoto(size: size, cornerRadius: 0)
+
+            bar
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "琉璃档案预览，\(deviceName)，\(timeText)，双击中间标志可更换标志"
+        )
+    }
+
+    @ViewBuilder
+    private func glassArchiveMarkView(height: CGFloat) -> some View {
+        if glassArchiveMark == .camera, let cameraWatermarkImage {
+            Group {
+                if cameraWatermarkImage.renderingMode == .alwaysOriginal {
+                    Image(uiImage: cameraWatermarkImage)
+                        .resizable()
+                } else {
+                    Image(uiImage: cameraWatermarkImage.withRenderingMode(.alwaysTemplate))
+                        .resizable()
+                        .foregroundStyle(.white)
+                }
+            }
+            .scaledToFit()
+            .frame(
+                width: customWatermarkWidth(for: cameraWatermarkImage, height: height),
+                height: height
+            )
+            .shadow(color: .black.opacity(0.30), radius: 2, y: 1)
+        } else {
+            Image(systemName: "applelogo")
+                .font(.system(size: height * 0.86, weight: .medium))
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.30), radius: 2, y: 1)
+        }
     }
 
     private func spectrumWallpaper(size: CGSize) -> some View {
@@ -1422,8 +1609,7 @@ private struct TicketScallopedPanel: View {
         Canvas { context, size in
             let count = max(1, scallopCount)
             let step = size.height / CGFloat(count)
-            // Adjacent circles meet exactly, forming one uninterrupted
-            // perforated edge instead of separate bumps.
+
             let radius = step * 0.50
             let panelRect = CGRect(
                 x: 0,
@@ -1443,29 +1629,5 @@ private struct TicketScallopedPanel: View {
                 context.fill(Path(ellipseIn: scallop), with: .color(color))
             }
         }
-    }
-}
-
-private extension View {
-    func palettePanelOutline(colors: [RGBColor]) -> some View {
-        self
-            .overlay {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                .white.opacity(0.58),
-                                (colors.first ?? RGBColor.fallback[0]).adjusted(brightness: 0.18).color.opacity(0.34),
-                                .white.opacity(0.12)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-                    .padding(1)
-                    .allowsHitTesting(false)
-            }
-            .shadow(color: .black.opacity(0.13), radius: 13, y: 7)
     }
 }

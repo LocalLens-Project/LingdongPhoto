@@ -31,9 +31,12 @@ private enum ArtworkExportQuality: String, CaseIterable, Identifiable {
 
 struct ColorRelationshipFeatureView: View {
     let onOpenModeSelection: () -> Void
+    var showsModeSelectionButton = true
+    var onPaletteChange: (([PaletteColor]) -> Void)? = nil
     @Environment(\.colorScheme) private var systemColorScheme
     @AppStorage("comparisonExportShowsPhotoLabels") private var comparisonExportShowsPhotoLabels = true
     @AppStorage("colorRelationshipExportQuality") private var exportQuality: ArtworkExportQuality = .highDefinition
+    @AppStorage("emptyCanvasTheme") private var emptyCanvasThemeRaw = EmptyCanvasTheme.sky.rawValue
     @State private var photos: [RelationshipPhoto] = []
     @State private var relationship: ColorRelationship?
     @State private var lens: RelationshipLens = .resonance
@@ -70,6 +73,7 @@ struct ColorRelationshipFeatureView: View {
         GeometryReader { proxy in
             ZStack {
                 PrototypeAmbientBackground(colors: ambientPalette)
+                    .opacity(showsModeSelectionButton ? 1 : 0)
                 if photos.count == 2, let relationship {
                     editorView(size: proxy.size, relationship: relationship)
                 } else {
@@ -102,7 +106,11 @@ struct ColorRelationshipFeatureView: View {
             }
         }
         .environment(\.colorScheme, .light)
-        .statusBarHidden(true)
+        .statusBarHidden(UIDevice.current.userInterfaceIdiom == .phone)
+
+        .onChange(of: ambientPalette.map { [$0.red, $0.green, $0.blue, $0.weight] }, initial: true) { _, _ in
+            onPaletteChange?(ambientPalette)
+        }
         .sheet(isPresented: $pickerPresented, onDismiss: loadPickerSelections) {
             PrivacyPreservingPhotoPicker(
                 isPresented: $pickerPresented,
@@ -152,7 +160,7 @@ struct ColorRelationshipFeatureView: View {
                 .presentationDetents([.fraction(0.86)])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(38)
-                .presentationBackground(.ultraThinMaterial)
+                .presentationBackground { readableSheetBackground }
             } else {
                 ColorRelationshipWelcomeSheet(
                     onChoosePhotos: {
@@ -168,7 +176,7 @@ struct ColorRelationshipFeatureView: View {
                 .presentationDetents([.height(410)])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(38)
-                .presentationBackground(.ultraThinMaterial)
+                .presentationBackground { readableSheetBackground }
             }
         }
         .sheet(isPresented: $exportOptionsPresented) {
@@ -196,7 +204,7 @@ struct ColorRelationshipFeatureView: View {
             .presentationDetents([.height(485)])
             .presentationDragIndicator(.hidden)
             .presentationCornerRadius(34)
-            .presentationBackground(.ultraThinMaterial)
+            .presentationBackground { readableSheetBackground }
         }
         .sheet(isPresented: $sharePresented, onDismiss: { shareImage = nil }) {
             if let shareImage {
@@ -277,7 +285,21 @@ struct ColorRelationshipFeatureView: View {
 #endif
         }
         .onDisappear {
-            StaticRelationshipPhotoImporter.removeTemporarySources(for: photos)
+
+
+            if showsModeSelectionButton {
+                StaticRelationshipPhotoImporter.removeTemporarySources(for: photos)
+            }
+        }
+    }
+
+
+    private var readableSheetBackground: some View {
+        ZStack {
+            Color(uiColor: .systemBackground)
+                .opacity(systemColorScheme == .dark ? 0.94 : 0.97)
+            Rectangle()
+                .fill(.ultraThinMaterial)
         }
     }
 
@@ -285,7 +307,11 @@ struct ColorRelationshipFeatureView: View {
         if let relationship {
             return relationship.leftPalette + relationship.rightPalette
         }
-        return []
+
+        let theme = EmptyCanvasTheme(rawValue: emptyCanvasThemeRaw) ?? .sky
+        return theme.palette.map {
+            PaletteColor(red: $0.red, green: $0.green, blue: $0.blue, weight: 1)
+        }
     }
 
     private var pickerLimit: Int {
@@ -299,6 +325,8 @@ struct ColorRelationshipFeatureView: View {
         VStack(spacing: 0) {
             HStack(spacing: 6) {
                 Text("灵动照片")
+                    .opacity(showsModeSelectionButton ? 1 : 0)
+                    .accessibilityHidden(!showsModeSelectionButton)
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundStyle(.white.opacity(0.94))
                     .lineLimit(1)
@@ -306,9 +334,11 @@ struct ColorRelationshipFeatureView: View {
 
                 Spacer()
 
-                PrototypeCircleButton(symbol: "square.grid.2x2", action: onOpenModeSelection)
-                    .foregroundStyle(.white.opacity(0.92))
-                    .accessibilityLabel("选择创作模式")
+                if showsModeSelectionButton {
+                    PrototypeCircleButton(symbol: "square.grid.2x2", action: onOpenModeSelection)
+                        .foregroundStyle(.white.opacity(0.92))
+                        .accessibilityLabel("选择创作模式")
+                }
 
                 PrototypeCircleButton(symbol: "gearshape") {
                     settingsPresented = true
@@ -365,18 +395,24 @@ struct ColorRelationshipFeatureView: View {
             left: photos[0].image,
             right: photos[1].image
         )
-        let canvasWidth = min(availableWidth, max(320, size.height - 150) * canvasRatio)
+        let availableHeight = UIDevice.current.userInterfaceIdiom == .pad
+            ? max(1, size.height - 190) : max(320, size.height - 150)
+        let canvasWidth = min(availableWidth, availableHeight * canvasRatio)
         return VStack(spacing: 0) {
             HStack(spacing: 6) {
                 Text("灵动照片")
+                    .opacity(showsModeSelectionButton ? 1 : 0)
+                    .accessibilityHidden(!showsModeSelectionButton)
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.58)
 
                 Spacer()
 
-                PrototypeCircleButton(symbol: "square.grid.2x2", action: onOpenModeSelection)
-                    .accessibilityLabel("选择创作模式")
+                if showsModeSelectionButton {
+                    PrototypeCircleButton(symbol: "square.grid.2x2", action: onOpenModeSelection)
+                        .accessibilityLabel("选择创作模式")
+                }
 
                 PrototypeCircleButton(symbol: "plus") {
                     openPicker(for: .both)

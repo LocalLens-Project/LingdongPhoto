@@ -49,6 +49,58 @@ extension View {
                 .shadow(color: .black.opacity(0.10), radius: 16, y: 8)
         }
     }
+
+    func palettePanelOutline(
+        colors: [RGBColor],
+        cornerRadius: CGFloat = 22,
+        lineWidth: CGFloat = 1,
+        shadowRadius: CGFloat = 13,
+        shadowY: CGFloat = 7
+    ) -> some View {
+        self
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(0.58),
+                                (colors.first ?? RGBColor.fallback[0])
+                                    .adjusted(brightness: 0.18)
+                                    .color
+                                    .opacity(0.34),
+                                .white.opacity(0.12)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: lineWidth
+                    )
+                    .padding(lineWidth)
+                    .allowsHitTesting(false)
+            }
+            .shadow(color: .black.opacity(0.13), radius: shadowRadius, y: shadowY)
+    }
+
+    func paletteLiquidGlassPanel(
+        colors: [RGBColor],
+        cornerRadius: CGFloat = 22,
+        lineWidth: CGFloat = 1,
+        shadowRadius: CGFloat = 13,
+        shadowY: CGFloat = 7
+    ) -> some View {
+        self
+            .liquidGlass(
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous),
+                variant: .clear
+            )
+            .palettePanelOutline(
+                colors: colors,
+                cornerRadius: cornerRadius,
+                lineWidth: lineWidth,
+                shadowRadius: shadowRadius,
+                shadowY: shadowY
+            )
+    }
 }
 
 struct LiquidCircleButton: View {
@@ -328,11 +380,11 @@ struct AmbientBackground: View {
     }
 }
 
-struct FreePromisePill: View {
+struct OpenSourceProjectPill: View {
     var body: some View {
         HStack(spacing: 7) {
             Image(systemName: "checkmark.seal.fill")
-            Text("完全免费 · 谨防被骗")
+            Text("开源项目 · 请认准官方渠道")
                 .fontWeight(.semibold)
         }
         .font(.caption)

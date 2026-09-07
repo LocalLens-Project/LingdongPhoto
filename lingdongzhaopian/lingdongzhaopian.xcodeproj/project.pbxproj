@@ -13,6 +13,10 @@
 		266293A61810BF06D6BA30E2 /* TicketCodeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984E98EBA5407DCD8FF13290 /* TicketCodeRenderer.swift */; };
 		30695E8D2FB49D2204F6B7E6 /* TicketCodeRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984E98EBA5407DCD8FF13290 /* TicketCodeRenderer.swift */; };
 		54ABC64C319CB9CAA65922F0 /* TicketVerificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 897D8DBC3DC1157CF0E159B5 /* TicketVerificationView.swift */; };
+		F0A100000000000000000003 /* OriginalPhotoFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100000000000000000001 /* OriginalPhotoFinder.swift */; };
+		F0A100000000000000000004 /* OriginalPhotoFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100000000000000000001 /* OriginalPhotoFinder.swift */; };
+		F0A100000000000000000007 /* OriginalPhotoFinderCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100000000000000000005 /* OriginalPhotoFinderCore.swift */; };
+		F0A100000000000000000008 /* OriginalPhotoFinderCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100000000000000000005 /* OriginalPhotoFinderCore.swift */; };
 		61908A7F20D57370706570E7 /* TicketClipRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 670ECCEA792F07698153232F /* TicketClipRootView.swift */; };
 		9DF90A16BDA36D5162EE1D0E /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BAC7928C02CC1B7E0F6DFFC7 /* Foundation.framework */; };
 		A1000000000000000000000B /* LingdongShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* LingdongShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -115,6 +119,8 @@
 		670ECCEA792F07698153232F /* TicketClipRootView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TicketClipRootView.swift; sourceTree = "<group>"; };
 		6993F22C7953CF171D806A86 /* TicketPayload.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TicketPayload.swift; sourceTree = "<group>"; };
 		897D8DBC3DC1157CF0E159B5 /* TicketVerificationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TicketVerificationView.swift; sourceTree = "<group>"; };
+		F0A100000000000000000001 /* OriginalPhotoFinder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OriginalPhotoFinder.swift; sourceTree = "<group>"; };
+		F0A100000000000000000005 /* OriginalPhotoFinderCore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OriginalPhotoFinderCore.swift; sourceTree = "<group>"; };
 		97A2AADF17BF830F10B7096F /* LingdongTicketClip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LingdongTicketClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		984E98EBA5407DCD8FF13290 /* TicketCodeRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TicketCodeRenderer.swift; sourceTree = "<group>"; };
 		A10000000000000000000001 /* LingdongShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LingdongShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -300,6 +306,8 @@
 				6993F22C7953CF171D806A86 /* TicketPayload.swift */,
 				984E98EBA5407DCD8FF13290 /* TicketCodeRenderer.swift */,
 				897D8DBC3DC1157CF0E159B5 /* TicketVerificationView.swift */,
+				F0A100000000000000000005 /* OriginalPhotoFinderCore.swift */,
+				F0A100000000000000000001 /* OriginalPhotoFinder.swift */,
 			);
 			path = SharedTicket;
 			sourceTree = "<group>";
@@ -524,6 +532,8 @@
 				05A2842BAFDF93C08B1E0C9E /* TicketPayload.swift in Sources */,
 				266293A61810BF06D6BA30E2 /* TicketCodeRenderer.swift in Sources */,
 				54ABC64C319CB9CAA65922F0 /* TicketVerificationView.swift in Sources */,
+				F0A100000000000000000007 /* OriginalPhotoFinderCore.swift in Sources */,
+				F0A100000000000000000003 /* OriginalPhotoFinder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -536,6 +546,8 @@
 				15D0E990936A3150C13839B0 /* TicketPayload.swift in Sources */,
 				30695E8D2FB49D2204F6B7E6 /* TicketCodeRenderer.swift in Sources */,
 				BF56252D01EFD3FA392F7B18 /* TicketVerificationView.swift in Sources */,
+				F0A100000000000000000008 /* OriginalPhotoFinderCore.swift in Sources */,
+				F0A100000000000000000004 /* OriginalPhotoFinder.swift in Sources */,
 				E20000000000000000000004 /* TicketRevealActivityAttributes.swift in Sources */,
 				E20000000000000000000005 /* TicketRevealLiveActivityController.swift in Sources */,
 			);
@@ -602,7 +614,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/AppClip.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202616;
+				CURRENT_PROJECT_VERSION = 202620;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -615,7 +627,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.clip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -630,7 +642,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -760,8 +772,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIconRibbon AppIconHalo AppIconJournal AppIconOrigami";
 				CODE_SIGN_ENTITLEMENTS = Config/App.entitlements;
-				CURRENT_PROJECT_VERSION = 202616;
+				CURRENT_PROJECT_VERSION = 202620;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/App-Info.plist";
@@ -778,7 +791,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -790,7 +803,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -800,8 +813,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIconRibbon AppIconHalo AppIconJournal AppIconOrigami";
 				CODE_SIGN_ENTITLEMENTS = Config/App.entitlements;
-				CURRENT_PROJECT_VERSION = 202616;
+				CURRENT_PROJECT_VERSION = 202620;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/App-Info.plist";
@@ -818,7 +832,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -830,7 +844,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -843,7 +857,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/AppClip.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202616;
+				CURRENT_PROJECT_VERSION = 202620;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -856,7 +870,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.clip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -871,7 +885,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -881,7 +895,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Config/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202616;
+				CURRENT_PROJECT_VERSION = 202620;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/ShareExtension-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
@@ -891,7 +905,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SHARE_EXTENSION_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -903,7 +917,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -913,7 +927,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Config/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202616;
+				CURRENT_PROJECT_VERSION = 202620;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Config/ShareExtension-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "灵动照片";
@@ -923,7 +937,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SHARE_EXTENSION_BUNDLE_IDENTIFIER)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -935,7 +949,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -944,7 +958,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202616;
+				CURRENT_PROJECT_VERSION = 202620;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -957,7 +971,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.TicketActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -969,7 +983,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -978,7 +992,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202616;
+				CURRENT_PROJECT_VERSION = 202620;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -991,7 +1005,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.TicketActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1003,7 +1017,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -1014,7 +1028,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = Config/TicketClipActivity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202616;
+				CURRENT_PROJECT_VERSION = 202620;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -1027,7 +1041,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.clip.TicketActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1039,7 +1053,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -1050,7 +1064,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = Config/TicketClipActivity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202616;
+				CURRENT_PROJECT_VERSION = 202620;
 				DEVELOPMENT_LANGUAGE = "zh-Hans";
 				DEVELOPMENT_TEAM = 3JY86A9DP3;
 				ENABLE_PREVIEWS = YES;
@@ -1063,7 +1077,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = top.locallensapp.lingdongzhaopian.clip.TicketActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1075,7 +1089,7 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};

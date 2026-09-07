@@ -4,13 +4,13 @@ English version: [README_en.md](./README_en.md).
 
 繁體中文版本：[README_zhhant.md](./README_zhhant.md)。
 
-一款面向 iOS 与 Android 的本地照片创作工具。iOS 版本使用 SwiftUI，Android 版本使用 Kotlin 与 Jetpack Compose；两个版本都可以从照片中提取感知色彩、识别画面内容、读取真实拍摄信息，生成卡片、色盘、手帐、印章、壁纸、隐私遮挡、可扫描验证的影像票根与多页影像相簿，并通过“色彩关系”比较两张照片的共同色、对照色与连接色阶。iOS 还提供面向普通用户的光影解析、铅笔、炭笔和水彩风格的影像素描，以及可选择片段和封面的“视频转实况”功能。两个版本的主应用都可以在本机扫描二维码并查看票根公开信息，iOS 还提供无需安装完整应用的 App Clip 验证入口。iOS 可以从系统照片操作列表或快捷指令进入处理流程，Android 可以通过系统照片选择器或分享菜单导入单张及多张照片。
+一款面向 iOS 与 Android 的本地照片创作工具。iOS 版本使用 SwiftUI，Android 版本使用 Kotlin 与 Jetpack Compose；两个版本都可以从照片中提取感知色彩、识别画面内容、读取真实拍摄信息，生成卡片、色盘、手帐、印章、壁纸、隐私遮挡、可扫描验证的影像票根与多页影像相簿，并通过“色彩关系”比较两张照片的共同色、对照色与连接色阶。iOS 还提供面向普通用户的光影解析、铅笔、炭笔和水彩风格的影像素描、可选择片段和封面的“视频转实况”，以及用六张照片组成完整扇面的“流光折扇”。两个版本的主应用都可以在本机扫描二维码并查看票根公开信息，iOS 还提供无需安装完整应用的 App Clip 验证入口。iOS 可以从系统照片操作列表或快捷指令进入处理流程，Android 可以通过系统照片选择器或分享菜单导入单张及多张照片。
 
 **App Store 正式版：** [下载“灵动照片”](https://apps.apple.com/cn/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
 
 > **Android 安装包：** [下载已签名 APK](https://locallens.cn/LingdongPhoto-Android.apk)
 
-> 完全免费，无订阅、无内购、无广告。照片识别、色彩分析与作品渲染均在设备上完成。
+> 免费下载，无订阅、无广告；iOS 提供一次性购买的“支持我们”内容。照片识别、色彩分析与作品渲染均在设备上完成。
 
 ## iOS 正式版界面预览
 
@@ -138,11 +138,42 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 
 ### 模式切换与界面
 
-- 未添加照片时可左右滑动浏览八种原有创作模式，以及独立的色彩关系、影像相簿、票根扫描与视频转实况入口；每个入口均显示专属图标
-- 初始界面提供“色彩关系”“影像相簿”“扫描验证票根”和“视频转实况”，无需先载入主编辑器即可比较两张照片、装订相簿、打开相机扫码或从视频生成 Live Photo
-- 载入照片后可通过主界面顶部的模式按钮，在原有八种创作模式之间直接切换，也可从同一面板进入色彩关系、影像相簿、票根扫描或视频转实况
+- 未添加照片时可左右滑动浏览八种原有创作模式，以及独立的色彩关系、影像相簿、票根扫描、视频转实况与流光折扇入口；每个入口均显示专属图标
+- 初始界面提供“色彩关系”“影像相簿”“扫描验证票根”“视频转实况”和“流光折扇”，无需先载入主编辑器即可使用这些独立工具
+- 载入照片后可通过主界面顶部的模式按钮，在原有八种创作模式之间直接切换，也可从同一面板进入色彩关系、影像相簿、票根扫描、视频转实况或流光折扇
 - 切换模式时保留当前照片及其本机分析结果，无需重新选择图片
 - 模式选择面板使用半透明液态玻璃材质，可隐约看到下方作品，并自动跟随系统深色或浅色模式
+
+### 灵动色卡与灵动月历
+
+- 灵动色卡从照片提取主色，色条可向下、向左或向右延伸；调整大小不遮挡、不裁切照片
+- 灵动月历保留横图、竖图和方图的原有比例，日历面板等比适配画面，并记录拍摄日期与节气
+
+### 流光折扇
+
+- 用六张照片组成完整展开的折扇，每个扇面独立呈现一张照片
+- “自动寻色”在设备本机从已授权照片中寻找并组合属于同一色系的六张照片
+- “自由编排”可手动选择至多六张照片，并逐个扇面换图、拖动和缩放以精确调整取景
+- 成品可保存为 2400 × 1800 的透明 PNG
+
+### 邮票、明信片与邮集
+
+- 邮票制作提供五种齿孔模板，可添加照片、标题、日期和字体，并收藏或保存为 PNG
+- 明信片提供四种版式，可组合照片、寄语、邮票与邮戳
+- 邮集用于收藏带定位的邮票、点亮城市足迹；按住邮票可自由旋转
+
+### 票根收藏、显影与档案
+
+- 票根集可将旅行、演出或某一段时光的影像票根整理分集
+- 票根显影对导入的实体票照片进行本机智能识别，并重制为可验证的影像票根
+- 琉璃档案以液态玻璃档案栏封存设备、参数与坐标的原始记录
+- 扫描票根后，“寻找本机原图”可在本机相册中寻找当初封存的原片
+
+### 个性化与支持者内容
+
+- 尚未选择照片时，可为所有功能主页设置空白主界面的主色调
+- 灵动卡片、气泡印章与琉璃档案的功能设定可直接从对应功能进入
+- 一次性“支持我们”可解锁节气诗意色名、典藏票面、全部邮票与明信片模板、专属应用图标及支持者标志
 
 ### 灵动卡片
 
@@ -360,7 +391,7 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 
 提取颜色、读取 EXIF、识别画面和生成作品，手机本身已经能够完成，根本不需要把照片元数据、粗略位置或设备标识符上传到开发者服务器。
 
-有的开发者选择传输“遥测”数据，其中包括设备标识和照片中的粗略地理位置。而灵动照片不以反作弊或免费额度为理由收集 IDFV、广告标识符或其他设备标识，也不设置每日使用次数：提取颜色不需要云端，生成卡片不需要设备追踪，完全免费更不需要每日配额。
+有的开发者选择传输“遥测”数据，其中包括设备标识和照片中的粗略地理位置。而灵动照片不以反作弊或免费额度为理由收集 IDFV、广告标识符或其他设备标识，也不设置每日使用次数：提取颜色不需要云端，生成卡片不需要设备追踪，本机创作也不需要每日配额。
 
 我们更愿意把选择权交还给用户。iOS 与 Android 的设置中都提供“显示应用标题”选项：即使不会自行编译，也可以隐藏编辑界面左上角的“灵动照片”，且不影响导出作品。工具装在你的设备上，应当服务于你的创作，而不是把你变成它的数据或广告位。
 
@@ -373,7 +404,7 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 - iOS 17.0+
 - Xcode 26.0+（编译 iOS 26 原生 Liquid Glass 代码需要对应 SDK）
 - Swift 5 语言模式
-- iPhone；主界面以竖屏体验为主，横向影像票根支持右横屏预览与编辑
+- iPhone 与 iPad；iPhone 主界面以竖屏体验为主，iPad 支持原生侧栏、横竖屏和可调整窗口
 
 ### Android
 
@@ -425,6 +456,14 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 7. 如需让相机扫码直接唤起轻应用，请在 App Store Connect 中为 App Clip 配置体验与调用地址。票根二维码默认使用 `https://appclip.apple.com/id?p=<APP_CLIP_BUNDLE_IDENTIFIER>` 作为调用地址。
 
 8. 选择一台 iOS 17+ 模拟器或真机并运行；Archive 会使用本地签名配置，并将照片操作扩展和 App Clip 一并嵌入主应用。
+
+公开仓库默认编译 `SupporterStore.swift` 与 `TraditionalColorLexiconData.swift` 中的非商业占位实现。商业实现文件由 `.gitignore` 排除；仅在持有相应商业许可并把这些文件保留在本机时，才在 `Signing.local.xcconfig` 增加：
+
+```xcconfig
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) COMMERCIAL_BUILD
+```
+
+这样公开克隆版本不会引用未发布内容，而本机商业工程会忽略公开占位声明并编译 StoreKit 与完整色彩资料。除 Onboarding 截图/GIF 和两张模式入口选择截图外，公开仓库中的新增产品图片均使用商业许可提示占位图，并保留原资源文件名以保证 Asset Catalog 可以构建；这些占位图不包含实际商业素材。
 
 ### Android
 
@@ -487,138 +526,42 @@ Android 版本使用 Kotlin 与 Jetpack Compose 编写，支持 Android 13 及�
 
 ```text
 .
-├── README.md                     # 项目说明
+├── README.md / README_en.md / README_zhhant.md
 ├── LICENSE
 ├── TRADEMARKS.md
-├── 灵动卡片101.png
-├── 琉璃色盘_new.png
-├── 气泡印章101-1.png
-├── 票根.png
-├── AppClip.png
-├── 隐私马赛克101.png
+├── Android/lingdongzhaopian/    # Kotlin + Jetpack Compose 工程
 ├── lingdongzhaopian/
-│   ├── Config/
-│   │   ├── App-Info.plist
-│   │   ├── App.entitlements
-│   │   ├── AppClip-Info.plist
-│   │   ├── AppClip.entitlements
-│   │   ├── ShareExtension-Info.plist
-│   │   ├── ShareExtension.entitlements
-│   │   ├── Signing.xcconfig
-│   │   ├── Signing.local.example.xcconfig
-│   │   ├── TicketActivity-Info.plist
-│   │   ├── TicketClipActivity-Info.plist
-│   │   └── TicketClipActivity.entitlements
-│   ├── LingdongShareExtension/
-│   │   └── ShareViewController.swift
-│   ├── LingdongTicketActivity/
-│   │   └── TicketPrintLiveActivityWidget.swift
-│   ├── LingdongTicketClip/
-│   │   ├── LingdongTicketClipApp.swift
-│   │   └── TicketClipRootView.swift
+│   ├── Config/                  # Info.plist、Entitlements 与本地签名模板
+│   ├── LingdongShareExtension/ # 系统照片操作扩展
+│   ├── LingdongTicketActivity/ # 主应用 Live Activity
+│   ├── LingdongTicketClip/     # App Clip 验证入口
 │   ├── LingdongTicketClipActivity/
-│   │   └── TicketClipLiveActivityWidget.swift
-│   ├── SharedActivity/
-│   │   ├── TicketPrintActivityAttributes.swift
-│   │   ├── TicketRevealActivityAttributes.swift
-│   │   ├── TicketRevealLiveActivityController.swift
-│   │   └── TicketRevealLiveActivityWidget.swift
-│   ├── SharedTicket/
-│   │   ├── TicketCodeRenderer.swift
-│   │   ├── TicketPayload.swift
-│   │   └── TicketVerificationView.swift
-│   ├── Validation/
-│   │   ├── LiteraryColorCatalogValidation.swift
-│   │   └── MotionCardColorThemeValidation.swift
+│   ├── SharedActivity/         # 主应用、扩展与 App Clip 共用状态
+│   ├── SharedTicket/           # 票根编码、验证与寻找本机原图
 │   ├── lingdongzhaopian.xcodeproj/
-│   │   ├── project.pbxproj
-│   │   └── xcshareddata/xcschemes/
-│   │       ├── LingdongTicketClip.xcscheme
-│   │       └── lingdongzhaopian.xcscheme
 │   └── lingdongzhaopian/
-│       ├── AppModel.swift
-│       ├── AlbumEditor.swift
-│       ├── AlbumModels.swift
-│       ├── AlbumPreview.swift
-│       ├── AlbumRenderer.swift
-│       ├── AlbumStore.swift
-│       ├── AlbumViews.swift
-│       ├── ArtworkCanvas.swift
-│       ├── ArtworkExporter.swift
-│       ├── Assets.xcassets/
-│       ├── CameraWatermarkLibrary.swift
-│       ├── CaptureDeviceDescriptor.swift
-│       ├── CaptureDeviceModelCatalog.swift
-│       ├── ContentView.swift
-│       ├── ColorRelationshipAnalyzer.swift
-│       ├── ColorRelationshipFeatureView.swift
-│       ├── ColorRelationshipLiquidGlass.swift
-│       ├── ColorRelationshipModels.swift
-│       ├── DisplayImageNormalizer.swift
-│       ├── ExportCenter.swift
-│       ├── JournalEditorControls.swift
-│       ├── LiteraryColorCatalog.swift
-│       ├── LiquidGlass.swift
-│       ├── LivePhotoPreview.swift
-│       ├── MotionCardColorTheme.swift
-│       ├── PhotoAsset.swift
-│       ├── PhotoContentAnalyzer.swift
-│       ├── PhotoPickerBridge.swift
-│       ├── PhotoShortcuts.swift
-│       ├── PrivacyMosaic.swift
-│       ├── PublicGoodsCommitmentView.swift
-│       ├── RelationshipArtworkView.swift
-│       ├── RelationshipCopywriter.swift
-│       ├── SettingsView.swift
-│       ├── ShareHandoff.swift
-│       ├── SketchStudio.swift
-│       ├── StyleTransferEngine.swift
-│       ├── TicketArtworkAlphaMask.swift
-│       ├── TicketDeviceSealService.swift
-│       ├── TicketEditorControls.swift
-│       ├── TicketPrintExperience.swift
-│       ├── TicketPrintLiveActivityController.swift
-│       ├── TicketQRScanner.swift
+│       ├── Assets.xcassets/    # 公开图片使用许可提示占位资源
+│       ├── OnboardingScreens/  # 允许公开的引导截图与 GIF
+│       ├── Piaogence/          # 票根集、票根显影与典藏票面
+│       ├── Postal/             # 邮票、明信片、邮集与城市解析
+│       ├── PostalFonts/        # OFL 字体及完整授权文本
+│       ├── Album*.swift        # 多页影像相簿
+│       ├── ColorRelationship*.swift
+│       ├── FanGalleryFeature.swift
+│       ├── IPadWorkspace.swift
+│       ├── ModeLauncherFeature.swift
+│       ├── OnboardingExperienceView.swift
+│       ├── SupporterStore.swift             # 公开占位实现
+│       ├── TraditionalColorLexiconData.swift # 公开占位资料
 │       └── lingdongzhaopianApp.swift
-└── Android/
-    └── lingdongzhaopian/
-        ├── app/
-        │   └── src/main/
-        │       ├── AndroidManifest.xml
-        │       └── java/cn/locallens/lingdongzhaopian/
-        │           ├── AlbumModels.kt
-        │           ├── AlbumStudio.kt
-        │           ├── AppModels.kt
-        │           ├── ArtworkCanvas.kt
-        │           ├── ColorRelationshipModels.kt
-        │           ├── ColorRelationshipScreen.kt
-        │           ├── ExportManager.kt
-        │           ├── GlassComponents.kt
-        │           ├── LingdongViewModel.kt
-        │           ├── MainActivity.kt
-        │           ├── MainScreen.kt
-        │           ├── ModeSelection.kt
-        │           ├── MotionPhotoExporter.kt
-        │           ├── MotionPhotoSupport.kt
-        │           ├── PaletteLiquidGlass.kt
-        │           ├── PaletteProcessing.kt
-        │           ├── PhotoProcessing.kt
-        │           ├── SettingsAndDialogs.kt
-        │           ├── TicketCanvas.kt
-        │           ├── TicketCodeRenderer.kt
-        │           ├── TicketDeviceSealService.kt
-        │           ├── TicketPayload.kt
-        │           ├── TicketScanner.kt
-        │           ├── TicketStudio.kt
-        │           └── TicketVerification.kt
-        ├── gradle/
-        ├── build.gradle.kts
-        └── settings.gradle.kts
+└── README 展示图与既有品牌资源
 ```
 
 ## 开源许可证
 
 项目源代码采用 [GNU Affero General Public License v3.0](./LICENSE)（`AGPL-3.0-only`）发布。这是一份强互惠开源许可证：复制、修改和再分发代码时必须遵守许可证并提供相应源码；若修改后的程序通过网络向用户提供服务，还需要向这些用户提供对应源码。
+
+本仓库的开源许可证仅适用于已经公开的源代码。所有图片以及应用内购买的商业内容均不属于开源内容；如需商业授权，请联系我们。
 
 AGPL 源代码许可证不授予对应用名称“灵动照片”、项目名称、Logo 或 App Icon 的品牌与商标使用许可；产品页美术和营销截图也不随源代码许可证授权。相关说明见 [TRADEMARKS.md](./TRADEMARKS.md)。许可证是法律文件；如果计划商业分发、闭源集成或向 App Store 提交修改版，请自行取得专业法律意见。
 
@@ -629,7 +572,7 @@ AGPL 源代码许可证不授予对应用名称“灵动照片”、项目名称
 - 增加新的画面类别与文案
 - 优化 Apple Vision 与 Android ML Kit 的分类权重
 - 改进 OKLab 聚类速度与稳定性
-- 增加 iPad 横屏布局与更多 Android 大屏适配
+- 继续完善 iPad 多窗口、横屏布局与 Android 大屏适配
 - 补充单元测试和 UI 测试
 - 提供更多语言本地化
 

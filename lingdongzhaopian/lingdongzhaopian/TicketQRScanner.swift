@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2026 LocalLens-Project
-// SPDX-License-Identifier: AGPL-3.0-only
-
 import AVFoundation
 import SwiftUI
 import Vision
@@ -24,16 +21,18 @@ struct TicketQRScannerScreen: View {
     @State private var verifiedTicket: VerifiedTicket?
 
     var body: some View {
-        Group {
-            if let verifiedTicket {
-                TicketVerificationView(
-                    ticket: verifiedTicket,
-                    onClose: onCancel
-                )
-                .transition(.opacity)
-            } else {
-                scannerContent
+        ZStack {
+            Group {
+                if let verifiedTicket {
+                    TicketVerificationView(
+                        ticket: verifiedTicket,
+                        onClose: onCancel
+                    )
                     .transition(.opacity)
+                } else {
+                    scannerContent
+                        .transition(.opacity)
+                }
             }
         }
         .preferredColorScheme(.dark)
@@ -164,7 +163,7 @@ struct TicketQRScannerScreen: View {
 
             Spacer()
 
-            Button("返回模式选择", action: onCancel)
+            Button(UIDevice.current.userInterfaceIdiom == .pad ? "返回创作" : "返回模式选择", action: onCancel)
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
                 .padding(.bottom, 26)

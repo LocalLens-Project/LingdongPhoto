@@ -777,8 +777,14 @@ private struct LivePhotoCoverStrip: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let stripWidth = max(1, proxy.size.width)
             let selectorWidth: CGFloat = 58
-            let usableWidth = max(1, proxy.size.width - selectorWidth)
+            let horizontalInset: CGFloat = 8
+            let thumbnailHeight: CGFloat = 72
+            let thumbnailCount = max(thumbnails.count, 1)
+            let thumbnailContentWidth = max(0, stripWidth - horizontalInset * 2)
+            let thumbnailWidth = thumbnailContentWidth / CGFloat(thumbnailCount)
+            let usableWidth = max(1, stripWidth - selectorWidth)
             let selectorX = usableWidth * CGFloat(min(max(progress, 0), 1))
 
             ZStack(alignment: .leading) {
@@ -790,11 +796,12 @@ private struct LivePhotoCoverStrip: View {
                         Image(uiImage: image)
                             .resizable()
                             .scaledToFill()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .frame(width: thumbnailWidth, height: thumbnailHeight)
                             .clipped()
                     }
                 }
-                .padding(8)
+                .frame(width: thumbnailContentWidth, height: thumbnailHeight, alignment: .leading)
+                .padding(horizontalInset)
                 .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
 
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
@@ -808,6 +815,7 @@ private struct LivePhotoCoverStrip: View {
                     .frame(width: 9, height: 9)
                     .offset(x: selectorX + selectorWidth / 2 - 4.5, y: -13)
             }
+            .frame(width: stripWidth, height: 88)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
