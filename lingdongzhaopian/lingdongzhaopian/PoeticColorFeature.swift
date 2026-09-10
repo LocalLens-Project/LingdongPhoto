@@ -422,8 +422,7 @@ struct SupportUsView: View {
         }
         .preferredColorScheme(.dark)
         .task {
-            supporterStore.bootstrap()
-            supporterStore.refreshFirstBatchStatus()
+            await supporterStore.bootstrap()
             await supporterStore.refreshProductIfNeeded()
         }
         .onChange(of: scenePhase) { _, phase in
@@ -567,7 +566,11 @@ struct SupportUsView: View {
     private var purchaseActionPanel: some View {
         VStack(spacing: 10) {
             purchaseButton
-            restorePurchaseButton
+            if supporterUnlocked {
+                entitlementActiveLabel
+            } else {
+                restorePurchaseButton
+            }
         }
         .padding(.horizontal, 23)
         .padding(.top, 22)
@@ -620,7 +623,14 @@ struct SupportUsView: View {
         }
         .buttonStyle(.plain)
         .disabled(!supporterUnlocked && (supporterStore.isPurchasing || supporterStore.isLoading))
-        .accessibilityIdentifier("support.purchase")
+        .accessibilityIdentifier(supporterUnlocked ? "support.continue" : "support.purchase")
+    }
+
+    private var entitlementActiveLabel: some View {
+        Label("支持者权益已生效，无需再次购买", systemImage: "checkmark.shield.fill")
+            .font(.system(size: 11.5, weight: .semibold, design: .rounded))
+            .foregroundStyle(.white.opacity(0.62))
+            .accessibilityIdentifier("support.entitlement.active")
     }
 
     private var restorePurchaseButton: some View {
@@ -637,7 +647,7 @@ struct SupportUsView: View {
 
     private var purchaseButtonTitle: String {
         if supporterUnlocked {
-            return "开始使用".appLocalized
+            return "已解锁 · 继续使用".appLocalized
         }
         if supporterStore.isLoading {
             return "正在连接 App Store…".appLocalized

@@ -21,7 +21,7 @@ final class SupporterStore: ObservableObject {
 
     private init() {}
 
-    func bootstrap() {}
+    func bootstrap() async {}
     func refreshProductIfNeeded(showError: Bool = false) async {
         if showError {
             errorMessage = "暂时无法连接 App Store，请稍后重试。"

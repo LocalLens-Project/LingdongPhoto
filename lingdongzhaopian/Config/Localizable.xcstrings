@@ -19308,6 +19308,40 @@
         }
       }
     },
+    "支持者权益已生效，无需再次购买" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No purchase is required. Your Supporter entitlement is already active."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持者權益已生效，無需再次購買"
+          }
+        }
+      }
+    },
+    "已解锁 · 继续使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already Unlocked · Continue"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已解鎖 · 繼續使用"
+          }
+        }
+      }
+    },
     "收件人" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -27506,19 +27540,19 @@
         }
       }
     },
-    "灵动照片 3.0.0（Build 202620）" : {
+    "灵动照片 3.0.0（Build 202621）" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lingdong Photo 3.0.0 (Build 202620)"
+            "value" : "Lingdong Photo 3.0.0 (Build 202621)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "靈動照片 3.0.0（Build 202620）"
+            "value" : "靈動照片 3.0.0（Build 202621）"
           }
         }
       }
@@ -28328,19 +28362,19 @@
         }
       }
     },
-    "版本 3.0.0 (Build 202620)" : {
+    "版本 3.0.0 (Build 202621)" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Version 3.0.0 (Build 202620)"
+            "value" : "Version 3.0.0 (Build 202621)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "版本 3.0.0 (Build 202620)"
+            "value" : "版本 3.0.0 (Build 202621)"
           }
         }
       }

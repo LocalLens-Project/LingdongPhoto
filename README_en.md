@@ -99,6 +99,8 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 - Empty-screen Themes set a preferred primary color for every feature home screen before a photo is selected.
 - Motion Card, Bubble Stamp, and Glass Archive settings are available directly inside their respective tools.
 - A one-time Support Us purchase unlocks poetic solar-term color names, collector Photo Ticket designs, all stamp and postcard templates, exclusive app icons, and a supporter badge.
+- Eligible early users of version 1.0.0 receive the same entitlement at no charge.
+- When the entitlement is already active, the Support page explicitly says that no purchase is required and offers “Already Unlocked · Continue.” An account without an entitlement sees the localized price, and tapping the button starts the StoreKit purchase flow.
 
 ### Motion Card
 
