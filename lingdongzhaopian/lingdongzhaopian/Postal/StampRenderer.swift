@@ -58,15 +58,15 @@ enum PostalError: LocalizedError {
     case template, image, missingLocation, unresolvedCity, cityNotCollected, conflictingCity, wrongCity(String), libraryDenied, damagedLibrary
     var errorDescription: String? {
         switch self {
-        case .template: "邮票模板无法读取，请重新打开后重试。"
-        case .image: "无法生成图片，请重新选择照片。"
-        case .missingLocation: "这张照片没有定位信息，可以制作普通邮票，但不能加入城市邮集。"
-        case .unresolvedCity: "暂时无法确定照片所在城市，请检查网络后重试。照片仍可制作普通邮票。"
+        case .template: "邮票模板无法读取，请重新打开后重试。".appLocalized
+        case .image: "无法生成图片，请重新选择照片。".appLocalized
+        case .missingLocation: "这张照片没有定位信息，可以制作普通邮票，但不能加入城市邮集。".appLocalized
+        case .unresolvedCity: "暂时无法确定照片所在城市，请检查网络后重试。照片仍可制作普通邮票。".appLocalized
         case .cityNotCollected: "该地区暂不提供独立城市解锁，也不会归入其他城市。照片仍可制作并收藏为普通邮票。".appLocalized
         case .conflictingCity: "定位返回的城市信息不一致，请重试识别。照片仍可制作普通邮票，暂不点亮城市。".appLocalized
-        case .wrongCity(let city): "照片不属于「\(city)」，请选择同一城市拍摄的照片。"
-        case .libraryDenied: "没有保存照片的权限。请在系统设置中允许灵动照片添加照片，再返回编辑页重试。"
-        case .damagedLibrary: "邮集索引无法读取，已保留原文件。请先恢复备份，避免覆盖现有收藏。"
+        case .wrongCity(let city): String(format: "照片不属于「%@」，请选择同一城市拍摄的照片。".appLocalized, city)
+        case .libraryDenied: "没有保存照片的权限。请在系统设置中允许灵动照片添加照片，再返回编辑页重试。".appLocalized
+        case .damagedLibrary: "邮集索引无法读取，已保留原文件。请先恢复备份，避免覆盖现有收藏。".appLocalized
         }
     }
 }

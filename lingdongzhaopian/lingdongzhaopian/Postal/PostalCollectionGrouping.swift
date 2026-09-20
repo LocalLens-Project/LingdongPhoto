@@ -58,7 +58,7 @@ enum PostalCollectionGrouping {
         }
 
         let other = slots.filter { !known.contains($0.id) }.map { entry(id: $0.id, slot: $0) }
-        if !other.isEmpty { groups.append(Group(id: "other", title: "其他足迹", entries: ordered(other))) }
+        if !other.isEmpty { groups.append(Group(id: "other", title: "其他足迹".appLocalized, entries: ordered(other))) }
         return groups
     }
 }

@@ -277,35 +277,24 @@ struct PaletteCardCanvas: View {
 
 
 enum SolarTermDates {
-
-    private static let base: [Int] = [
-        1, 20, 2, 19, 3, 5, 3, 20, 4, 5, 4, 20,
-        5, 5, 5, 21, 6, 5, 6, 21, 7, 7, 7, 22,
-        8, 7, 8, 23, 9, 7, 9, 23, 10, 8, 10, 23,
-        11, 7, 11, 22, 12, 7, 12, 21
-    ]
-
-    private static let overrides: [Int: [Int: Int]] = [
-        2025: [0: 3, 1: 18, 5: 20, 7: 21, 10: 7, 13: 23, 15: 23, 20: 7, 22: 5],
-        2026: [1: 18, 4: 5, 7: 21, 10: 7, 11: 23, 13: 23, 15: 23, 20: 7, 21: 22],
-        2027: [1: 19, 2: 6, 3: 21, 6: 6, 9: 22, 10: 7, 11: 23, 12: 8, 13: 23, 14: 8, 15: 24, 16: 9, 17: 8, 21: 22, 22: 6]
-    ]
-
     static func day(termIndex: Int, year: Int) -> Int? {
-        guard base.indices.contains(termIndex * 2 + 1) else { return nil }
-        if let override = overrides[year]?[termIndex] { return override }
-        return base[termIndex * 2 + 1]
+        guard SolarTerm.allCases.indices.contains(termIndex) else { return nil }
+        let term = SolarTerm.allCases[termIndex]
+        guard let occurrence = SolarTermCalendar.occurrences(inGregorianYear: year)
+            .first(where: { $0.term == term }) else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = SolarTermCalendar.chinaTimeZone
+        return calendar.component(.day, from: occurrence.instant)
     }
 
 
     static func terms(year: Int, month: Int) -> [(day: Int, name: String)] {
-        var result: [(Int, String)] = []
-        for (index, term) in SolarTerm.allCases.enumerated() {
-            guard base.indices.contains(index * 2), base[index * 2] == month,
-                  let day = day(termIndex: index, year: year) else { continue }
-            result.append((day, term.localizedName))
-        }
-        return result.sorted { $0.0 < $1.0 }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = SolarTermCalendar.chinaTimeZone
+        return SolarTermCalendar.occurrences(inGregorianYear: year)
+            .filter { calendar.component(.month, from: $0.instant) == month }
+            .map { (calendar.component(.day, from: $0.instant), $0.term.localizedName) }
+            .sorted { $0.0 < $1.0 }
     }
 }
 

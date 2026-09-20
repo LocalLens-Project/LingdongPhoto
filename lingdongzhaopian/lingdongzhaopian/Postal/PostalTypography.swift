@@ -46,19 +46,25 @@ enum PostalFont: String, CaseIterable, Identifiable {
 
 struct PostalFontPicker: View {
     @Binding var selection: PostalFont
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     var body: some View {
+        let roomy = horizontalSizeClass == .regular && verticalSizeClass == .regular
         VStack(spacing: 0) {
             ForEach(PostalFont.allCases) { font in
                 Button { selection = font } label: {
                     HStack(spacing: 14) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(verbatim: font.title).font(.caption).foregroundStyle(.secondary)
-                            Text("把时光寄给远方").font(Font(font.uiFont(size: 25)))
+                            Text(verbatim: font.title)
+                                .font(roomy ? .body : .caption)
+                                .foregroundStyle(.secondary)
+                            Text("把时光寄给远方")
+                                .font(Font(font.uiFont(size: roomy ? 31 : 25)))
                         }
                         Spacer()
                         Image(systemName: selection == font ? "checkmark.circle.fill" : "circle")
                             .foregroundStyle(selection == font ? .black : .black.opacity(0.15))
-                    }.padding(.vertical, 14).contentShape(Rectangle())
+                    }.padding(.vertical, roomy ? 18 : 14).contentShape(Rectangle())
                 }.buttonStyle(.plain).accessibilityLabel(Text(verbatim: font.title))
                     .accessibilityValue(selection == font ? "已选择" : "未选择")
                     .accessibilityIdentifier("postal.font.\(font.rawValue)")
@@ -101,13 +107,14 @@ struct PostalEditingPage<Controls: View>: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let roomy = proxy.size.width >= 700
             VStack(spacing: 0) {
                 if let preview {
                     Button(action: onPreview) {
                         Image(uiImage: preview).resizable().scaledToFit()
                             .padding(.horizontal, 28).padding(.vertical, 18)
                             .frame(maxWidth: .infinity)
-                            .frame(height: max(120, min(310, proxy.size.height * 0.40)))
+                            .frame(height: max(120, min(roomy ? 460 : 310, proxy.size.height * (roomy ? 0.46 : 0.40))))
                     }.buttonStyle(.plain).accessibilityLabel("查看作品大图")
                         .accessibilityIdentifier("postal.editPreview")
                 }
@@ -115,12 +122,21 @@ struct PostalEditingPage<Controls: View>: View {
                     ForEach(tabs.indices, id: \.self) { index in
                         Text(LocalizedStringKey(tabs[index])).tag(index)
                     }
-                }.pickerStyle(.segmented).padding(.horizontal, 24).padding(.vertical, 12)
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: roomy ? 760 : 680)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity)
                     .accessibilityIdentifier("postal.editorTabs")
                 ScrollView {
-                    controls().frame(maxWidth: 600).frame(maxWidth: .infinity, alignment: .leading).padding(24)
+                    controls()
+                        .frame(maxWidth: roomy ? 760 : 680)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(roomy ? 36 : 24)
                 }.scrollDismissesKeyboard(.interactively)
             }
+            .controlSize(roomy ? .large : .regular)
         }
         .background(PostalBackground(tint: tint))
         .navigationTitle(Text(LocalizedStringKey(title))).navigationBarTitleDisplayMode(.inline)

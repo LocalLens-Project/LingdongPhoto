@@ -2,7 +2,7 @@
 
 > **Language notice:** The Android version is currently not available in English. Its interface remains in Simplified Chinese for now.
 
-Lingdong Photo is a local-first photo creation app for iOS and Android. The iOS app is built with SwiftUI, while the Android app uses Kotlin and Jetpack Compose. Both versions can extract perceptual colors, understand image content, read real capture metadata, and create photo cards, palettes, journals, bubble stamps, wallpapers, privacy masks, verifiable Photo Tickets, and multi-page Photo Albums. Color Relationship compares the shared, contrasting, and transitional colors of two photos. The iOS version also includes a plain-language Light Analysis for everyday users, turns photos into pencil, charcoal, or watercolor sketches, converts a selected video segment into a Live Photo with a user-selected key photo, and arranges six photos into a complete Flowing-Light Fan.
+Lingdong Photo is a local-first photo creation app for iOS and Android. The iOS app is built with SwiftUI, while the Android app uses Kotlin and Jetpack Compose. Both versions can extract perceptual colors, understand image content, read real capture metadata, and create photo cards, palettes, journals, bubble stamps, wallpapers, privacy masks, verifiable Photo Tickets, and multi-page Photo Albums. Color Relationship compares the shared, contrasting, and transitional colors of two photos. The iOS version also includes a plain-language Light Analysis for everyday users, turns photos into pencil, charcoal, or watercolor sketches, converts a selected video segment into a Live Photo with a user-selected key photo, arranges six photos into a complete Flowing-Light Fan, collects traditional colors by solar term in Solar-term Colors, and preserves thoughts beyond the frame in Photo Backs.
 
 **Official App Store release:** [Download Lingdong Photo](https://apps.apple.com/cn/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
 
@@ -56,7 +56,7 @@ The Android version is written in Kotlin and Jetpack Compose and supports Androi
 
 The project began as an experiment: how difficult is it to build a polished, small photo tool from scratch? The first iOS implementation studied publicly visible interaction patterns, but it did not use or reverse-engineer any third-party source code, assets, or private resources.
 
-It has since grown far beyond an interface exercise. The project now includes perceptual OKLab color, weighted K-Means, color percentages, two-photo relationships, Apple Vision analysis, a category-based copy library, real EXIF metadata, Live Photo export, plain-language Light Analysis, video-to-Live Photo conversion, multi-photo journals, privacy masking, photo sketching, verifiable Photo Tickets, device seals, in-app scanning, an App Clip, multi-page albums, a Photos action extension, App Shortcuts, and an export center. Android independently implements the same core workflow with platform-appropriate tools.
+It has since grown far beyond an interface exercise. The project now includes perceptual OKLab color, weighted K-Means, color percentages, two-photo relationships, Apple Vision analysis, a category-based copy library, real EXIF metadata, Live Photo export, plain-language Light Analysis, video-to-Live Photo conversion, multi-photo journals, privacy masking, photo sketching, verifiable Photo Tickets, device seals, in-app scanning, an App Clip, multi-page albums, Solar-term Colors, Photo Backs, a Photos action extension, App Shortcuts, and an export center. Android independently implements the same core workflow with platform-appropriate tools.
 
 Some similar utilities charge a monthly subscription or a one-time fee. That is a valid choice for their developers; this project instead publishes its implementation so others can inspect, modify, and improve it.
 
@@ -64,15 +64,28 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 
 ### Creation modes and interface
 
-- Browse eight creation modes before adding photos, plus independent Color Relationship, Photo Album, Scan Photo Ticket, Video to Live Photo, and Flowing-Light Fan entry points.
-- Open Color Relationship, Photo Album, Scan Photo Ticket, Video to Live Photo, or Flowing-Light Fan directly from the initial screen without first entering the main editor.
-- After importing a photo, switch among the eight creation modes or open any independent tool from the same mode panel without selecting the photo again.
+- Browse eleven creation modes, plus independent Flowing-Light Fan, Photo Album, Color Relationship, Photo Ticket Reveal, Stamp Maker, Postcard, Scan Photo Tickets, Video to Live Photo, Ticket Collection, Stamp Collection, Solar-term Colors, and Photo Backs tools.
+- Open independent tools without first entering the main editor. After importing a photo, switch creation modes or enter any tool from the same panel without selecting the image again.
 - The mode picker uses translucent Liquid Glass and follows the system light or dark appearance.
+- Every feature reorganizes its preview and controls for iPad portrait, landscape, larger displays, and resizable windows while retaining the compact iPhone experience.
+- The Simplified and Traditional Chinese interfaces present the Lingdong Photo 3.0 Creation Season after onboarding; `lingdongphoto://home` can reopen it at any time.
 
 ### Motion Palette and Motion Calendar
 
 - Motion Palette extracts dominant colors and extends the color strip below, left, or right without covering or cropping the photo.
 - Motion Calendar preserves landscape, portrait, and square aspect ratios while fitting a calendar panel that records the capture date and solar term.
+
+### Solar-term Colors
+
+- Assign photos to the corresponding solar term from their original capture time, match representative colors to traditional colors, and gradually complete a solar-term year.
+- Keep multiple photos for each term, choose an annual representative, and explore the complete sixteen-color set, phenology, poetry, and source references.
+- Generate a partial or complete annual spectrum and export or restore a local collection backup. Date reading, color extraction, and traditional-color matching stay on the device.
+
+### Photo Backs
+
+- Write what the camera did not capture from the In the Frame, Outside the Frame, or For the Future perspective.
+- Choose when to revisit a photo; it resurfaces when due, and a new Later entry can continue its story.
+- Tap or swipe to flip between the front and back, with photos and writing kept in an on-device photo drawer.
 
 ### Flowing-Light Fan
 
@@ -83,7 +96,7 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 
 ### Stamps, postcards, and Stamp Collection
 
-- Stamp Maker offers five perforation templates with photo, title, date, and font controls, and can collect the result or save it as PNG.
+- Stamp Maker offers five perforation templates with photo, title, date, and font controls, and can collect the result or save it as PNG. Manual Framing supports direct dragging and pinch-to-zoom for precise composition.
 - Postcard combines a photo, message, stamp, and postmark in four layouts.
 - Stamp Collection stores geotagged stamps, reveals visited cities, and supports free rotation with a long press.
 
@@ -91,7 +104,7 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 
 - Photo Ticket Collections organize tickets from trips, performances, or meaningful periods.
 - Photo Ticket Developing recognizes an imported physical ticket on the device and recreates it as a verifiable Photo Ticket.
-- Glass Archive preserves original device, capture-setting, and coordinate records in a Liquid Glass archive panel.
+- Glass Archive preserves original device, capture-setting, and coordinate records in a Liquid Glass archive panel. The panel can move freely up and down, and exports retain its current relative position.
 - Find Original on This Device scans a Photo Ticket and searches the local photo library for its original image.
 
 ### Personalization and supporter content
@@ -109,8 +122,8 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 - Create a coordinated text area from the dominant color and its image coverage.
 - Choose dark or light text with a target contrast ratio of at least 7:1.
 - Use a solid-color or sampled gradient header.
-- Drag and resize a sampling region in supported templates, or restore full-image sampling.
-- Choose Classic, Airy, or Immersive templates; drag, pinch, edit text, change fonts, and adjust type size.
+- Motion Card Settings and Partial color selection remain available in Classic, Airy, and Immersive templates; drag and resize the sampling region or restore full-image sampling.
+- All three templates support direct text editing, dragging, pinching, font changes, and type-size adjustments.
 
 ### Glass Palette and Light Analysis
 
@@ -119,7 +132,7 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 - Light Analysis explains shadows, midtones, highlights, contrast, exposure balance, and color-channel distribution in plain language.
 - The analysis is fully offline and is phrased for ordinary users rather than professional photographers.
 - Landscape and portrait photos are shown at their actual aspect ratio in Light Analysis, without cropping the image to fill the preview.
-- Choose Floating, Compact, or Bottom layouts and preserve Liquid Glass or compatible frosted styling on export.
+- Choose Single Row or Two Rows and preserve Liquid Glass or compatible frosted styling on export.
 
 ### Video to Live Photo
 
@@ -228,11 +241,14 @@ Literary names are selected from 76 references by nearest distance in OKLab.
 ## Liquid Glass and Live Photo
 
 - iOS 26 uses native Liquid Glass APIs; iOS 17 and 18 use a compatible frosted material.
+- iOS 27 and iPadOS 27 are supported at the system level, including resizable-window and layout changes.
+- iPhone 18 Pro and iPhone 18 Pro Max include interface adjustments for their dimensions and Dynamic Island area.
 - Buttons support press scaling, spring response, and haptics.
 - Reduce Motion skips nonessential animation.
 - The system Photos picker only provides items the user actively selects.
 - EXIF, TIFF, and GPS fields are read from the original data when available.
 - Paired Live Photo video can be imported, previewed, composited frame by frame, and written with a matching asset identifier.
+- After import, Live Photo motion frames are decoded and cached in the background before the user presses the Live control, so the first preview uses prepared playback content.
 - Motion frames and key photos are normalized to standard dynamic range to avoid HDR brightness mismatches.
 - Missing camera information stays empty; the app never invents a fixed model, aperture, or ISO value.
 
@@ -330,9 +346,13 @@ The Debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. For a s
         ├── PostalFonts/        # OFL fonts and complete license texts
         ├── Album*.swift
         ├── ColorRelationship*.swift
+        ├── CreationSeasonEventView.swift
         ├── FanGalleryFeature.swift
         ├── IPadWorkspace.swift
         ├── ModeLauncherFeature.swift
+        ├── PhotoBack*.swift
+        ├── SolarColor*.swift
+        ├── SolarTermCalendar.swift
         ├── SupporterStore.swift             # Public fallback
         ├── TraditionalColorLexiconData.swift # Public fallback data
         └── lingdongzhaopianApp.swift

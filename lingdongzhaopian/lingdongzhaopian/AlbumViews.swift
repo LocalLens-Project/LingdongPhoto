@@ -98,124 +98,7 @@ struct AlbumRootView: View {
         .background(Color(red: 0.055, green: 0.066, blue: 0.061).ignoresSafeArea())
         .preferredColorScheme(.light)
         .statusBarHidden(true)
-        .task {
-#if DEBUG
-            let arguments = ProcessInfo.processInfo.arguments
-            if arguments.contains("--album-template-picker") {
-                templatePickerPresented = true
-            } else if arguments.contains("--album-demo") {
-                let requestedTemplateID = arguments
-                    .first(where: { $0.hasPrefix("--album-template=") })?
-                    .dropFirst("--album-template=".count)
-                    .description
-                let projectID: UUID?
-                if let project = store.projects.first {
-                    projectID = project.id
-                } else if let template = requestedTemplateID.flatMap({ requestedID in
-                    AlbumTemplateCatalog.templates.first { $0.id == requestedID }
-                }) ?? AlbumTemplateCatalog.templates.first {
-                    projectID = store.createProject(
-                        template: template,
-                        format: template.defaultFormat
-                    )
-                } else {
-                    projectID = nil
-                }
-                if let projectID {
-                    if arguments.contains("--album-demo-images") {
-                        seedAlbumDebugImagesIfNeeded(projectID: projectID)
-                    }
-                    if arguments.contains("--album-nav-test") {
-                        // Let the library settle first so the test covers the
-                        // in-app library/editor transition rather than launch UI.
-                        try? await Task.sleep(for: .milliseconds(900))
-                        withAnimation(AlbumMotion.present) { activeProjectID = projectID }
-                        try? await Task.sleep(for: .milliseconds(1_250))
-                        withAnimation(AlbumMotion.present) { activeProjectID = nil }
-                    } else {
-                        activeProjectID = projectID
-                    }
-                }
-            }
-#endif
-        }
     }
-
-#if DEBUG
-    private func seedAlbumDebugImagesIfNeeded(projectID: UUID) {
-        guard store.project(id: projectID)?.assets.isEmpty == true else { return }
-        let palettes: [(UIColor, UIColor, String)] = [
-            (.systemTeal, .systemGreen, "山野"),
-            (.systemBlue, .systemIndigo, "海岸"),
-            (.systemOrange, .systemPink, "黄昏"),
-            (.systemMint, .systemCyan, "清晨"),
-            (.systemBrown, .systemOrange, "途中"),
-            (.systemBlue, .systemCyan, "灵动票根"),
-            (.systemGreen, .systemYellow, "草原"),
-            (.darkGray, .systemBlue, "归途")
-        ]
-        var assetIDs: [UUID] = []
-        for (index, palette) in palettes.enumerated() {
-            let size: CGSize
-            if index == 5 {
-                // A deliberately wide exported work verifies that aspect-fit
-                // content reveals the page instead of a white slot rectangle.
-                size = CGSize(width: 1_800, height: 650)
-            } else if index.isMultiple(of: 3) {
-                size = CGSize(width: 1_200, height: 1_600)
-            } else {
-                size = CGSize(width: 1_600, height: 1_080)
-            }
-            let image = UIGraphicsImageRenderer(size: size).image { renderer in
-                let colors = [palette.0.cgColor, palette.1.cgColor] as CFArray
-                let gradient = CGGradient(
-                    colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                    colors: colors,
-                    locations: [0, 1]
-                )
-                if let gradient {
-                    renderer.cgContext.drawLinearGradient(
-                        gradient,
-                        start: .zero,
-                        end: CGPoint(x: size.width, y: size.height),
-                        options: []
-                    )
-                }
-                UIColor.white.withAlphaComponent(0.22).setFill()
-                renderer.cgContext.fillEllipse(in: CGRect(
-                    x: size.width * 0.16,
-                    y: size.height * 0.18,
-                    width: size.width * 0.58,
-                    height: size.width * 0.58
-                ))
-                let title = palette.2 as NSString
-                title.draw(
-                    at: CGPoint(x: size.width * 0.08, y: size.height * 0.82),
-                    withAttributes: [
-                        .font: UIFont.systemFont(ofSize: size.width * 0.08, weight: .semibold),
-                        .foregroundColor: UIColor.white.withAlphaComponent(0.86)
-                    ]
-                )
-            }
-            guard let data = image.jpegData(compressionQuality: 0.90) else { continue }
-            let payload = AlbumImportedPayload(
-                data: data,
-                fileExtension: "jpg",
-                image: image,
-                captureDate: Date.now.addingTimeInterval(Double(index) * -86_400)
-            )
-            if let id = try? store.importAsset(
-                payload,
-                kind: index == 5 ? .work : .photo,
-                workKind: index == 5 ? CreationMode.bubbleStamp.rawValue : nil,
-                projectID: projectID
-            ) {
-                assetIDs.append(id)
-            }
-        }
-        store.batchPlaceAssets(assetIDs, projectID: projectID)
-    }
-#endif
 }
 
 private struct AlbumLibraryScreen: View {
@@ -582,13 +465,6 @@ private struct AlbumTemplatePickerScreen: View {
                 .padding(.horizontal, 14)
                 .padding(.bottom, 10)
             }
-        }
-        .task {
-#if DEBUG
-            guard ProcessInfo.processInfo.arguments.contains("--album-template-variants") else { return }
-            selectTheme(.family)
-            showsVariants = true
-#endif
         }
     }
 

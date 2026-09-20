@@ -4,6 +4,8 @@ struct PostcardStudio: View {
     @AppStorage("supporterUnlocked") private var supporterUnlocked = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var model = PostalEditorModel()
     let store: PostalStore
     private let pendingSource: PostalSource?
@@ -38,6 +40,9 @@ struct PostcardStudio: View {
         templateAvailable && step.canSave(hasPhoto: model.source != nil, busy: busy || model.isLoading, resolving: model.isResolvingCity)
     }
     private var templateAvailable: Bool { PostalTemplate.postcard(draft.style).isAvailable(hasPro: supporterUnlocked) }
+    private var roomy: Bool {
+        horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
     var body: some View {
         NavigationStack {
             creationScreen
@@ -68,7 +73,7 @@ struct PostcardStudio: View {
                        selection: selection, model: model, preview: preview, busy: busy || model.isLoading,
                        onBack: goBack, onPhoto: requestPhoto, onPreview: showLargePreview, onNext: next,
                        onLibrary: { library = true }, onCamera: { if templateAvailable { camera = true } }) {
-            VStack(spacing: 6) {
+            VStack(spacing: roomy ? 14 : 6) {
                 PostalFlowAction(title: "调整文字与邮戳", symbol: "pencil.line", enabled: model.source != nil && !busy && !model.isLoading) {
                     editing = true
                 }.accessibilityIdentifier("postal.editPostcard")
@@ -91,7 +96,8 @@ struct PostcardStudio: View {
                     if draft.style == .seasonal {
                         field("书法标题", text: $draft.title, limit: 8)
                         Text("节气按拍摄日期与内置日期表推导；交节日期每年略有差异，可自行修改。")
-                            .font(.caption2).foregroundStyle(.secondary)
+                            .font(roomy ? .subheadline : .caption2)
+                            .foregroundStyle(.secondary)
                         field("诗意文案", text: $draft.poem, limit: 64, lines: 2...3)
                         field("竖排文字", text: $draft.verticalText, limit: 20)
                         Toggle("雪点装饰", isOn: $draft.snow)
@@ -109,7 +115,8 @@ struct PostcardStudio: View {
                             $0.city?.name ?? "普通邮票".appLocalized
                         )
                     } ?? "默认用当前照片制作一枚 3:4 邮票".appLocalized)
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(roomy ? .body : .caption)
+                        .foregroundStyle(.secondary)
                     HStack {
                         Button("已有邮票") { stampPicker = true }
                         Spacer()
@@ -117,7 +124,8 @@ struct PostcardStudio: View {
                     }
                     if selectedStamp != nil { Button("改用当前照片邮票") { selectedStamp = nil } }
                     Text("邮戳地名来自背景照片；没有定位时显示「旅途留念」。日期可在「内容」中修改，不影响照片原始信息。")
-                        .font(.caption2).foregroundStyle(.secondary)
+                        .font(roomy ? .subheadline : .caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -167,9 +175,12 @@ struct PostcardStudio: View {
     }
     private func field(_ label: String, text: Binding<String>, limit: Int, lines: ClosedRange<Int> = 1...1) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(LocalizedStringKey(label)).font(.caption).foregroundStyle(.secondary)
+            Text(LocalizedStringKey(label))
+                .font(roomy ? .body : .caption)
+                .foregroundStyle(.secondary)
             TextField(label.appLocalized, text: Binding(get: { text.wrappedValue }, set: { text.wrappedValue = String($0.prefix(limit)) }), axis: .vertical)
-                .lineLimit(lines).textFieldStyle(.plain).padding(12)
+                .lineLimit(lines).textFieldStyle(.plain)
+                .padding(roomy ? 16 : 12)
                 .background(.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 12))
                 .accessibilityIdentifier("postal.field.\(label)")
         }

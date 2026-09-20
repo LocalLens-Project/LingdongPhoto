@@ -12,6 +12,8 @@ struct TicketQRScannerScreen: View {
     }
 
     @Environment(\.openURL) private var openURL
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     let onCancel: () -> Void
 
@@ -19,6 +21,10 @@ struct TicketQRScannerScreen: View {
     @State private var feedback: String?
     @State private var isProcessing = false
     @State private var verifiedTicket: VerifiedTicket?
+
+    private var usesWideLayout: Bool {
+        horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
 
     var body: some View {
         ZStack {
@@ -163,7 +169,7 @@ struct TicketQRScannerScreen: View {
 
             Spacer()
 
-            Button(UIDevice.current.userInterfaceIdiom == .pad ? "返回创作" : "返回模式选择", action: onCancel)
+            Button(usesWideLayout ? "返回创作" : "返回模式选择", action: onCancel)
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
                 .padding(.bottom, 26)

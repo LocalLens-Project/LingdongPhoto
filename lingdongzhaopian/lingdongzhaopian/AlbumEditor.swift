@@ -87,50 +87,6 @@ struct AlbumEditorView: View {
             FileExportPicker(url: item.url)
                 .preferredColorScheme(.light)
         }
-        .task {
-#if DEBUG
-            let arguments = ProcessInfo.processInfo.arguments
-            guard let project, let page = project.pages.first,
-                  let slot = page.slots.first else { return }
-            if let pageArgument = arguments.first(where: { $0.hasPrefix("--album-page=") }),
-               let requestedIndex = Int(pageArgument.dropFirst("--album-page=".count)) {
-                selectedPageIndex = min(max(0, requestedIndex), max(0, project.pages.count - 1))
-            }
-            if arguments.contains("--album-work-page"),
-               let workPageIndex = project.pages.firstIndex(where: { page in
-                   page.slots.contains { slot in
-                       guard let assetID = slot.assetID else { return false }
-                       return project.assets.first(where: { $0.id == assetID })?.kind == .work
-                   }
-               }) {
-                selectedPageIndex = workPageIndex
-            }
-            if arguments.contains("--album-source-chooser") {
-                sourceRequest = AlbumSourceRequest(
-                    pageID: page.id,
-                    slotID: slot.id,
-                    expectation: slot.expectation,
-                    isBatch: false
-                )
-            } else if arguments.contains("--album-preview") {
-                previewImages = store.pageImages(projectID: project.id)
-                previewPresented = true
-            } else if arguments.contains("--album-export-panel") {
-                exportPanelPresented = true
-            } else if arguments.contains("--album-text-editor") {
-                textEditorPresented = true
-            } else if arguments.contains("--album-export-test")
-                        || arguments.contains("--album-digital-export-test") {
-                exportResult = try? AlbumExportService.export(
-                    project: project,
-                    images: store.pageImages(projectID: project.id),
-                    kind: arguments.contains("--album-digital-export-test")
-                        ? .digitalPages
-                        : .printReady
-                )
-            }
-#endif
-        }
     }
 
     private func editor(_ project: AlbumProject) -> some View {
@@ -1179,13 +1135,6 @@ private struct AlbumTextEditorOverlay: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 62)
         }
-        .task {
-#if DEBUG
-            guard ProcessInfo.processInfo.arguments.contains("--album-keyboard-test") else { return }
-            try? await Task.sleep(for: .milliseconds(500))
-            focusedField = "project-subtitle"
-#endif
-        }
     }
 
     private var pageFontPicker: some View {
@@ -1571,6 +1520,8 @@ private struct AlbumNoticeOverlay: View {
 }
 
 private struct AlbumBottomOverlay<Content: View>: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     let onDismiss: () -> Void
     @ViewBuilder let content: () -> Content
 
@@ -1581,7 +1532,7 @@ private struct AlbumBottomOverlay<Content: View>: View {
                 .onTapGesture(perform: onDismiss)
             content()
                 .padding(20)
-                .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? 640 : .infinity)
+                .frame(maxWidth: horizontalSizeClass == .regular && verticalSizeClass == .regular ? 640 : .infinity)
                 .background(.regularMaterial, in: UnevenRoundedRectangle(
                     topLeadingRadius: 34,
                     topTrailingRadius: 34

@@ -361,7 +361,7 @@ struct ColorRelationshipCanvas: View {
         let mediaHeight = mediaHeight(size: size)
         let fieldHeight = size.height - mediaHeight
         let copy = relationship.copy(for: lens)
-        return VStack(alignment: .leading, spacing: size.width * 0.022) {
+        return VStack(alignment: .leading, spacing: size.width * (reservesBand ? 0.012 : 0.022)) {
             HStack(alignment: .firstTextBaseline) {
                 Text(LocalizedStringKey(copy.title))
                     .font(.system(size: size.width * 0.065, weight: .bold, design: .rounded))
@@ -374,10 +374,11 @@ struct ColorRelationshipCanvas: View {
             }
 
             Text(LocalizedStringKey(copy.narrative))
-                .font(.system(size: size.width * 0.035, weight: .medium, design: .rounded))
-                .lineSpacing(size.width * 0.012)
-                .lineLimit(2)
-                .minimumScaleFactor(0.72)
+                .font(.system(size: size.width * 0.032, weight: .medium, design: .rounded))
+                .lineSpacing(size.width * 0.007)
+                .allowsTightening(true)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
 
             HStack(spacing: 0) {
                 metric("色彩亲近", relationship.affinity, width: size.width)
@@ -389,7 +390,7 @@ struct ColorRelationshipCanvas: View {
         .foregroundStyle(ink)
         .padding(.horizontal, size.width * 0.065)
         .padding(.top, reservesBand ? size.width * 0.15 : size.width * 0.045)
-        .padding(.bottom, size.width * 0.045)
+        .padding(.bottom, size.width * (reservesBand ? 0.018 : 0.045))
         .frame(width: size.width, height: fieldHeight, alignment: .topLeading)
         .position(x: size.width / 2, y: mediaHeight + fieldHeight / 2)
     }

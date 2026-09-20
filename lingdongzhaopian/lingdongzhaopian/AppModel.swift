@@ -349,10 +349,27 @@ enum JournalGridGeometry {
     }
 }
 
-enum PaletteLayoutMode: String, CaseIterable, Identifiable {
-    case floating = "经典浮动"
-    case compact = "紧凑横排"
-    case bottom = "底部悬浮"
+enum PaletteLayoutMode: CaseIterable, Identifiable, RawRepresentable {
+    case compact
+    case floating
+
+    init?(rawValue: String) {
+        switch rawValue {
+        case "单排", "紧凑横排":
+            self = .compact
+        case "双排", "经典浮动", "底部悬浮":
+            self = .floating
+        default:
+            return nil
+        }
+    }
+
+    var rawValue: String {
+        switch self {
+        case .compact: "单排"
+        case .floating: "双排"
+        }
+    }
 
     var id: String { rawValue }
 }
@@ -369,7 +386,12 @@ enum PalettePanelGeometry {
 
         if canvasSize.width > canvasSize.height * 1.18 {
             let panelWidth = canvasSize.width * 0.90
-            let panelHeight = min(max(canvasSize.height * 0.32, 68), 92)
+            let contentHeight = panelWidth * 0.15
+            let availableHeight = max(68, canvasSize.height - verticalInset * 2)
+            let panelHeight = min(
+                max(canvasSize.height * 0.32, contentHeight, 68),
+                availableHeight
+            )
             return CGSize(width: panelWidth, height: panelHeight)
         }
 
@@ -397,8 +419,7 @@ enum PalettePanelGeometry {
         let panelHeight = size(in: canvasSize, layout: layout).height
         let minimumY = verticalInset
         let maximumY = max(minimumY, canvasSize.height - verticalInset - panelHeight)
-        let usesBottomAnchor = layout == .bottom
-            || canvasSize.width > canvasSize.height * 1.18
+        let usesBottomAnchor = canvasSize.width > canvasSize.height * 1.18
         let baseY = usesBottomAnchor ? maximumY : minimumY
         return min(max(proposedOffset, minimumY - baseY), maximumY - baseY)
     }
@@ -410,8 +431,7 @@ enum PalettePanelGeometry {
     ) -> CGRect {
         let panelSize = size(in: canvasSize, layout: layout)
         let maximumY = max(verticalInset, canvasSize.height - verticalInset - panelSize.height)
-        let usesBottomAnchor = layout == .bottom
-            || canvasSize.width > canvasSize.height * 1.18
+        let usesBottomAnchor = canvasSize.width > canvasSize.height * 1.18
         let baseY = usesBottomAnchor ? maximumY : verticalInset
         let visibleOffset = clampedOffset(offset, in: canvasSize, layout: layout)
         return CGRect(
@@ -441,22 +461,36 @@ enum GlassArchiveBarGeometry {
     static let maximumHeight: CGFloat = 96
     static let markHitSlop: CGFloat = 12
 
-    static func barFrame(in canvasSize: CGSize) -> CGRect {
+    static func clampedPosition(_ position: CGFloat) -> CGFloat {
+        min(max(position, 0), 1)
+    }
+
+    static func travelDistance(in canvasSize: CGSize) -> CGFloat {
+        let height = min(
+            max(canvasSize.width * heightScale, minimumHeight),
+            maximumHeight
+        )
+        let verticalInset = canvasSize.width * bottomInsetScale
+        return max(0, canvasSize.height - verticalInset * 2 - height)
+    }
+
+    static func barFrame(in canvasSize: CGSize, position: CGFloat = 1) -> CGRect {
         let width = canvasSize.width * (1 - horizontalInsetScale * 2)
         let height = min(
             max(canvasSize.width * heightScale, minimumHeight),
             maximumHeight
         )
+        let verticalInset = canvasSize.width * bottomInsetScale
         return CGRect(
             x: canvasSize.width * horizontalInsetScale,
-            y: canvasSize.height - canvasSize.width * bottomInsetScale - height,
+            y: verticalInset + travelDistance(in: canvasSize) * clampedPosition(position),
             width: width,
             height: height
         )
     }
 
-    static func markFrame(in canvasSize: CGSize) -> CGRect {
-        let bar = barFrame(in: canvasSize)
+    static func markFrame(in canvasSize: CGSize, position: CGFloat = 1) -> CGRect {
+        let bar = barFrame(in: canvasSize, position: position)
         let side = bar.height * 0.72
         return CGRect(
             x: bar.midX - side / 2,
@@ -467,8 +501,8 @@ enum GlassArchiveBarGeometry {
         .insetBy(dx: -markHitSlop, dy: -markHitSlop)
     }
 
-    static func hitFrame(in canvasSize: CGSize) -> CGRect {
-        barFrame(in: canvasSize)
+    static func hitFrame(in canvasSize: CGSize, position: CGFloat = 1) -> CGRect {
+        barFrame(in: canvasSize, position: position)
             .insetBy(dx: -8, dy: -8)
             .intersection(CGRect(origin: .zero, size: canvasSize))
     }

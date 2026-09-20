@@ -1,6 +1,6 @@
 import Foundation
 
-enum SolarTerm: String, CaseIterable {
+enum SolarTerm: String, CaseIterable, Codable, Identifiable, Sendable {
     case lichun = "立春"
     case yushui = "雨水"
     case jingzhe = "惊蛰"
@@ -25,6 +25,8 @@ enum SolarTerm: String, CaseIterable {
     case dongzhi = "冬至"
     case xiaohan = "小寒"
     case dahan = "大寒"
+
+    var id: String { rawValue }
 }
 
 extension SolarTerm {

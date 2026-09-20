@@ -108,6 +108,8 @@ struct StampStudio: View {
     @AppStorage("supporterUnlocked") private var supporterUnlocked = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var model = PostalEditorModel()
     let store: PostalStore
     let targetCity: PostalCity?
@@ -129,6 +131,7 @@ struct StampStudio: View {
     @State private var picker = false
     @State private var camera = false
     @State private var reusePhoto = false
+    @State private var manualCompositionPresented = false
 
     init(photo: SelectedPhoto? = nil, source: PostalSource? = nil, store: PostalStore? = nil,
          targetCity: PostalCity? = nil, onSaved: ((PostalStamp) -> Void)? = nil) {
@@ -143,11 +146,24 @@ struct StampStudio: View {
         templateAvailable && step.canSave(hasPhoto: model.source != nil, busy: busy || model.isLoading, resolving: model.isResolvingCity)
     }
     private var templateAvailable: Bool { PostalTemplate.stamp(format).isAvailable(hasPro: supporterUnlocked) }
+    private var roomy: Bool {
+        horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
     var body: some View {
         NavigationStack {
             creationScreen
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(isPresented: $adjustments) { adjustmentPage }
+        }
+        .fullScreenCover(isPresented: $manualCompositionPresented) {
+            if let source = model.source {
+                StampManualCompositionView(
+                    photo: source.image,
+                    format: format,
+                    lettering: lettering,
+                    transform: $transform
+                )
+            }
         }
     }
     private var creationScreen: some View {
@@ -155,14 +171,14 @@ struct StampStudio: View {
                        selection: selection, model: model, preview: preview, busy: busy || model.isLoading,
                        onBack: goBack, onPhoto: requestPhoto, onPreview: showLargePreview, onNext: next,
                        onLibrary: { library = true }, onCamera: { if templateAvailable { camera = true } }) {
-            VStack(spacing: 2) {
+            VStack(spacing: roomy ? 12 : 2) {
                 if model.source != nil {
                     PostalFlowAction(
                         title: "调整构图与文字",
                         symbol: "crop",
                         enabled: !busy && !model.isLoading
                     ) { adjustments = true }
-                    .padding(.bottom, 10)
+                    .padding(.bottom, roomy ? 4 : 10)
                     .accessibilityIdentifier("postal.adjustPhoto")
                 }
                 PostalFlowAction(title: targetCity == nil ? "收藏邮票" : "收藏并设为默认邮票",
@@ -189,7 +205,13 @@ struct StampStudio: View {
             Button("取消", role: .cancel) {}
         }
         .onChange(of: format) { _, _ in savedStamp = nil; updatePreview() }
-        .onChange(of: transform) { _, _ in savedStamp = nil; updatePreview() }
+        .onChange(of: transform) { _, _ in
+            savedStamp = nil
+            if !manualCompositionPresented { updatePreview() }
+        }
+        .onChange(of: manualCompositionPresented) { _, presented in
+            if !presented { updatePreview() }
+        }
         .onChange(of: lettering) { _, _ in savedStamp = nil; updatePreview() }
         .onChange(of: model.source?.image) { _, _ in savedStamp = nil; transform = .init()
             if lettering.date.isEmpty { lettering.date = model.source?.metadata.captureDate.map(PostalDate.short) ?? "" }
@@ -212,6 +234,7 @@ struct StampStudio: View {
                           onPreview: showLargePreview, onDone: { adjustments = false }) {
             VStack(alignment: .leading, spacing: 22) {
                 if editTab == 0 {
+                    manualCompositionButton
                     postalSlider("缩放", value: $transform.scale, range: 1...4)
                     postalSlider("水平位置", value: $transform.x, range: -1...1)
                     postalSlider("垂直位置", value: $transform.y, range: -1...1)
@@ -232,10 +255,12 @@ struct StampStudio: View {
                         }.pickerStyle(.segmented)
                     }
                     Text("文字默认关闭，开启后只用于作品装饰。修改日期不会改变照片的拍摄信息或城市归属。")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(roomy ? .subheadline : .caption)
+                        .foregroundStyle(.secondary)
                 } else {
                     if !lettering.isEnabled { Text("在「文字」中开启标题或日期，即可在邮票上看到字体效果。")
-                        .font(.caption).foregroundStyle(.secondary) }
+                        .font(roomy ? .subheadline : .caption)
+                        .foregroundStyle(.secondary) }
                     PostalFontPicker(selection: $lettering.font)
                 }
             }
@@ -267,18 +292,35 @@ struct StampStudio: View {
         if pendingSource != nil && model.source == nil { reusePhoto = true } else { picker = true }
     }
     private func postalSlider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
-        HStack { Text(LocalizedStringKey(title)).font(.caption).frame(width: 62, alignment: .leading)
+        return HStack {
+            Text(LocalizedStringKey(title))
+                .font(roomy ? .body : .caption)
+                .frame(width: roomy ? 96 : 62, alignment: .leading)
             Slider(value: value, in: range)
                 .accessibilityLabel(Text(LocalizedStringKey(title)))
                 .accessibilityIdentifier("postal.\(title)")
         }
+    }
+
+    private var manualCompositionButton: some View {
+        Button {
+            manualCompositionPresented = true
+        } label: {
+            Label("手动选取".appLocalized, systemImage: "hand.draw")
+                .font(roomy ? .headline : .subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: roomy ? 54 : 46)
+        }
+        .buttonStyle(.plain)
+        .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
+        .accessibilityHint("拖动平移，双指捏合缩放".appLocalized)
+        .accessibilityIdentifier("postal.manualComposition")
     }
     @ViewBuilder
     private var resetCompositionButton: some View {
         // 居中放置，避免被误认为属于“垂直位置”滑块
         if #available(iOS 26.0, *) {
             Button("重置构图") { transform = .init() }
-                .font(.subheadline)
+                .font(roomy ? .body : .subheadline)
                 .buttonStyle(.glass)
                 .buttonBorderShape(.capsule)
                 .padding(.top, 10)
@@ -289,7 +331,7 @@ struct StampStudio: View {
                 transform = .init()
             } label: {
                 Text("重置构图")
-                    .font(.subheadline)
+                    .font(roomy ? .body : .subheadline)
                     .padding(.horizontal, 18)
                     .padding(.vertical, 8)
                     .background {
@@ -338,6 +380,114 @@ struct StampStudio: View {
                 notice = "已收藏为普通邮票，可在明信片中使用。".appLocalized
             }
         } catch { model.error = error.localizedDescription }
+    }
+}
+
+private struct StampManualCompositionView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    let photo: UIImage
+    let format: StampFormat
+    let lettering: StampLettering
+    @Binding var transform: StampTransform
+    @State private var storedTransform: StampTransform
+
+    init(
+        photo: UIImage,
+        format: StampFormat,
+        lettering: StampLettering,
+        transform: Binding<StampTransform>
+    ) {
+        self.photo = photo
+        self.format = format
+        self.lettering = lettering
+        _transform = transform
+        _storedTransform = State(initialValue: transform.wrappedValue)
+    }
+
+    private var preview: UIImage? {
+        try? StampRenderer.render(
+            photo: photo,
+            format: format,
+            transform: transform,
+            lettering: lettering,
+            maxDimension: horizontalSizeClass == .regular && verticalSizeClass == .regular ? 1_000 : 700
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            GeometryReader { proxy in
+                VStack(spacing: 20) {
+                    Text("拖动平移 · 双指捏合缩放".appLocalized)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+
+                    if let preview {
+                        Image(uiImage: preview)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .contentShape(Rectangle())
+                            .gesture(compositionGesture(in: proxy.size))
+                            .accessibilityLabel("手动选取邮票构图".appLocalized)
+                            .accessibilityHint("拖动平移，双指捏合缩放".appLocalized)
+                            .accessibilityIdentifier("postal.manualComposition.preview")
+                    }
+
+                    Button {
+                        withAnimation(reduceMotion ? nil : .snappy) {
+                            transform = .init()
+                            storedTransform = transform
+                        }
+                    } label: {
+                        Label("重置构图".appLocalized, systemImage: "arrow.counterclockwise")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 18)
+                            .frame(minHeight: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 18)
+            }
+            .background(PostalBackground(tint: .extract(photo)))
+            .navigationTitle("手动选取".appLocalized)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("完成".appLocalized) { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .preferredColorScheme(.light)
+    }
+
+    private func compositionGesture(in size: CGSize) -> some Gesture {
+        SimultaneousGesture(
+            DragGesture(minimumDistance: 1)
+                .onChanged { value in
+                    let horizontal = max(120, size.width * 0.42)
+                    let vertical = max(120, size.height * 0.42)
+                    transform.x = min(1, max(-1,
+                        storedTransform.x + Double(value.translation.width / horizontal)
+                    ))
+                    transform.y = min(1, max(-1,
+                        storedTransform.y + Double(value.translation.height / vertical)
+                    ))
+                }
+                .onEnded { _ in storedTransform = transform },
+            MagnificationGesture()
+                .onChanged { value in
+                    transform.scale = min(4, max(1, storedTransform.scale * value))
+                }
+                .onEnded { _ in storedTransform = transform }
+        )
     }
 }
 

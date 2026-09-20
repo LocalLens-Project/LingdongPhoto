@@ -10,7 +10,7 @@ enum TicketRevealActivityPhase: String, Codable, Hashable {
     case verified
 }
 
-struct TicketRevealActivityAttributes: ActivityAttributes {
+nonisolated struct TicketRevealActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         var phase: TicketRevealActivityPhase
         var progress: Double

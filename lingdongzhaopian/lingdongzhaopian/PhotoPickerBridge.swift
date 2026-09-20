@@ -54,6 +54,7 @@ struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {
+        context.coordinator.update(parent: self)
         uiViewController.overrideUserInterfaceStyle = colorScheme.userInterfaceStyle
     }
 
@@ -64,11 +65,16 @@ struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
             self.parent = parent
         }
 
+        func update(parent: PrivacyPreservingPhotoPicker) {
+            self.parent = parent
+        }
+
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            parent.onSelection(
-                results.map { PhotoPickerSelection(itemProvider: $0.itemProvider) }
-            )
+            let selections = results.map {
+                PhotoPickerSelection(itemProvider: $0.itemProvider)
+            }
             parent.isPresented = false
+            parent.onSelection(selections)
         }
     }
 }

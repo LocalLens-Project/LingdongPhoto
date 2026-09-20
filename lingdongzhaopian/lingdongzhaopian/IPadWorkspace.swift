@@ -4,11 +4,11 @@ import UIKit
 
 enum IPadWorkspaceEntry: Hashable, Identifiable {
     case creation(CreationMode), fanGallery
-    case album, colorRelationship, scanner, video, developing, collection, stamp, postcard, postalCollection
+    case album, colorRelationship, scanner, video, developing, collection, stamp, postcard, postalCollection, solarColors, photoBacks
 
     static var all: [Self] {
         CreationMode.allCases.map(Self.creation)
-            + [.fanGallery, .album, .colorRelationship, .scanner, .video, .developing, .stamp, .postcard, .collection, .postalCollection]
+            + [.fanGallery, .album, .colorRelationship, .scanner, .video, .developing, .stamp, .postcard, .collection, .postalCollection, .solarColors, .photoBacks]
     }
 
     var id: String {
@@ -24,6 +24,8 @@ enum IPadWorkspaceEntry: Hashable, Identifiable {
         case .stamp: "stamp"
         case .postcard: "postcard"
         case .postalCollection: "postalCollection"
+        case .solarColors: "solarColors"
+        case .photoBacks: "photoBacks"
         }
     }
 
@@ -40,6 +42,8 @@ enum IPadWorkspaceEntry: Hashable, Identifiable {
         case .stamp: "邮票制作".appLocalized
         case .postcard: "明信片".appLocalized
         case .postalCollection: "邮集".appLocalized
+        case .solarColors: "节气寻色".appLocalized
+        case .photoBacks: "照片背面".appLocalized
         }
     }
 
@@ -56,6 +60,8 @@ enum IPadWorkspaceEntry: Hashable, Identifiable {
         case .stamp: "photo.artframe"
         case .postcard: "envelope"
         case .postalCollection: "book.closed"
+        case .solarColors: "camera.macro.circle"
+        case .photoBacks: "arrow.triangle.2.circlepath.camera"
         }
     }
 }
@@ -63,6 +69,7 @@ enum IPadWorkspaceEntry: Hashable, Identifiable {
 struct IPadModeButtons: View {
     let selection: IPadWorkspaceEntry
     let compact: Bool
+    let width: CGFloat
     let disabled: Bool
     let onSelect: (IPadWorkspaceEntry) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -70,13 +77,14 @@ struct IPadModeButtons: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .subheadline) private var buttonHeight: CGFloat = 48
     @State private var labelPresented: IPadWorkspaceEntry?
+    @AppStorage("didShowIPadSidebarCollapseHint") private var didShowCollapseHint = false
 
     @State private var collapsed = false
     @State private var contentMinY: CGFloat = 0
     @State private var viewportHeight: CGFloat = 0
     @State private var scrollRequest: ScrollRequest?
+    @State private var isPreparingCollapse = false
     @State private var showCollapseHint = false
-    @State private var hasCollapsedOnce = false
     @State private var idleDelay: TimeInterval = 5
     @State private var lastInteraction = Date()
     @State private var collapseWorkItem: DispatchWorkItem?
@@ -87,59 +95,50 @@ struct IPadModeButtons: View {
     private let minButtonHeight: CGFloat = 40
 
     private enum ScrollRequest: Equatable {
-        case centerSelection
+        case revealSelection
     }
 
     var body: some View {
         GeometryReader { proxy in
             let metrics = fittedMetrics(for: proxy.size.height)
-            let selectedIndex = selectedIndex()
-            let topSpacer = collapsedTopSpacer(metrics: metrics, viewportHeight: proxy.size.height, selectedIndex: selectedIndex)
             ScrollViewReader { reader in
                 ScrollView(.vertical) {
-                    column(
-                        metrics: metrics,
-                        topSpacer: topSpacer,
-                        selectedIndex: selectedIndex
-                    )
+                    column(metrics: metrics)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 8)
-                    .background(GeometryReader { g in
+                    .background(GeometryReader { geometry in
                         Color.clear.preference(
                             key: ContentMinYKey.self,
-                            value: g.frame(in: .named("ipadModes")).minY
+                            value: geometry.frame(in: .named("ipadModes")).minY
                         )
                     })
-
-
-
-                    if collapsed {
-                        Color.clear.frame(height: proxy.size.height)
-                    }
                 }
                 .scrollDisabled(collapsed)
                 .scrollBounceBehavior(.basedOnSize)
                 .scrollContentBackground(.hidden)
                 .scrollIndicators(.hidden)
                 .coordinateSpace(name: "ipadModes")
-                .onPreferenceChange(ContentMinYKey.self) { contentMinY = $0 }
+                .onPreferenceChange(ContentMinYKey.self) { minY in
+                    contentMinY = minY
+                    if !isPreparingCollapse { bumpIdle() }
+                }
                 .accessibilityIdentifier("ipad.modeButtons")
                 .onAppear { viewportHeight = proxy.size.height }
                 .onChange(of: selection) { _, entry in
                     bumpIdle()
+                    if collapsed {
+                        withAnimation(baseCollapseAnimation) { collapsed = false }
+                    }
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
                         reader.scrollTo(entry.id, anchor: nil)
                     }
                 }
                 .onChange(of: scrollRequest) { _, request in
-                    guard request == .centerSelection else { return }
+                    guard request == .revealSelection else { return }
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
-                        reader.scrollTo(selection.id, anchor: .center)
+                        reader.scrollTo(selection.id, anchor: .top)
                     }
                     scrollRequest = nil
-                }
-                .onChange(of: contentMinY) { _, _ in
-                    bumpIdle()
                 }
                 .onChange(of: disabled) { _, isDisabled in
                     if isDisabled { cancelIdleTimer() } else { bumpIdle() }
@@ -158,14 +157,14 @@ struct IPadModeButtons: View {
                 .simultaneousGesture(TapGesture().onEnded { bumpIdle() })
             }
         }
-        .frame(width: compact ? 64 : 174)
+        .frame(width: width)
         .onAppear { bumpIdle() }
         .onDisappear { cancelIdleTimer() }
         .task(id: collapsed) {
             if collapsed {
                 idleDelay = 5
-                if !hasCollapsedOnce {
-                    hasCollapsedOnce = true
+                if !didShowCollapseHint {
+                    didShowCollapseHint = true
                     withAnimation(.easeOut(duration: 0.3)) { showCollapseHint = true }
                     try? await Task.sleep(nanoseconds: 2_500_000_000)
                     withAnimation(.easeIn(duration: 0.3)) { showCollapseHint = false }
@@ -186,6 +185,7 @@ struct IPadModeButtons: View {
 
     private func bumpIdle() {
         lastInteraction = Date()
+        isPreparingCollapse = false
         cancelIdleTimer()
         guard canAutoCollapse else { return }
         let item = DispatchWorkItem { attemptCollapse() }
@@ -201,63 +201,38 @@ struct IPadModeButtons: View {
     private func attemptCollapse() {
         collapseWorkItem = nil
         guard canAutoCollapse, Date().timeIntervalSince(lastInteraction) >= idleDelay - 0.05 else { return }
-
-
-        if !isSelectedVisibleInViewport() {
-            scrollRequest = .centerSelection
+        if isSelectedVisibleInViewport() {
+            performCollapse()
+        } else {
+            isPreparingCollapse = true
+            scrollRequest = .revealSelection
             let item = DispatchWorkItem { performCollapse() }
             collapseWorkItem = item
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: item)
-        } else {
-            performCollapse()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: item)
         }
     }
 
     private func performCollapse() {
         collapseWorkItem = nil
         guard canAutoCollapse else { return }
-        collapsed = true
+        isPreparingCollapse = false
+        withAnimation(baseCollapseAnimation) {
+            collapsed = true
+        }
     }
 
     private func expand() {
-        collapsed = false
-
+        isPreparingCollapse = false
+        withAnimation(baseCollapseAnimation) {
+            collapsed = false
+        }
         idleDelay = 10
         bumpIdle()
     }
 
-
-
-    private func selectedIndex() -> Int {
-        max(0, IPadWorkspaceEntry.all.firstIndex(of: selection) ?? 0)
-    }
-
-
-    private func isSelectedVisibleInViewport() -> Bool {
-        let metrics = fittedMetrics(for: viewportHeight)
-        let index = selectedIndex()
-        let top = contentMinY + 8 + CGFloat(index) * (metrics.buttonHeight + metrics.spacing)
-        let bottom = top + metrics.buttonHeight
-        return top >= 0 && bottom <= viewportHeight
-    }
-
-
-
-    private func collapsedTopSpacer(metrics: (buttonHeight: CGFloat, spacing: CGFloat), viewportHeight: CGFloat, selectedIndex: Int) -> CGFloat {
-        guard collapsed, viewportHeight > 0 else { return 0 }
-        let spaceAbove = CGFloat(selectedIndex) * (metrics.buttonHeight + metrics.spacing)
-        let onScreen = contentMinY + 8 + spaceAbove
-
-        let desired = min(max(onScreen, 8), max(8, viewportHeight - metrics.buttonHeight - 8))
-        return max(0, desired - contentMinY - 8)
-    }
-
-    private func column(metrics: (buttonHeight: CGFloat, spacing: CGFloat), topSpacer: CGFloat, selectedIndex: Int) -> some View {
-        VStack(spacing: 0) {
-            Color.clear
-                .frame(height: topSpacer)
-                .animation(baseCollapseAnimation, value: collapsed)
-
+    private func column(metrics: (buttonHeight: CGFloat, spacing: CGFloat)) -> some View {
+        let selectedIndex = max(0, IPadWorkspaceEntry.all.firstIndex(of: selection) ?? 0)
+        return VStack(spacing: 0) {
             ForEach(Array(IPadWorkspaceEntry.all.enumerated()), id: \.element.id) { index, entry in
                 let isSelected = index == selectedIndex
                 modeButton(
@@ -265,17 +240,29 @@ struct IPadModeButtons: View {
                     height: metrics.buttonHeight,
                     isSelectedCollapsed: collapsed && isSelected
                 ) {
-                    if collapsed { expand() } else { onSelect(entry) }
+                    if collapsed {
+                        expand()
+                    } else {
+                        onSelect(entry)
+                    }
                 }
                 .id(entry.id)
-                .frame(height: collapsed && !isSelected ? 0 : metrics.buttonHeight)
-                .clipped()
-                .background { if isSelected && collapsed { deckShadow } }
+                .frame(height: metrics.buttonHeight)
+                .background {
+                    if collapsed && isSelected {
+                        deckShadow
+                    }
+                }
                 .scaleEffect(
                     collapsed && !isSelected ? 0.3 : 1,
                     anchor: index < selectedIndex ? .bottom : .top
                 )
-                .padding(.bottom, collapsed && !isSelected ? 0 : metrics.spacing)
+                .offset(
+                    y: collapsed && !isSelected
+                        ? CGFloat(selectedIndex - index) * (metrics.buttonHeight + metrics.spacing)
+                        : 0
+                )
+                .padding(.bottom, metrics.spacing)
                 .opacity(collapsed && !isSelected ? 0 : 1)
                 .allowsHitTesting(!collapsed || isSelected)
                 .accessibilityHidden(collapsed && !isSelected)
@@ -291,10 +278,18 @@ struct IPadModeButtons: View {
         }
     }
 
+    private func isSelectedVisibleInViewport() -> Bool {
+        guard viewportHeight > 0 else { return true }
+        let metrics = fittedMetrics(for: viewportHeight)
+        let index = max(0, IPadWorkspaceEntry.all.firstIndex(of: selection) ?? 0)
+        let top = contentMinY + 8 + CGFloat(index) * (metrics.buttonHeight + metrics.spacing)
+        let bottom = top + metrics.buttonHeight
+        return top >= 0 && bottom <= viewportHeight
+    }
+
     private var baseCollapseAnimation: Animation {
         reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.5, dampingFraction: 0.86)
     }
-
 
     private func collapseAnimation(index: Int, selectedIndex: Int) -> Animation {
         baseCollapseAnimation.delay(Double(abs(index - selectedIndex)) * 0.028)
@@ -365,8 +360,9 @@ struct IPadModeButtons: View {
                 if !compact {
                     Text(entry.title)
                         .font(.subheadline.weight(selected ? .semibold : .medium))
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
-                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.62)
+                        .allowsTightening(true)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     Image(systemName: "checkmark")
@@ -385,7 +381,7 @@ struct IPadModeButtons: View {
             .foregroundStyle(selected ? Color.white : Color.primary)
             .padding(.horizontal, compact ? 0 : 10)
             .padding(.vertical, 8)
-            .frame(width: compact ? 48 : 158, height: height)
+            .frame(width: compact ? 48 : width - 16, height: height)
             .contentShape(Capsule())
         })
         .buttonStyle(.plain)
@@ -441,6 +437,7 @@ struct IPadCompositionDraft {
     var imageScale: CGFloat
     var imageOffset: CGSize
     var paletteOffset: CGFloat
+    var glassArchiveBarPosition: CGFloat
     var bubbleScale: CGFloat
     var textScale: CGFloat
     var fontStyle: ArtworkFontStyle

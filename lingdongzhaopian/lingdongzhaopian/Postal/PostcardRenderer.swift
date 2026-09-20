@@ -96,10 +96,18 @@ enum PostalSolarTerm {
     ]
     static func at(_ date: Date) -> Term {
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!
-        let parts = calendar.dateComponents([.month, .day], from: date)
-        let key = (parts.month ?? 1) * 100 + (parts.day ?? 1)
-        return terms.last(where: { $0.month * 100 + $0.day <= key }) ?? terms[23]
+        calendar.timeZone = SolarTermCalendar.chinaTimeZone
+        guard let occurrence = SolarTermCalendar.occurrence(containing: date),
+              let copy = terms.first(where: { $0.name == occurrence.term.rawValue }) else {
+            return terms[23]
+        }
+        let parts = calendar.dateComponents([.month, .day], from: occurrence.instant)
+        return Term(
+            month: parts.month ?? copy.month,
+            day: parts.day ?? copy.day,
+            name: occurrence.term.localizedName,
+            poem: copy.poem.appLocalized
+        )
     }
 }
 

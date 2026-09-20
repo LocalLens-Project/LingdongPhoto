@@ -360,11 +360,15 @@ struct TicketCodeStudioView: View {
 
                             VStack(spacing: 18) {
                                 explanation
-                                narrativeOptions
-                                headerOptions
-                                messageOptions
-                                deviceSealOptions
-                                privacyOptions
+                                if codeStyle == .barcode {
+                                    headerOptions
+                                } else {
+                                    narrativeOptions
+                                    headerOptions
+                                    messageOptions
+                                    deviceSealOptions
+                                    privacyOptions
+                                }
                                 exportActions
                             }
                             .frame(maxWidth: 480)
@@ -382,11 +386,15 @@ struct TicketCodeStudioView: View {
                             codePicker
                             codePreview
                             explanation
-                            narrativeOptions
-                            headerOptions
-                            messageOptions
-                            deviceSealOptions
-                            privacyOptions
+                            if codeStyle == .barcode {
+                                headerOptions
+                            } else {
+                                narrativeOptions
+                                headerOptions
+                                messageOptions
+                                deviceSealOptions
+                                privacyOptions
+                            }
                             exportActions
                         }
                         .padding(.horizontal, 18)
@@ -434,6 +442,7 @@ struct TicketCodeStudioView: View {
             keyboardHeight = 0
         }
         .tint(Color(uiColor: .systemBlue))
+        .animation(.snappy, value: codeStyle)
         .sheet(isPresented: $verificationPreviewPresented) {
             TicketVerificationView(
                 ticket: verificationPreviewTicket ?? .unsigned(payload),

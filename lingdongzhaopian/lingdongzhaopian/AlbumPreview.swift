@@ -6,6 +6,8 @@ import UIKit
 
 struct AlbumBookPreviewScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     let project: AlbumProject
     let images: [UUID: UIImage]
@@ -16,6 +18,9 @@ struct AlbumBookPreviewScreen: View {
     @State private var isPreparing = true
 
     private var spreadCount: Int { bookPages.count / 2 }
+    private var usesWideLayout: Bool {
+        horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -83,7 +88,7 @@ struct AlbumBookPreviewScreen: View {
                     Spacer()
                 }
 
-                if proxy.size.width < proxy.size.height, UIDevice.current.userInterfaceIdiom == .phone {
+                if proxy.size.width < proxy.size.height, !usesWideLayout {
                     VStack(spacing: 12) {
                         Image(systemName: "iphone.gen3.landscape")
                             .font(.system(size: 30, weight: .medium))
@@ -106,7 +111,7 @@ struct AlbumBookPreviewScreen: View {
         }
         .statusBarHidden(true)
         .task {
-            if UIDevice.current.userInterfaceIdiom == .phone {
+            if !usesWideLayout {
                 InterfaceOrientationController.shared.request(.landscape)
             }
             await Task.yield()
@@ -115,28 +120,10 @@ struct AlbumBookPreviewScreen: View {
             bookPages = await Task.detached(priority: .userInitiated) {
                 AlbumPageRenderer.renderBookPages(project: previewProject, images: previewImages)
             }.value
-#if DEBUG
-            let runsTurnTest = ProcessInfo.processInfo.arguments.contains("--album-preview-turn-test")
-            let runsReverseTurnTest = ProcessInfo.processInfo.arguments.contains("--album-preview-reverse-test")
-            if runsReverseTurnTest {
-                currentSpread = min(3, max(1, spreadCount - 1))
-            } else if runsTurnTest {
-                currentSpread = min(2, max(0, spreadCount - 2))
-            }
-#endif
             withAnimation(.easeOut(duration: 0.24)) { isPreparing = false }
-#if DEBUG
-            if runsTurnTest, currentSpread + 1 < spreadCount {
-                try? await Task.sleep(for: .milliseconds(1_200))
-                currentSpread += 1
-            } else if runsReverseTurnTest, currentSpread > 0 {
-                try? await Task.sleep(for: .milliseconds(1_200))
-                currentSpread -= 1
-            }
-#endif
         }
         .onDisappear {
-            if UIDevice.current.userInterfaceIdiom == .phone {
+            if !usesWideLayout {
                 InterfaceOrientationController.shared.request(.portrait)
             }
         }
@@ -166,7 +153,9 @@ struct AlbumBookPreviewScreen: View {
     }
 
     private func closePreview() {
-        InterfaceOrientationController.shared.request(.portrait)
+        if !usesWideLayout {
+            InterfaceOrientationController.shared.request(.portrait)
+        }
         onClose()
     }
 }

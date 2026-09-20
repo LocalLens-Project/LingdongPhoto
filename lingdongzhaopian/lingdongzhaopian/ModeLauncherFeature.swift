@@ -3,6 +3,7 @@
 
 import SwiftUI
 import UIKit
+import Darwin
 
 enum LocalizedVisualPolicy {
     static func showsOnboardingFeatureImage(languageCode: String, imageName: String) -> Bool {
@@ -57,6 +58,8 @@ enum ModeLauncherDestination: Identifiable {
     case video
     case ticketCollection
     case postalCollection
+    case solarColors
+    case photoBacks
 
     var id: String {
         switch self {
@@ -71,6 +74,8 @@ enum ModeLauncherDestination: Identifiable {
         case .video: "video"
         case .ticketCollection: "ticketCollection"
         case .postalCollection: "postalCollection"
+        case .solarColors: "solarColors"
+        case .photoBacks: "photoBacks"
         }
     }
 
@@ -87,6 +92,8 @@ enum ModeLauncherDestination: Identifiable {
         case .video: "视频转实况".appLocalized
         case .ticketCollection: "票根集".appLocalized
         case .postalCollection: "邮集".appLocalized
+        case .solarColors: "节气寻色".appLocalized
+        case .photoBacks: "照片背面".appLocalized
         }
     }
 
@@ -103,6 +110,8 @@ enum ModeLauncherDestination: Identifiable {
         case .video: "livephoto"
         case .ticketCollection: "ticket.fill"
         case .postalCollection: "rectangle.portrait.on.rectangle.portrait"
+        case .solarColors: "camera.macro.circle"
+        case .photoBacks: "arrow.triangle.2.circlepath.camera"
         }
     }
 
@@ -115,13 +124,46 @@ enum ModeLauncherDestination: Identifiable {
         CreationMode.allCases.map(Self.creation) + [
             .fanGallery, .album, .colorRelationship, .ticketDeveloping,
             .stamp, .postcard, .scanner, .video, .ticketCollection, .postalCollection,
+            .solarColors, .photoBacks,
         ]
+    }
+}
+
+private enum IslandLauncherDevice {
+    private static let compactIslandModelIdentifiers: Set<String> = [
+        "iPhone19,2",
+        "iPhone19,3",
+    ]
+
+    static let usesCompactIslandGeometry = compactIslandModelIdentifiers.contains(
+        modelIdentifier
+    )
+
+    private static var modelIdentifier: String {
+        #if targetEnvironment(simulator)
+        if let simulatedModel = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] {
+            return simulatedModel
+        }
+        #endif
+
+        var size = 0
+        guard sysctlbyname("hw.machine", nil, &size, nil, 0) == 0,
+              size > 0 else {
+            return ""
+        }
+
+        var machine = [CChar](repeating: 0, count: size)
+        guard sysctlbyname("hw.machine", &machine, &size, nil, 0) == 0 else {
+            return ""
+        }
+        return String(cString: machine)
     }
 }
 
 struct IslandModeLauncher: View {
     let safeAreaTop: CGFloat
     let selectedMode: CreationMode
+    var selectedDestination: ModeLauncherDestination? = nil
     let isEnabled: Bool
     let onChoose: (ModeLauncherDestination) -> Void
 
@@ -171,7 +213,7 @@ struct IslandModeLauncher: View {
     private func islandSurface(screenWidth: CGFloat) -> some View {
         let progress = min(max(expansionProgress, 0), 1)
         let expandedWidth = min(max(320, screenWidth - 16), 408)
-        let islandWidth: CGFloat = 126
+        let islandWidth: CGFloat = IslandLauncherDevice.usesCompactIslandGeometry ? 95 : 126
         let width = islandWidth + (expandedWidth - islandWidth) * progress
         let islandHeight: CGFloat = 37
         let expandedHeight = max(340, safeAreaTop + 289)
@@ -180,14 +222,30 @@ struct IslandModeLauncher: View {
 
 
 
-        let topInset = max(8, safeAreaTop - 49)
+        let collapsedRadius = islandHeight / 2
+        let expandedHorizontalInset = max(0, (screenWidth - expandedWidth) / 2)
+        let collapsedTopInset = max(8, safeAreaTop - 49)
+        let expandedTopInset = min(collapsedTopInset, expandedHorizontalInset)
+        let topInset = collapsedTopInset
+            + (expandedTopInset - collapsedTopInset) * progress
         let contentProgress = min(max((progress - 0.30) / 0.52, 0), 1)
 
 
 
-        let cornerRadius = islandHeight / 2 + (38 - islandHeight / 2) * progress
+        let expandedTopRadius = min(
+            54,
+            max(46, screenWidth * 0.14 - expandedHorizontalInset)
+        )
+        let topCornerRadius = collapsedRadius + (expandedTopRadius - collapsedRadius) * progress
+        let bottomCornerRadius = collapsedRadius + (38 - collapsedRadius) * progress
 
-        return RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return UnevenRoundedRectangle(
+            topLeadingRadius: topCornerRadius,
+            bottomLeadingRadius: bottomCornerRadius,
+            bottomTrailingRadius: bottomCornerRadius,
+            topTrailingRadius: topCornerRadius,
+            style: .continuous
+        )
             .fill(Color.black)
             .overlay(alignment: .top) {
                 contentColumn(width: width, topInset: topInset, progress: contentProgress)
@@ -313,6 +371,9 @@ struct IslandModeLauncher: View {
     }
 
     private func isSelected(_ entry: ModeLauncherDestination) -> Bool {
+        if let selectedDestination {
+            return selectedDestination.id == entry.id
+        }
         if case .creation(let mode) = entry { return mode == selectedMode }
         return false
     }

@@ -10,19 +10,20 @@ import ImageIO
 
 struct OnboardingExperienceView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.displayScale) private var displayScale
     let supportsIslandLauncher: Bool
+    let startsAtUpdatePage: Bool
+    let usesWideLayout: Bool
+    let usesDarkAppearance: Bool
     let onFinish: () -> Void
 
-    @State private var pageIndex = 0
+    @State private var pageIndex: Int
     @State private var direction: CGFloat = 1
     @ScaledMetric(relativeTo: .largeTitle) private var ipadTitleSize: CGFloat = 44
-    private var isIPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
-
-    private static let proBadgeImage: UIImage = {
-
+    private static func proBadgeImage(scale: CGFloat) -> UIImage {
         let size = CGSize(width: 34, height: 14)
         let format = UIGraphicsImageRendererFormat()
-        format.scale = UIScreen.main.scale
+        format.scale = scale
         return UIGraphicsImageRenderer(size: size, format: format).image { context in
             let bounds = CGRect(origin: .zero, size: size)
             let capsule = UIBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), cornerRadius: size.height / 2)
@@ -64,7 +65,7 @@ struct OnboardingExperienceView: View {
                 y: (size.height - textSize.height) / 2
             ))
         }
-    }()
+    }
 
 
 
@@ -75,22 +76,34 @@ struct OnboardingExperienceView: View {
         let caption: String
 
         var inlineModeIcon: Bool = false
+        var inlineShareIcon: Bool = false
 
         var proNote: Bool = false
         var templateProNote: String? = nil
+        var showsNewBadge: Bool = false
 
         var imageHeightFactor: CGFloat? = nil
+        var usesAppearanceVariant: Bool = false
     }
 
 
 
-    private let pages: [OnboardingPage] = [
+    private static let pages: [OnboardingPage] = [
         OnboardingPage(
             title: "一个入口，全部功能",
             subtitle: "随时切换，想创作哪一种都可以。",
             imageName: "mode",
             caption: "，切换体验全部功能。",
             inlineModeIcon: true
+        ),
+        OnboardingPage(
+            title: "从系统照片，直接开始创作",
+            subtitle: "无需先打开应用，选中照片即可直达。",
+            imageName: "photoextension",
+            caption: "在系统照片应用中，点击左下角的分享按钮，上滑选择“用灵动照片打开”。若为实况照片，建议授予完全访问权限，否则可能无法精确匹配到实况照片的配套视频。选择一种操作模式，点击“在灵动照片中继续”。",
+            inlineShareIcon: true,
+            imageHeightFactor: 0.78,
+            usesAppearanceVariant: true
         ),
         OnboardingPage(
             title: "影像票根",
@@ -168,10 +181,79 @@ struct OnboardingExperienceView: View {
             caption: "带定位的照片制作成邮票后点亮城市。按住左右转动邮票，查看背面的城市与收藏日期。",
             imageHeightFactor: 0.78
         ),
+        OnboardingPage(
+            title: "节气寻色",
+            subtitle: "跟着二十四节气，从照片里收集一年的颜色。",
+            imageName: "solarcolors",
+            caption: "照片会按原始拍摄时间归入对应节气，提取代表色并点亮节气年；收齐后可回看属于你的一年二十四颜色。",
+            proNote: true,
+            showsNewBadge: true,
+            imageHeightFactor: 0.78
+        ),
+        OnboardingPage(
+            title: "照片背面",
+            subtitle: "照片留下画面，背面留下没有拍下的话。",
+            imageName: "photobacks",
+            caption: "从“画面里”“画面外”“写给以后”三个方向写下照片背面的回声，设定再次查看的时间，之后还可以继续补一句“后来”。",
+            showsNewBadge: true,
+            imageHeightFactor: 0.78
+        ),
+        OnboardingPage(
+            title: "所有功能，全面适配 iPad",
+            subtitle: "从手机到大屏，每一种创作方式都有自己的空间。",
+            imageName: "ipadexperience",
+            caption: "为 iPad 重新组织界面层级与操作区域，充分利用横屏与大屏空间；在 iPhone 上仍保持熟悉而紧凑的体验。",
+            imageHeightFactor: 0.78
+        ),
     ]
 
-    private var totalPages: Int { pages.count + 3 + (supportsIslandLauncher ? 1 : 0) + (requiresIOS26Notice ? 1 : 0) }
+    private static let versionUpdateFeatureCount = 3
+
+    init(
+        supportsIslandLauncher: Bool,
+        startsAtUpdatePage: Bool = false,
+        usesWideLayout: Bool,
+        usesDarkAppearance: Bool,
+        onFinish: @escaping () -> Void
+    ) {
+        self.supportsIslandLauncher = supportsIslandLauncher
+        self.startsAtUpdatePage = startsAtUpdatePage
+        self.usesWideLayout = usesWideLayout
+        self.usesDarkAppearance = usesDarkAppearance
+        self.onFinish = onFinish
+
+        let requiresIOS26Notice = !ProcessInfo.processInfo.isOperatingSystemAtLeast(
+            OperatingSystemVersion(majorVersion: 26, minorVersion: 0, patchVersion: 0)
+        )
+        let featureOffset = (usesWideLayout
+            ? 1
+            : (supportsIslandLauncher ? 2 : 1))
+            + (requiresIOS26Notice ? 1 : 0)
+        let versionUpdateStartPage = Self.pages.count - Self.versionUpdateFeatureCount + featureOffset
+        _pageIndex = State(initialValue: startsAtUpdatePage ? versionUpdateStartPage : 0)
+    }
+
+    private var pages: [OnboardingPage] { Self.pages }
+    private var totalPages: Int {
+        Self.pages.count + 3
+            + (supportsIslandLauncher && !usesWideLayout ? 1 : 0)
+            + (requiresIOS26Notice ? 1 : 0)
+    }
     private var isLastPage: Bool { pageIndex == totalPages - 1 }
+    private var versionUpdateStartPage: Int {
+        let featureOffset = (usesWideLayout ? 1 : (supportsIslandLauncher ? 2 : 1))
+            + (requiresIOS26Notice ? 1 : 0)
+        return Self.pages.count - Self.versionUpdateFeatureCount + featureOffset
+    }
+    private var displayedPageNumber: Int {
+        guard startsAtUpdatePage else { return pageIndex + 1 }
+        return isLastPage
+            ? Self.versionUpdateFeatureCount + 1
+            : pageIndex - versionUpdateStartPage + 1
+    }
+    private var displayedTotalPages: Int {
+        startsAtUpdatePage ? Self.versionUpdateFeatureCount + 1 : totalPages
+    }
 
     private var requiresIOS26Notice: Bool {
         !ProcessInfo.processInfo.isOperatingSystemAtLeast(
@@ -183,7 +265,7 @@ struct OnboardingExperienceView: View {
         ZStack {
             onboardingBackground
 
-            if isIPad {
+            if usesWideLayout {
                 ipadOnboarding
             } else {
                 VStack(spacing: 0) {
@@ -262,6 +344,17 @@ struct OnboardingExperienceView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onChange(of: usesWideLayout) { oldValue, newValue in
+            guard supportsIslandLauncher, oldValue != newValue else { return }
+            let islandPage = (requiresIOS26Notice ? 3 : 2)
+            if newValue {
+                if pageIndex >= islandPage {
+                    pageIndex = max(islandPage - 1, pageIndex - 1)
+                }
+            } else if pageIndex >= islandPage {
+                pageIndex = min(pageIndex + 1, totalPages - 1)
+            }
+        }
     }
 
 
@@ -271,7 +364,7 @@ struct OnboardingExperienceView: View {
                 HStack {
                     Text("灵动照片").font(.headline).foregroundStyle(.white.opacity(0.7))
                     Spacer()
-                    Text("\(pageIndex + 1) / \(totalPages)")
+                    Text("\(displayedPageNumber) / \(displayedTotalPages)")
                         .font(.subheadline.monospacedDigit())
                         .foregroundStyle(.white.opacity(0.5))
                         .accessibilityIdentifier("onboarding.pageNumber")
@@ -333,20 +426,25 @@ struct OnboardingExperienceView: View {
                     .font(.body).foregroundStyle(.white.opacity(0.5))
             } else {
                 let page = pages[pageIndex - 1 - (requiresIOS26Notice ? 1 : 0)]
-                Text(page.inlineModeIcon ? "所有创作方式，就在左侧" : LocalizedStringKey(page.title))
-                    .font(.system(size: ipadTitleSize, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                HStack(alignment: .firstTextBaseline, spacing: 9) {
+                    Text(page.inlineModeIcon ? "所有创作方式，就在左侧" : LocalizedStringKey(page.title))
+                        .font(.system(size: ipadTitleSize, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                    if page.showsNewBadge {
+                        NewBadge()
+                            .fixedSize()
+                    }
+                }
                 Text(LocalizedStringKey(page.subtitle))
                     .font(.title2).foregroundStyle(.white.opacity(0.85))
                     .lineSpacing(5)
-                Text(page.inlineModeIcon
-                     ? "轻点左侧的独立玻璃按钮，即可切换创作方式。上下滚动可查看全部功能，添加照片、导出与设置仍在右上角。"
-                     : LocalizedStringKey(page.caption))
+                (page.inlineModeIcon
+                     ? Text("轻点左侧的独立玻璃按钮，即可切换创作方式。上下滚动可查看全部功能，添加照片、导出与设置仍在右上角。")
+                     : pageCaptionText(page))
                     .font(.title3).foregroundStyle(.white.opacity(0.65))
                     .lineSpacing(8)
                 if page.proNote {
-                    Text("色盘与诗意名词免费，出处与来源需 Pro 解锁。")
-                        .font(.body).foregroundStyle(.white.opacity(0.55))
+                    poeticColorProNote
                 }
                 if let note = page.templateProNote {
                     templateProNote(note)
@@ -401,18 +499,23 @@ struct OnboardingExperienceView: View {
                 .id("header-\(index)")
                 .transition(textTransition)
 
-            let screenshot = onboardingUIImage(named: page.imageName)
+            let imageName = onboardingImageName(for: page)
+            let screenshot = onboardingUIImage(named: imageName)
             OnboardingArtworkCaptionLayout(
                 imageAspect: screenshot.map { $0.size.width / $0.size.height } ?? 0.72,
                 imageHeightFactor: page.imageHeightFactor ?? 1
             ) {
-                screenshotView(image: screenshot)
+                screenshotView(
+                    image: screenshot,
+                    placeholderName: "\(imageName)_zh-Hans.png"
+                )
                     .accessibilityLabel("功能截图")
-                    .accessibilityIdentifier("onboarding.screenshot.\(page.imageName)")
+                    .accessibilityIdentifier("onboarding.screenshot.\(imageName)")
                     .transition(.identity)
                 captionView(for: page)
                     .id("caption-\(index)")
                     .transition(textTransition)
+                    .offset(y: page.imageName == "ipadexperience" ? -14 : 0)
                     .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("onboarding.caption.\(page.imageName)")
             }
@@ -694,15 +797,21 @@ struct OnboardingExperienceView: View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer()
                 .frame(height: 8)
-            Text(LocalizedStringKey(page.title))
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(LocalizedStringKey(page.title))
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                if page.showsNewBadge {
+                    NewBadge()
+                        .fixedSize()
+                }
+            }
             Text(LocalizedStringKey(page.subtitle))
                 .font(.system(size: 17, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.82))
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 12)
-            Text(LocalizedStringKey(page.caption))
+            pageCaptionText(page)
                 .font(.system(size: 16, weight: .regular, design: .rounded))
                 .foregroundStyle(.white.opacity(0.62))
                 .lineSpacing(7)
@@ -718,13 +827,20 @@ struct OnboardingExperienceView: View {
 
     private func headerView(for page: OnboardingPage) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(LocalizedStringKey(page.title))
-                .font(.system(size: 26, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(LocalizedStringKey(page.title))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                if page.showsNewBadge {
+                    NewBadge()
+                        .fixedSize()
+                }
+            }
             Text(LocalizedStringKey(page.subtitle))
                 .font(.system(size: 15, weight: .medium, design: .rounded))
                 .foregroundStyle(.white.opacity(0.62))
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, page.imageName == "ipadexperience" ? 8 : 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -732,35 +848,15 @@ struct OnboardingExperienceView: View {
     @ViewBuilder
     private func captionView(for page: OnboardingPage) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            if page.inlineModeIcon {
-
-                (Text("点击右上角")
-                    + Text(Image(systemName: "square.grid.2x2"))
-                    + Text(page.caption))
-                    .font(.system(size: 14.5, weight: .regular, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.72))
-                    .lineSpacing(4)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                Text(LocalizedStringKey(page.caption))
-                    .font(.system(size: 14.5, weight: .regular, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.72))
-                    .lineSpacing(4)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            pageCaptionText(page)
+                .font(.system(size: 14.5, weight: .regular, design: .rounded))
+                .foregroundStyle(.white.opacity(0.72))
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             if page.proNote {
-
-                (Text("色盘与诗意名词免费，出处与来源需 ")
-
-                    + Text(Image(uiImage: Self.proBadgeImage)).baselineOffset(-3.5)
-                    + Text(" 解锁。"))
-                    .font(.system(size: 12.5, weight: .regular, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.52))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                poeticColorProNote
             }
             if let note = page.templateProNote {
                 templateProNote(note)
@@ -770,7 +866,7 @@ struct OnboardingExperienceView: View {
 
     private func templateProNote(_ note: String) -> some View {
         (Text(LocalizedStringKey(note))
-            + Text(Image(uiImage: Self.proBadgeImage)).baselineOffset(-3.5)
+            + Text(Image(uiImage: Self.proBadgeImage(scale: displayScale))).baselineOffset(-3.5)
             + Text(" 解锁。"))
             .font(.system(size: 12.5, weight: .regular, design: .rounded))
             .foregroundStyle(.white.opacity(0.62))
@@ -845,83 +941,57 @@ struct OnboardingExperienceView: View {
                     Text("本次更新")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("灵动照片 3.0.0（Build 202621）")
+                    Text("灵动照片 3.0.1（Build 202632）")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white.opacity(0.48))
                 }
 
                 VStack(alignment: .leading, spacing: 16) {
                     updateItem(
-                        symbol: "fan",
-                        title: "新增“流光折扇”功能",
-                        detail: "六个独立扇面会完整呈现；“自动寻色”仅组合属于同一色系的照片，“自由编排”支持手动选片。点按扇面即可拖动、缩放并精确取景，完成后可导出透明 PNG。"
+                        symbol: "leaf",
+                        title: "新增“节气寻色”功能",
+                        detail: "按照片原始拍摄时间收录二十四节气颜色，点亮属于你的一年，并在节气照片中回看传统色与诗意。",
+                        showsPoeticColorProNote: true
                     )
                     updateItem(
-                        symbol: "swatchpalette",
-                        title: "新增“灵动色卡”功能",
-                        detail: "从照片提取主色，色条可向下、向左或向右延伸；调整大小不遮挡、不裁切照片。"
+                        symbol: "rectangle.and.pencil.and.ellipsis",
+                        title: "新增“照片背面”功能",
+                        detail: "把没有拍下的话写在照片背面，在“画面里”“画面外”“写给以后”之间选择，并约定下一次再看的时间。"
                     )
                     updateItem(
-                        symbol: "calendar",
-                        title: "新增“灵动月历”功能",
-                        detail: "保留横图、竖图和方图的原有比例，日历面板等比适配画面，记录拍摄日期与节气。"
+                        symbol: "apple.logo",
+                        title: "已适配 iOS 27 与 iPadOS 27",
+                        detail: "已完成对 iOS 27 与 iPadOS 27 的系统级适配，在新系统与可调整窗口中保持自然布局与交互。"
                     )
                     updateItem(
-                        symbol: "square.dashed",
-                        title: "新增“邮票制作”功能",
-                        detail: "五种齿孔模板，从选择样式到导入照片分步制作；可添加标题、日期和字体，收藏或保存 PNG。"
+                        symbol: "iphone.gen3",
+                        title: "已初步适配 iPhone 18 Pro 系列",
+                        detail: "已针对 iPhone 18 Pro 与 iPhone 18 Pro Max 完成首轮界面适配，并将继续结合正式系统表现优化。"
                     )
                     updateItem(
-                        symbol: "envelope",
-                        title: "新增“明信片”功能",
-                        detail: "四种版式搭配照片、寄语、邮票与邮戳，把旅途的光影制作成一张问候。"
+                        symbol: "ipad.landscape",
+                        title: "所有功能全面适配 iPad",
+                        detail: "针对 iPad 的大屏与横屏重新设计整体布局，让每一种创作方式都拥有更大的预览、更舒展的操作区域与自然的交互。"
                     )
                     updateItem(
-                        symbol: "square.grid.2x2",
-                        title: "新增“邮集”功能",
-                        detail: "收藏带定位的邮票，点亮城市足迹。按住邮票可自由旋转。"
+                        symbol: "hand.draw",
+                        title: "调整邮票新增“手动选取”",
+                        detail: "在调整邮票的构图界面中，可以直接拖动照片改变位置，并用双指捏合放大或缩小。"
                     )
                     updateItem(
-                        symbol: "folder",
-                        title: "新增“票根集”功能",
-                        detail: "本次添加了票根集，把旅行、演出或某一段时光的影像票根整理分集，收纳成属于你的票夹。"
+                        symbol: "rectangle.grid.2x2",
+                        title: "琉璃色盘排版模式更名",
+                        detail: "排版模式现更名为“单排”与“双排”，在功能设定中可以更直观地选择。"
                     )
                     updateItem(
-                        symbol: "camera.viewfinder",
-                        title: "新增“票根显影”功能",
-                        detail: "本次添加了票根显影，导入实体票的照片即可智能识别，让旧票根重制成可验证的影像票根。"
-                    )
-                    updateItem(
-                        symbol: "cabinet",
-                        title: "新增“琉璃档案”功能",
-                        detail: "本次添加了琉璃档案，以液态玻璃档案栏封存设备、参数与坐标的原始记录，让每张照片都有据可查。"
-                    )
-                    updateItem(
-
-                        symbol: "text.magnifyingglass",
-                        title: "新增“寻找本机原图”功能",
-                        detail: "本次添加了寻找本机原图，扫描票根后可在本机相册里找回当初封存的那张原片，随时重温拍摄那一刻。"
-                    )
-                    updateItem(
-                        symbol: "paintpalette",
-                        title: "新增“空白主界面配色”功能",
-                        detail: "本次添加了空白主界面配色，尚未选择照片时，所有功能主页的背景都可以换成你喜欢的主色调。"
-                    )
-                    updateItem(
-                        symbol: "heart",
-                        title: "新增“支持我们”专属功能",
-                        detail: "本次添加了节气诗意色名、典藏票面与支持者标志，一次支持即可解锁。",
-                        showsProBadge: true
-                    )
-                    updateItem(
-                        symbol: "slider.horizontal.3",
-                        title: "优化“功能设定”体验",
-                        detail: "本次将灵动卡片、气泡印章与琉璃档案的功能设定，从设置页直接放进了对应的功能里，随用随达，让创作更顺手。"
+                        symbol: "archivebox",
+                        title: "“琉璃档案”档案栏支持自由滑动",
+                        detail: "现在可以自由滑动档案栏，调整它在照片中的位置；导出时会保留预览中的当前排版。"
                     )
                     updateItem(
                         symbol: "wrench.and.screwdriver",
-                        title: "其他优化",
-                        detail: "修复了部分已知问题，并优化了整体使用体验。"
+                        title: "界面与体验优化",
+                        detail: "修复界面显示问题与部分 Bug，提升整体使用体验。"
                     )
                 }
             }
@@ -929,7 +999,7 @@ struct OnboardingExperienceView: View {
             .padding(.top, 6)
 
 
-            .padding(.bottom, isIPad ? 10 : 132)
+            .padding(.bottom, usesWideLayout ? 10 : 132)
         }
     }
 
@@ -937,7 +1007,8 @@ struct OnboardingExperienceView: View {
         symbol: String,
         title: String,
         detail: String,
-        showsProBadge: Bool = false
+        showsProBadge: Bool = false,
+        showsPoeticColorProNote: Bool = false
     ) -> some View {
         HStack(alignment: .top, spacing: 13) {
             Image(systemName: symbol)
@@ -959,9 +1030,24 @@ struct OnboardingExperienceView: View {
                     .foregroundStyle(.white.opacity(0.6))
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
+                if showsPoeticColorProNote {
+                    poeticColorProNote
+                        .padding(.top, 3)
+                }
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var poeticColorProNote: some View {
+        (Text("色盘与诗意名词免费，出处与来源需 ".appLocalized)
+            + Text(Image(uiImage: Self.proBadgeImage(scale: displayScale))).baselineOffset(-3.5)
+            + Text(" 解锁。".appLocalized))
+            .font(.system(size: 12.5, weight: .regular, design: .rounded))
+            .foregroundStyle(.white.opacity(0.52))
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
     }
 
 
@@ -998,7 +1084,7 @@ struct OnboardingExperienceView: View {
 
 
     @ViewBuilder
-    private func screenshotView(image: UIImage?) -> some View {
+    private func screenshotView(image: UIImage?, placeholderName: String) -> some View {
         if let image {
 
 
@@ -1014,9 +1100,13 @@ struct OnboardingExperienceView: View {
                         .stroke(.white.opacity(0.16), style: StrokeStyle(lineWidth: 1, dash: [6, 5]))
                 }
                 .overlay {
-                    Text("待添加截图")
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.35))
+                    VStack(spacing: 7) {
+                        Text("待添加截图")
+                        Text(placeholderName)
+                            .font(.system(size: 9, design: .monospaced))
+                    }
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.35))
                 }
                 .aspectRatio(0.72, contentMode: .fit)
                 .frame(maxHeight: .infinity)
@@ -1032,6 +1122,28 @@ struct OnboardingExperienceView: View {
             return "zh-Hans"
         }
         return "en"
+    }
+
+    private func onboardingImageName(for page: OnboardingPage) -> String {
+        guard page.usesAppearanceVariant else { return page.imageName }
+        return "\(page.imageName)_\(usesDarkAppearance ? "dark" : "light")"
+    }
+
+    private func pageCaptionText(_ page: OnboardingPage) -> Text {
+        if page.inlineModeIcon {
+            return Text("点击右上角")
+                + Text(Image(systemName: "square.grid.2x2"))
+                + Text(LocalizedStringKey(page.caption))
+        }
+        if page.inlineShareIcon {
+            return Text("在系统照片应用中，点击左下角")
+                + Text(Image(systemName: "square.and.arrow.up"))
+                + Text("，上滑选择")
+                + Text("“用灵动照片打开”").fontWeight(.semibold)
+                + Text("。若为实况照片，建议授予完全访问权限，否则可能无法精确匹配到实况照片的配套视频。选择一种操作模式，点击")
+                + Text("“在灵动照片中继续”。").fontWeight(.semibold)
+        }
+        return Text(LocalizedStringKey(page.caption))
     }
 
 
@@ -1052,9 +1164,9 @@ struct OnboardingExperienceView: View {
     private var footer: some View {
         VStack(spacing: 16) {
             HStack(spacing: 14) {
-                if pageIndex > 0 {
+                if pageIndex > 0 && (!startsAtUpdatePage || pageIndex > versionUpdateStartPage) {
                     Button {
-                        navigate(to: pageIndex - 1)
+                        navigate(to: startsAtUpdatePage && isLastPage ? totalPages - 3 : pageIndex - 1)
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .semibold))
@@ -1070,7 +1182,9 @@ struct OnboardingExperienceView: View {
                 }
 
                 Button(action: continueTapped) {
-                    Text(isLastPage ? "开始使用" : "继续")
+                    Text(isLastPage
+                         ? (startsAtUpdatePage ? "继续使用".appLocalized : "开始使用".appLocalized)
+                         : "继续".appLocalized)
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
@@ -1109,6 +1223,10 @@ struct OnboardingExperienceView: View {
     private func continueTapped() {
         if isLastPage {
             onFinish()
+            return
+        }
+        if startsAtUpdatePage, pageIndex == totalPages - 3 {
+            navigate(to: totalPages - 1)
             return
         }
         navigate(to: pageIndex + 1)

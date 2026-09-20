@@ -8,17 +8,16 @@ import UIKit
 final class InterfaceOrientationController {
     static let shared = InterfaceOrientationController()
 
-    private(set) var mask: UIInterfaceOrientationMask = UIDevice.current.userInterfaceIdiom == .pad ? .all : .portrait
+    private(set) var mask: UIInterfaceOrientationMask = .portrait
 
     private init() {}
 
     func request(_ newMask: UIInterfaceOrientationMask) {
-
-        guard UIDevice.current.userInterfaceIdiom != .pad else { return }
+        let windowScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        guard !windowScenes.contains(where: { $0.traitCollection.userInterfaceIdiom == .pad }) else { return }
         mask = newMask
 
-        for scene in UIApplication.shared.connectedScenes {
-            guard let windowScene = scene as? UIWindowScene else { continue }
+        for windowScene in windowScenes {
             windowScene.keyWindow?
                 .rootViewController?
                 .setNeedsUpdateOfSupportedInterfaceOrientations()
@@ -39,7 +38,9 @@ final class LingdongAppDelegate: NSObject, UIApplicationDelegate {
         supportedInterfaceOrientationsFor window: UIWindow?
     ) -> UIInterfaceOrientationMask {
         MainActor.assumeIsolated {
-            InterfaceOrientationController.shared.mask
+            window?.traitCollection.userInterfaceIdiom == .pad
+                ? .all
+                : InterfaceOrientationController.shared.mask
         }
     }
 }
@@ -58,4 +59,5 @@ struct lingdongzhaopianApp: App {
                 }
         }
     }
+
 }

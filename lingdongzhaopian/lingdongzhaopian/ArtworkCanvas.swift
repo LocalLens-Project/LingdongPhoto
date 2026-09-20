@@ -54,6 +54,7 @@ struct ArtworkCanvas: View {
     var glassArchiveHidesMissingTime = false
 
     var glassArchiveShowsLocation = true
+    var glassArchiveBarPosition: CGFloat = 1
 
     var featurePaletteSide: FeaturePaletteSide = .bottom
     var featurePaletteBandRatio: Double = 0.295
@@ -62,6 +63,7 @@ struct ArtworkCanvas: View {
     var featurePaletteBandRectChange: ((CGRect?) -> Void)? = nil
     var featureCalendarCity: String?
     var featureCalendarShowsLocation = true
+    var onEditCopy: (() -> Void)? = nil
 
     private var colors: [RGBColor] {
         let base = palette.isEmpty ? RGBColor.fallback : palette
@@ -746,6 +748,8 @@ struct ArtworkCanvas: View {
                     .shadow(color: .black.opacity(0.34), radius: 9, y: 3)
                     .padding(.horizontal, size.width * 0.10)
                     .padding(.bottom, size.height * 0.075)
+                    .contentShape(Rectangle())
+                    .onTapGesture { onEditCopy?() }
                 }
             )
         }
@@ -777,6 +781,8 @@ struct ArtworkCanvas: View {
                         ? gradientForeground
                         : foreground.color
                 )
+                .contentShape(Rectangle())
+                .onTapGesture { onEditCopy?() }
             }
             .frame(height: size.height * headerFraction)
 
@@ -816,17 +822,17 @@ struct ArtworkCanvas: View {
 
             if showsColorPaletteOverlay {
                 VStack(spacing: 0) {
-                    if paletteLayout == .bottom || usesLandscapeStrip { Spacer() }
+                    if usesLandscapeStrip { Spacer() }
 
                     palettePanel(size: size)
                         .scaleEffect(
                             paletteRevealStage >= 1 ? 1 : 0.86,
-                            anchor: paletteLayout == .bottom || usesLandscapeStrip ? .bottom : .top
+                            anchor: usesLandscapeStrip ? .bottom : .top
                         )
                         .opacity(paletteRevealStage >= 1 ? 1 : 0)
                         .offset(y: visiblePaletteOffset)
 
-                    if paletteLayout != .bottom, !usesLandscapeStrip { Spacer() }
+                    if !usesLandscapeStrip { Spacer() }
                 }
                 .padding(.vertical, PalettePanelGeometry.verticalInset)
             }
@@ -1228,7 +1234,10 @@ struct ArtworkCanvas: View {
     }
 
     private func glassArchive(size: CGSize) -> some View {
-        let barFrame = GlassArchiveBarGeometry.barFrame(in: size)
+        let barFrame = GlassArchiveBarGeometry.barFrame(
+            in: size,
+            position: glassArchiveBarPosition
+        )
         let barHeight = barFrame.height
         let deviceName = metadata.captureDevice.displayName
             ?? "未知设备".appLocalized
@@ -1315,7 +1324,7 @@ struct ArtworkCanvas: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
-            "琉璃档案预览，\(deviceName)，\(timeText)，双击中间标志可更换标志"
+            "琉璃档案预览，\(deviceName)，\(timeText)，可拖动档案栏调整位置，双击中间标志可更换标志"
         )
     }
 

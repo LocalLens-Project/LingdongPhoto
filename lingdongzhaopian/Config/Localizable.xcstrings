@@ -20,6 +20,23 @@
         }
       }
     },
+    "，上滑选择" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", swipe up, then choose "
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "，向上滑動並選擇"
+          }
+        }
+      }
+    },
     "，切换体验全部功能。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -70,6 +87,23 @@
         }
       }
     },
+    "。若为实况照片，建议授予完全访问权限，否则可能无法精确匹配到实况照片的配套视频。选择一种操作模式，点击" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ". For a Live Photo, we recommend granting Full Access; otherwise its paired video might not be matched precisely. Choose a mode, then tap "
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "。若為 Live Photo，建議允許「完整取用」，否則可能無法精確配對 Live Photo 的搭配影片。選擇一種操作模式，再點一下"
+          }
+        }
+      }
+    },
     "· %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -83,6 +117,56 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "· %@"
+          }
+        }
+      }
+    },
+    "“%@”" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」"
+          }
+        }
+      }
+    },
+    "“在灵动照片中继续”。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Continue in Lingdong Photo.”"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「在靈動照片中繼續」。"
+          }
+        }
+      }
+    },
+    "“用灵动照片打开”" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Open in Lingdong Photo”"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「用靈動照片開啟」"
           }
         }
       }
@@ -733,6 +817,23 @@
         }
       }
     },
+    "（你仍可以随时轻点这里，再看一眼照片）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(You can tap here anytime to see the photo again.)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（你仍可以隨時輕點這裡，再看一眼照片）"
+          }
+        }
+      }
+    },
     ")图标水印" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -746,6 +847,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : ")圖示浮水印"
+          }
+        }
+      }
+    },
+    "%.0f%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%.0f%%"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%.0f%%"
           }
         }
       }
@@ -783,7 +900,6 @@
       }
     },
     "%@ · %@" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -795,6 +911,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@ · %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld"
+          }
+        }
+      }
+    },
+    "%@ · %lld 节气年" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · Solar-term Year %2$lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld 節氣年"
           }
         }
       }
@@ -884,6 +1034,23 @@
         }
       }
     },
+    "%@ 再见" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See You Again %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 再見"
+          }
+        }
+      }
+    },
     "%@，%@" : {
       "localizations" : {
         "en" : {
@@ -930,6 +1097,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@，%2$@，紀念重製，不可作為入場憑證"
+          }
+        }
+      }
+    },
+    "%@，%@%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@，%@%@"
           }
         }
       }
@@ -1052,6 +1236,40 @@
         }
       }
     },
+    "%@十六色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · Sixteen Colors"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@十六色"
+          }
+        }
+      }
+    },
+    "%@十六色中的推荐" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommended from %@'s Sixteen Colors"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@十六色中的推薦"
+          }
+        }
+      }
+    },
     "%@已点亮。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1169,6 +1387,23 @@
         }
       }
     },
+    "%lld / 24" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld / 24"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld / 24"
+          }
+        }
+      }
+    },
     "%lld × %lld 像素" : {
       "localizations" : {
         "en" : {
@@ -1252,6 +1487,23 @@
         }
       }
     },
+    "%lld 张" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Photos"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 張"
+          }
+        }
+      }
+    },
     "%lld 张票根 · %@" : {
       "localizations" : {
         "en" : {
@@ -1281,6 +1533,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld 張票根 · %2$lld 座城市 · %3$lld 個分集"
+          }
+        }
+      }
+    },
+    "%lld 次回声" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Echoes"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 次回聲"
+          }
+        }
+      }
+    },
+    "%lld 节气年" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solar-term Year %lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 節氣年"
+          }
+        }
+      }
+    },
+    "%lld 节气年 · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solar-term Year %1$lld · %2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld 節氣年 · %2$@"
           }
         }
       }
@@ -1532,6 +1835,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "3:4 郵票免費，其他比例與異形範本需 "
+          }
+        }
+      }
+    },
+    "30 天后" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In 30 Days"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 天後"
           }
         }
       }
@@ -1917,6 +2237,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "JOURNEY"
+          }
+        }
+      }
+    },
+    "LINGDONG PHOTO · LOCAL COLOR ARCHIVE" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LINGDONG PHOTO · LOCAL COLOR ARCHIVE"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LINGDONG PHOTO · 本地色彩檔案"
           }
         }
       }
@@ -2422,6 +2759,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一室溫柔慢慢展開"
+          }
+        }
+      }
+    },
+    "一年后" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In One Year"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一年後"
           }
         }
       }
@@ -2933,6 +3287,23 @@
         }
       }
     },
+    "上下轻扫切换层数" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe up or down to switch layers"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上下滑動切換層數"
+          }
+        }
+      }
+    },
     "上排影像票根、下排票根显影作品" : {
       "localizations" : {
         "en" : {
@@ -2962,6 +3333,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上方"
+          }
+        }
+      }
+    },
+    "下一个节气" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Solar Term"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一個節氣"
           }
         }
       }
@@ -3049,6 +3437,40 @@
         }
       }
     },
+    "下次再看" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look Again Later"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次再看"
+          }
+        }
+      }
+    },
+    "下次再见它时，你想对自己说什么？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What would you like to tell yourself when you see it again?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次再見它時，你想對自己說什麼？"
+          }
+        }
+      }
+    },
     "不会拍照、保存画面或读取系统相册" : {
       "localizations" : {
         "en" : {
@@ -3061,6 +3483,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不會拍照、儲存畫面或讀取系統相冊"
+          }
+        }
+      }
+    },
+    "不可用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unavailable"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可用"
           }
         }
       }
@@ -3133,6 +3572,23 @@
         }
       }
     },
+    "不推测城市归属" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Guessing City Affiliation"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不推測城市歸屬"
+          }
+        }
+      }
+    },
     "不显示位置信息" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3146,6 +3602,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不顯示位置資訊"
+          }
+        }
+      }
+    },
+    "不设日期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Date"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不設日期"
           }
         }
       }
@@ -3332,6 +3805,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "世界遠比想像遼闊"
+          }
+        }
+      }
+    },
+    "东风解冻" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "East Wind Thaws the Ice"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "東風解凍"
           }
         }
       }
@@ -4048,6 +4538,40 @@
         }
       }
     },
+    "为 iPad 横屏重新设计创作与调整布局，更大的预览、更舒展的操作区，让模板选择、构图调整与文字编辑都自然利用宽阔屏幕。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creation and adjustment layouts are redesigned for iPad landscape, with larger previews and roomier controls that make natural use of the wider screen for template selection, composition, and text editing."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "為 iPad 橫向重新設計創作與調整佈局，更大的預覽、更舒展的操作區，讓範本選擇、構圖調整與文字編輯都自然利用寬闊螢幕。"
+          }
+        }
+      }
+    },
+    "为 iPad 重新组织界面层级与操作区域，充分利用横屏与大屏空间；在 iPhone 上仍保持熟悉而紧凑的体验。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interface hierarchy and controls are reorganized for iPad to make full use of landscape and larger displays, while iPhone retains its familiar, compact experience."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "為 iPad 重新組織介面層級與操作區域，充分利用橫向與大螢幕空間；在 iPhone 上仍保持熟悉而緊湊的體驗。"
+          }
+        }
+      }
+    },
     "为(brand.displayName)添加 PNG 图标水印" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4349,6 +4873,23 @@
         }
       }
     },
+    "二十四种颜色已经完整，可以生成你的年度色谱。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All 24 colors are complete. You can now create your annual color chart."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "二十四種顏色已經完整，可以生成你的年度色譜。"
+          }
+        }
+      }
+    },
     "二十四节气" : {
       "localizations" : {
         "en" : {
@@ -4361,6 +4902,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "二十四節氣"
+          }
+        }
+      }
+    },
+    "二十四节气寻色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colors of the 24 Solar Terms"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "二十四節氣尋色"
           }
         }
       }
@@ -4984,6 +5542,23 @@
         }
       }
     },
+    "今日浮现" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resurfaced Today"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日浮現"
+          }
+        }
+      }
+    },
     "今日甜度刚刚好" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5086,6 +5661,23 @@
         }
       }
     },
+    "从 iPhone 到 iPad，创作始终自然舒展" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From iPhone to iPad, creativity always feels effortless"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從 iPhone 到 iPad，創作始終自然舒展"
+          }
+        }
+      }
+    },
     "从“文件”App 为相机品牌添加本地 PNG" : {
       "localizations" : {
         "en" : {
@@ -5098,6 +5690,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "從「檔案」App 為相機品牌新增本地 PNG"
+          }
+        }
+      }
+    },
+    "从“画面里”“画面外”“写给以后”三个方向写下照片背面的回声，设定再次查看的时间，之后还可以继续补一句“后来”。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write an echo from “In the Frame,” “Outside the Frame,” or “For the Future,” choose when to revisit it, and add another “Later” note whenever the memory returns."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從「畫面裡」「畫面外」「寫給以後」三個方向寫下照片背面的回聲，設定再次查看的時間，之後還可以繼續補一句「後來」。"
           }
         }
       }
@@ -5181,6 +5790,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "從創作頁面成功儲存作品後，它會自動出現在這裡。"
+          }
+        }
+      }
+    },
+    "从备份恢复" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore from Backup"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從備份恢復"
+          }
+        }
+      }
+    },
+    "从手机到大屏，每一种创作方式都有自己的空间。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From phone to large display, every creative tool has room of its own."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從手機到大螢幕，每一種創作方式都有自己的空間。"
           }
         }
       }
@@ -5403,6 +6046,23 @@
         }
       }
     },
+    "从系统照片，直接开始创作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create directly from Photos"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從系統「照片」直接開始創作"
+          }
+        }
+      }
+    },
     "从系统照片导入以前的作品" : {
       "localizations" : {
         "en" : {
@@ -5453,6 +6113,23 @@
         }
       }
     },
+    "仓庚鸣" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orioles Sing"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "倉庚鳴"
+          }
+        }
+      }
+    },
     "代表票根" : {
       "localizations" : {
         "en" : {
@@ -5482,6 +6159,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "代表票面在前，同城記憶按時間藏在身後"
+          }
+        }
+      }
+    },
+    "以“%@”收藏%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save %@ for %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以「%@」收藏%@"
           }
         }
       }
@@ -5600,6 +6294,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "改善部分介面細節與執行穩定性，讓整體使用體驗更加流暢。"
+          }
+        }
+      }
+    },
+    "传统色推荐" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traditional Color Suggestions"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "傳統色推薦"
           }
         }
       }
@@ -6646,6 +7357,23 @@
         }
       }
     },
+    "修复界面显示问题与部分 Bug，提升整体使用体验。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixes interface display issues and several bugs for a better overall experience."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修復介面顯示問題與部分 Bug，提升整體使用體驗。"
+          }
+        }
+      }
+    },
     "修改仅作用于当前页面" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6659,6 +7387,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "修改僅作用於目前頁面"
+          }
+        }
+      }
+    },
+    "候雁北" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wild Geese Fly North"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候雁北"
           }
         }
       }
@@ -7035,6 +7780,23 @@
         }
       }
     },
+    "全新创作活动 · 为每一块屏幕而生" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new creative event · Made for every screen"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全新創作活動 · 為每一塊螢幕而生"
+          }
+        }
+      }
+    },
     "全选" : {
       "localizations" : {
         "en" : {
@@ -7267,6 +8029,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "六幀光影"
+          }
+        }
+      }
+    },
+    "六张照片，展开一把流光折扇" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Six photos unfold into a luminous fan"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "六張照片，展開一把流光摺扇"
           }
         }
       }
@@ -7770,6 +8549,23 @@
         }
       }
     },
+    "其他足迹" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other Footprints"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他足跡"
+          }
+        }
+      }
+    },
     "其余颜色也保持相近步幅" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7955,6 +8751,23 @@
         }
       }
     },
+    "再看一眼" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look Again"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再看一眼"
+          }
+        }
+      }
+    },
     "最亮处有一部分已经看不见纹理" : {
       "localizations" : {
         "en" : {
@@ -8071,6 +8884,23 @@
         }
       }
     },
+    "写下照片背面" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write on the Photo Back"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "寫下照片背面"
+          }
+        }
+      }
+    },
     "写下这一页" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8084,6 +8914,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "寫下這一頁"
+          }
+        }
+      }
+    },
+    "写给以后" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For the Future"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "寫給以後"
           }
         }
       }
@@ -8118,6 +8965,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "寫給過去的備忘"
+          }
+        }
+      }
+    },
+    "冬" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Winter"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "冬"
           }
         }
       }
@@ -8342,6 +9206,23 @@
         }
       }
     },
+    "凉风至" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cool Winds Arrive"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "涼風至"
+          }
+        }
+      }
+    },
     "出发" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8556,6 +9437,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "分享給朋友"
+          }
+        }
+      }
+    },
+    "分别选择两张照片中参与色彩关系分析的区域" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the region of each photo to include in the color relationship analysis"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分別選擇兩張照片中參與色彩關係分析的區域"
+          }
+        }
+      }
+    },
+    "分别选择照片 01 或照片 02 中参与色彩关系分析的区域。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the region of Photo 01 or Photo 02 to include in the color relationship analysis."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分別選擇照片 01 或照片 02 中參與色彩關係分析的區域。"
           }
         }
       }
@@ -9026,6 +9941,23 @@
         }
       }
     },
+    "删除这条收藏？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete This Collection?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除這條收藏？"
+          }
+        }
+      }
+    },
     "删除这枚邮票" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9395,6 +10327,23 @@
         }
       }
     },
+    "半夏生" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pinellia Sprouts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "半夏生"
+          }
+        }
+      }
+    },
     "单图构图" : {
       "localizations" : {
         "en" : {
@@ -9441,6 +10390,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "單指(brushMode.rawValue)"
+          }
+        }
+      }
+    },
+    "单排" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Single Row"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "單排"
           }
         }
       }
@@ -9659,6 +10625,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "原始圖示"
+          }
+        }
+      }
+    },
+    "原有目录使用民政部公布的 2024 年县以上行政区划名称及代码；港澳台补充条目依据公开的城市及地区资料整理。邮集展示用于整理个人照片与收藏，不作为行政区划认定依据；后续变更及正式行政区划信息以官方公布为准。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The original catalog uses the 2024 names and codes for administrative divisions at county level and above published by China's Ministry of Civil Affairs. Supplemental entries for Hong Kong, Macao, and Taiwan were compiled from public city and regional sources. The stamp collection is for organizing personal photos and collectibles and is not an authority on administrative divisions; consult official publications for later changes and formal information."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原有目錄使用民政部公布的 2024 年縣以上行政區劃名稱及代碼；港澳台補充條目依據公開的城市及地區資料整理。郵集顯示用於整理個人照片與收藏，不作為行政區劃認定依據；後續變更及正式行政區劃資訊以官方公布為準。"
           }
         }
       }
@@ -9895,6 +10878,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "雙指縮放 · 拖拽平移 · 雙擊還原"
+          }
+        }
+      }
+    },
+    "双排" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two Rows"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雙排"
+          }
+        }
+      }
+    },
+    "反舌无声" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mockingbirds Fall Silent"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "反舌無聲"
           }
         }
       }
@@ -10212,6 +11229,23 @@
         }
       }
     },
+    "台湾城市资料来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taiwan City Sources"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "台灣城市資料來源"
+          }
+        }
+      }
+    },
     "右侧" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10348,6 +11382,23 @@
         }
       }
     },
+    "后来" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "後來"
+          }
+        }
+      }
+    },
     "后来想起仍会微笑" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10378,6 +11429,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "向上或向下輕掃切換樣式"
+          }
+        }
+      }
+    },
+    "向上滑动，查看本季创作灵感" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe up to explore this season’s creative ideas"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "向上滑動，查看本季創作靈感"
           }
         }
       }
@@ -10682,6 +11750,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "四種版式搭配照片、寄語、郵票與郵戳，把旅途的光影製作成一張問候。"
+          }
+        }
+      }
+    },
+    "回到今年" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to This Year"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回到今年"
+          }
+        }
+      }
+    },
+    "回到年度页面，选择这个日期范围内拍摄的照片。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return to the yearly view and choose a photo taken during this date range."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回到年度頁面，選擇這個日期範圍內拍攝的照片。"
+          }
+        }
+      }
+    },
+    "回声叠页" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layered Echoes"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回聲疊頁"
           }
         }
       }
@@ -11178,6 +12297,23 @@
         }
       }
     },
+    "土润溽暑" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Earth Grows Humid in the Heat"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "土潤溽暑"
+          }
+        }
+      }
+    },
     "在 App Store 为灵动照片评分" : {
       "localizations" : {
         "en" : {
@@ -11411,6 +12547,23 @@
         }
       }
     },
+    "在系统照片应用中，点击左下角" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the Photos app, tap the"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在系統「照片」App 中，點一下左下角的"
+          }
+        }
+      }
+    },
     "在纸张质感上重绘影像\n铅笔、炭笔与水彩，三种笔意随手切换" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -11424,6 +12577,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在紙張質感上重繪影像\n鉛筆、炭筆與水彩，三種筆意隨手切換"
+          }
+        }
+      }
+    },
+    "在调整邮票的构图界面中，可以直接拖动照片改变位置，并用双指捏合放大或缩小。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Adjust Stamp, drag the photo to reposition it and pinch to zoom in or out."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在「調整郵票」的構圖畫面中，可直接拖移照片改變位置，並以雙指撥動放大或縮小。"
           }
         }
       }
@@ -11475,6 +12645,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "地址"
+          }
+        }
+      }
+    },
+    "地始冻" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Ground Begins to Freeze"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地始凍"
           }
         }
       }
@@ -11594,6 +12781,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "城市披上朦朧濾鏡"
+          }
+        }
+      }
+    },
+    "城市按收录规则展示，顺序不代表排名。由地级市代管的县级市统一计入代管市，不单独展示。行政区划信息以官方公布为准。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cities are shown according to the collection rules; their order is not a ranking. County-level cities administered by a prefecture-level city are included under that city rather than shown separately. Refer to official publications for authoritative administrative-division information."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "城市按收錄規則顯示，順序不代表排名。由地級市代管的縣級市統一計入代管市，不單獨顯示。行政區劃資訊以官方公布為準。"
+          }
+        }
+      }
+    },
+    "城市收录说明" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "City Collection Notes"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "城市收錄說明"
           }
         }
       }
@@ -11849,6 +13070,23 @@
         }
       }
     },
+    "夏" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Summer"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "夏"
+          }
+        }
+      }
+    },
     "夏日初长，让明亮的心事慢慢展开。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12085,6 +13323,23 @@
         }
       }
     },
+    "大雨时行" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heavy Rains Arrive"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大雨時行"
+          }
+        }
+      }
+    },
     "大雪" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12119,6 +13374,23 @@
         }
       }
     },
+    "天地始肃" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heaven and Earth Turn Solemn"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天地始肅"
+          }
+        }
+      }
+    },
     "天地教人从容" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12149,6 +13421,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "天地漸白，留一枚溫暖的印記。"
+          }
+        }
+      }
+    },
+    "天气上升" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heaven's Qi Rises"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天氣上升"
           }
         }
       }
@@ -12356,6 +13645,23 @@
         }
       }
     },
+    "始电" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lightning Begins"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始電"
+          }
+        }
+      }
+    },
     "姓名" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12538,6 +13844,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "存到文件"
+          }
+        }
+      }
+    },
+    "它曾经请你在今天回来" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It once asked you to return today"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它曾經請你在今天回來"
           }
         }
       }
@@ -13131,6 +14454,23 @@
         }
       }
     },
+    "寒蝉鸣" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cold Cicadas Sing"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "寒蟬鳴"
+          }
+        }
+      }
+    },
     "寒露" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13283,6 +14623,23 @@
         }
       }
     },
+    "寻\n色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FIND\nCOLOR"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尋\n色"
+          }
+        }
+      }
+    },
     "寻常日子" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13296,6 +14653,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尋常日子"
+          }
+        }
+      }
+    },
+    "寻得一种颜色后，解锁%@完整十六色。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find one color to unlock %@'s full set of sixteen."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尋得一種顏色後，解鎖%@完整十六色。"
           }
         }
       }
@@ -13484,6 +14858,23 @@
         }
       }
     },
+    "导出收藏备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Collection Backup"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯出收藏備份"
+          }
+        }
+      }
+    },
     "导出整本相簿" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13648,6 +15039,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "封面窗景"
+          }
+        }
+      }
+    },
+    "将制作完成的邮票收入邮集。地图、城市与收藏会顺应空间展开，让一路收集的色彩在任何方向都清晰可见。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gather finished stamps into your collection. Maps, cities, and keepsakes adapt to the available space, keeping every collected color clear in any orientation."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將製作完成的郵票收入郵集。地圖、城市與收藏會順應空間展開，讓一路收集的色彩在任何方向都清晰可見。"
           }
         }
       }
@@ -14000,6 +15408,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "展開靈嶼模式入口"
+          }
+        }
+      }
+    },
+    "展示顺序" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display Order"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示順序"
+          }
+        }
+      }
+    },
+    "展示顺序不代表城市排名。组内已点亮城市按首次收藏时间排列在前，未点亮城市以省会、首府及计划单列市优先，其余沿用目录顺序。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display order is not a city ranking. Within each group, unlocked cities appear first in order of their first collection date. Among locked cities, provincial capitals, autonomous-region capitals, and separately planned cities appear first; the rest follow catalog order."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示順序不代表城市排名。組內已點亮城市按首次收藏時間排列在前，未點亮城市以省會、首府及計劃單列市優先，其餘沿用目錄順序。"
           }
         }
       }
@@ -14528,6 +15970,23 @@
         }
       }
     },
+    "已初步适配 iPhone 18 Pro 系列" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initial support for the iPhone 18 Pro lineup"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已初步適配 iPhone 18 Pro 系列"
+          }
+        }
+      }
+    },
     "已启用" : {
       "localizations" : {
         "en" : {
@@ -14576,6 +16035,57 @@
         }
       }
     },
+    "已完成对 iOS 27 与 iPadOS 27 的系统级适配，在新系统与可调整窗口中保持自然布局与交互。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System-level support for iOS 27 and iPadOS 27 is complete, with layouts and interactions that adapt naturally to the new systems and resizable windows."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已完成 iOS 27 與 iPadOS 27 的系統級適配，在新系統與可調整視窗中維持自然的版面配置與互動。"
+          }
+        }
+      }
+    },
+    "已寻得" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Found"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已尋得"
+          }
+        }
+      }
+    },
+    "已寻得 %d / 24" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Found %d / 24"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已尋得 %d / 24"
+          }
+        }
+      }
+    },
     "已封印" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -14606,6 +16116,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已開啟"
+          }
+        }
+      }
+    },
+    "已恢复 %d 条节气收藏。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restored %d solar-term collections."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已恢復 %d 條節氣收藏。"
           }
         }
       }
@@ -14691,6 +16218,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已收藏為普通郵票，可在明信片中使用。"
+          }
+        }
+      }
+    },
+    "已收集 %d 个，共 24 个节气" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d of 24 solar terms collected"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已收集 %d 個，共 24 個節氣"
           }
         }
       }
@@ -14830,6 +16374,40 @@
         }
       }
     },
+    "已生成并保存到系统中的图片不会受到影响。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Images already created and saved to the system will not be affected."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已生成並儲存到系統中的圖片不會受到影響。"
+          }
+        }
+      }
+    },
+    "已解锁 · 继续使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already Unlocked · Continue"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已解鎖 · 繼續使用"
+          }
+        }
+      }
+    },
     "已识别 (detectedCount) 处 · 点击区域可关闭或恢复(disabledCount > 0 ? " : {
       "extractionState" : "stale",
       "localizations" : {
@@ -14914,6 +16492,23 @@
         }
       }
     },
+    "已适配 iOS 27 与 iPadOS 27" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adapted for iOS 27 and iPadOS 27"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已適配 iOS 27 與 iPadOS 27"
+          }
+        }
+      }
+    },
     "已选择" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14927,6 +16522,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已選擇"
+          }
+        }
+      }
+    },
+    "已针对 iPhone 18 Pro 与 iPhone 18 Pro Max 完成首轮界面适配，并将继续结合正式系统表现优化。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Initial interface support is in place for iPhone 18 Pro and iPhone 18 Pro Max, with further refinements planned as the final system behavior becomes available."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已針對 iPhone 18 Pro 與 iPhone 18 Pro Max 完成首輪介面適配，並將持續配合正式系統表現最佳化。"
           }
         }
       }
@@ -14999,6 +16611,23 @@
         }
       }
     },
+    "年度代表作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yearly Representative"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年度代表作"
+          }
+        }
+      }
+    },
     "年度成长档案" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -15012,6 +16641,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "年度成長檔案"
+          }
+        }
+      }
+    },
+    "年度色谱生成失败，请重试。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not create the annual color chart. Please try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年度色譜生成失敗，請重試。"
           }
         }
       }
@@ -15235,6 +16881,23 @@
         }
       }
     },
+    "开始创作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start creating"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開始創作"
+          }
+        }
+      }
+    },
     "开始寻找" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15453,6 +17116,40 @@
         }
       }
     },
+    "当\n令" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IN\nSEASON"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "當\n令"
+          }
+        }
+      }
+    },
+    "当令" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Season"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "當令"
+          }
+        }
+      }
+    },
     "当前代表票根" : {
       "localizations" : {
         "en" : {
@@ -15515,6 +17212,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目前授權範圍內不足六張照片。請在系統設定中允許更多照片。"
+          }
+        }
+      }
+    },
+    "当前日期超出支持范围。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This date is outside the supported range."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前日期超出支援範圍。"
           }
         }
       }
@@ -15773,6 +17487,23 @@
         }
       }
     },
+    "影\n后" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PHOTO\nBACK"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影\n後"
+          }
+        }
+      }
+    },
     "影像档案" : {
       "localizations" : {
         "en" : {
@@ -15982,6 +17713,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "彼此照應"
+          }
+        }
+      }
+    },
+    "征鸟厉疾" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Birds of Prey Fly Swiftly"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "征鳥厲疾"
+          }
+        }
+      }
+    },
+    "待\n印" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TO\nPRINT"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待\n印"
+          }
+        }
+      }
+    },
+    "待寻" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Found"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待尋"
           }
         }
       }
@@ -16375,6 +18157,23 @@
         }
       }
     },
+    "恢复两张照片整图取色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore full-photo sampling for both"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢復兩張照片整張取色"
+          }
+        }
+      }
+    },
     "恢复当前风格的默认参数" : {
       "localizations" : {
         "en" : {
@@ -16590,6 +18389,23 @@
         }
       }
     },
+    "愿每一块屏幕都成为你的创作桌面，让这一季的光影被好好收藏。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "May every screen become your creative desk, and may this season’s light find a lasting place in what you make."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "願每一塊螢幕都成為你的創作桌面，讓這一季的光影被好好收藏。"
+          }
+        }
+      }
+    },
     "愿每一次抵达，都值得珍藏" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16692,6 +18508,40 @@
         }
       }
     },
+    "我的 %lld 节气颜色.png" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Solar-term Colors %lld.png"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我的 %lld 節氣顏色.png"
+          }
+        }
+      }
+    },
+    "我的一年二十四颜色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My 24 Colors of the Year"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我的一年二十四顏色"
+          }
+        }
+      }
+    },
     "我的分集" : {
       "localizations" : {
         "en" : {
@@ -16704,6 +18554,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "我的分集"
+          }
+        }
+      }
+    },
+    "我的节气颜色-%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Solar-term Colors-%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我的節氣顏色-%@"
           }
         }
       }
@@ -16793,6 +18660,23 @@
         }
       }
     },
+    "戴胜降于桑" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoopoes Descend on Mulberries"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "戴勝降於桑"
+          }
+        }
+      }
+    },
     "户外陪伴日志" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -16839,6 +18723,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有創作方式，就在左側"
+          }
+        }
+      }
+    },
+    "所有功能，全面适配 iPad" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every feature, fully designed for iPad"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有功能，全面適配 iPad"
+          }
+        }
+      }
+    },
+    "所有功能全面适配 iPad" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every feature is fully designed for iPad"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有功能全面適配 iPad"
           }
         }
       }
@@ -17044,6 +18962,74 @@
         }
       }
     },
+    "手动补录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entered Manually"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手動補錄"
+          }
+        }
+      }
+    },
+    "手动补录日期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manually Entered Date"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手動補錄日期"
+          }
+        }
+      }
+    },
+    "手动选取" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual Framing"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手動選取"
+          }
+        }
+      }
+    },
+    "手动选取邮票构图" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manually frame the stamp"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手動選取郵票構圖"
+          }
+        }
+      }
+    },
     "手帐文案" : {
       "localizations" : {
         "en" : {
@@ -17172,6 +19158,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟靈動照片 GitHub 開源位址"
+          }
+        }
+      }
+    },
+    "打开照片抽屉" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Photo Drawer"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟照片抽屜"
+          }
+        }
+      }
+    },
+    "打开照片选择器" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Photo Picker"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟照片選擇器"
           }
         }
       }
@@ -17612,6 +19632,23 @@
         }
       }
     },
+    "把一瞬光影，收藏成一枚邮票" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep a moment of light as a stamp"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把一瞬光影，收藏成一枚郵票"
+          }
+        }
+      }
+    },
     "把一瞬风景，收藏成自己的邮票。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -17697,6 +19734,23 @@
         }
       }
     },
+    "把想说的话，寄进一张明信片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send what you want to say in a postcard"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把想說的話，寄進一張明信片"
+          }
+        }
+      }
+    },
     "把愿望交给云层" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -17760,6 +19814,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "把散落的影像裝訂成書"
+          }
+        }
+      }
+    },
+    "把散落的票根按时间收拢成册。纵向回看或横向浏览，旅程都会以自然舒展的节奏连成一条光影轨迹。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gather scattered tickets into a timeline. Whether browsing vertically or horizontally, every journey flows into a spacious trail of light and memory."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把散落的票根按時間收攏成冊。縱向回看或橫向瀏覽，旅程都會以自然舒展的節奏連成一條光影軌跡。"
+          }
+        }
+      }
+    },
+    "把旅程封存在影像票根里" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep a journey inside a photo ticket"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把旅程封存在影像票根裡"
           }
         }
       }
@@ -17845,6 +19933,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "把某一段時光的票根收進票夾。"
+          }
+        }
+      }
+    },
+    "把没有拍下的话写在照片背面，在“画面里”“画面外”“写给以后”之间选择，并约定下一次再看的时间。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write what the camera missed on the back of a photo, choose among “In the Frame,” “Outside the Frame,” and “For the Future,” then decide when to revisit it."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把沒有拍下的話寫在照片背面，在「畫面裡」「畫面外」「寫給以後」之間選擇，並約定下一次再看的時間。"
           }
         }
       }
@@ -18287,6 +20392,23 @@
         }
       }
     },
+    "拍摄日期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture Date"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拍攝日期"
+          }
+        }
+      }
+    },
     "拍摄时间" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -18406,6 +20528,40 @@
         }
       }
     },
+    "拖动平移 · 双指捏合缩放" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to reposition · pinch to zoom"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拖移調整位置 · 雙指撥動縮放"
+          }
+        }
+      }
+    },
+    "拖动平移，双指捏合缩放" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to reposition, then pinch to zoom"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拖移調整位置，雙指撥動縮放"
+          }
+        }
+      }
+    },
     "拖动照片移动取景，双指缩放；亮起的扇形就是最终保留区域。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18472,7 +20628,25 @@
         }
       }
     },
+    "拖动选框选择取色范围，拖动四角可调整大小。此范围只影响当前照片参与色彩关系分析的颜色。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag the selection to choose a sampling region, or drag its corners to resize it. This region only affects the colors from the current photo used in the relationship analysis."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拖動選框選擇取色範圍，拖動四角可調整大小。此範圍只影響目前照片參與色彩關係分析的顏色。"
+          }
+        }
+      }
+    },
     "拖动选框选择取色范围，拖动四角可调整大小。此范围只影响灵动卡片顶部背景。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -18654,6 +20828,23 @@
         }
       }
     },
+    "按照片原始拍摄时间收录二十四节气颜色，点亮属于你的一年，并在节气照片中回看传统色与诗意。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collect colors across the twenty-four solar terms using each photo’s original capture date, complete your year, and revisit traditional colors and poetry in every entry."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按照片原始拍攝時間收錄二十四節氣顏色，點亮屬於你的一年，並在節氣照片中回看傳統色與詩意。"
+          }
+        }
+      }
+    },
     "按钮，在完整菜单中选择功能。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18749,6 +20940,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "排版模式"
+          }
+        }
+      }
+    },
+    "排版模式现更名为“单排”与“双排”，在功能设定中可以更直观地选择。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The layout modes are now named Single Row and Two Rows, making them easier to choose in Feature Settings."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排版模式現更名為「單排」與「雙排」，在功能設定中可以更直觀地選擇。"
           }
         }
       }
@@ -19088,6 +21296,23 @@
         }
       }
     },
+    "支持我们，即可查看节气寻色中传统色的诗词与可考出处。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support us to view the poems and documented sources behind traditional colors in Solar-term Colors."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們，即可查看節氣尋色中傳統色的詩詞與可考出處。"
+          }
+        }
+      }
+    },
     "支持我们，启用典藏票面" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -19258,6 +21483,23 @@
         }
       }
     },
+    "支持者权益已生效，无需再次购买" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No purchase is required. Your Supporter entitlement is already active."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持者權益已生效，無需再次購買"
+          }
+        }
+      }
+    },
     "支持者标志" : {
       "localizations" : {
         "en" : {
@@ -19308,36 +21550,36 @@
         }
       }
     },
-    "支持者权益已生效，无需再次购买" : {
+    "收下后，以前的话仍会留在下面" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No purchase is required. Your Supporter entitlement is already active."
+            "value" : "Earlier words will remain underneath after you save this"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "支持者權益已生效，無需再次購買"
+            "value" : "收下後，以前的話仍會留在下面"
           }
         }
       }
     },
-    "已解锁 · 继续使用" : {
+    "收下这次回声" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Already Unlocked · Continue"
+            "value" : "Save This Echo"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已解鎖 · 繼續使用"
+            "value" : "收下這次回聲"
           }
         }
       }
@@ -19355,6 +21597,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "收件人"
+          }
+        }
+      }
+    },
+    "收录范围" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collection Scope"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收錄範圍"
+          }
+        }
+      }
+    },
+    "收拢回声" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close Echoes"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收攏回聲"
+          }
+        }
+      }
+    },
+    "收藏与备份" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collection and Backup"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收藏與備份"
           }
         }
       }
@@ -19410,6 +21703,23 @@
         }
       }
     },
+    "收起完整色组" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide Full Color Set"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收起完整色組"
+          }
+        }
+      }
+    },
     "收起灵屿展开" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19427,6 +21737,23 @@
         }
       }
     },
+    "收起空白回声" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close Blank Echo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收起空白回聲"
+          }
+        }
+      }
+    },
     "收起键盘" : {
       "localizations" : {
         "en" : {
@@ -19439,6 +21766,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "收起鍵盤"
+          }
+        }
+      }
+    },
+    "收进一张照片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a Photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收進一張照片"
+          }
+        }
+      }
+    },
+    "收进照片抽屉" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save to Photo Drawer"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收進照片抽屜"
           }
         }
       }
@@ -19672,6 +22033,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "數值僅描述兩組 OKLab 色彩之間的距離，不代表照片好壞。"
+          }
+        }
+      }
+    },
+    "数据来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data Sources"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資料來源"
           }
         }
       }
@@ -20097,6 +22475,23 @@
         }
       }
     },
+    "新增“照片背面”功能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New: Photo Backs"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增「照片背面」功能"
+          }
+        }
+      }
+    },
     "新增“琉璃档案”功能" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -20161,6 +22556,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新增「空白主介面配色」功能"
+          }
+        }
+      }
+    },
+    "新增“节气寻色”功能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New: Solar-term Colors"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增「節氣尋色」功能"
           }
         }
       }
@@ -20244,6 +22656,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新建第一個分集"
+          }
+        }
+      }
+    },
+    "新的一层" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Layer"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新的一層"
+          }
+        }
+      }
+    },
+    "新的一层，正在照片背后显影" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new layer is developing behind the photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新的一層，正在照片背後顯影"
           }
         }
       }
@@ -20431,6 +22877,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無損畫質，文件較大"
+          }
+        }
+      }
+    },
+    "无日期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Date"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無日期"
           }
         }
       }
@@ -20806,6 +23269,23 @@
         }
       }
     },
+    "无法生成图片，请重新选择照片。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The image could not be generated. Please choose the photo again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法產生圖片，請重新選擇照片。"
+          }
+        }
+      }
+    },
     "无法生成应用启动链接，请稍后重试。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -21173,6 +23653,23 @@
         }
       }
     },
+    "无需先打开应用，选中照片即可直达。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No need to open the app first—start from any selected photo."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不必先開啟 App，選好照片就能直接前往。"
+          }
+        }
+      }
+    },
     "无需安装完整应用" : {
       "localizations" : {
         "en" : {
@@ -21392,6 +23889,23 @@
         }
       }
     },
+    "日期、节气、城市与主色会随画布留白自然安放，让每一种尺寸都拥有清晰、从容的月历构图。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dates, solar terms, cities, and signature colors settle naturally into the canvas, creating a clear and spacious calendar at every size."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期、節氣、城市與主色會隨畫布留白自然安放，讓每一種尺寸都擁有清晰、從容的月曆構圖。"
+          }
+        }
+      }
+    },
     "日期未记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21405,6 +23919,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "日期未記錄"
+          }
+        }
+      }
+    },
+    "日期读取、照片取色与传统色匹配全部在本机完成。收藏仅保存去除位置等元数据的压缩副本。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date reading, color extraction, and traditional-color matching all happen on this device. Collections keep only compressed copies with location and other metadata removed."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期讀取、照片取色與傳統色比對全部在本機完成。收藏僅儲存移除位置等中繼資料的壓縮副本。"
           }
         }
       }
@@ -21830,6 +24361,23 @@
         }
       }
     },
+    "春" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spring"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "春"
+          }
+        }
+      }
+    },
     "春分" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21911,6 +24459,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "晝夜平分，把一半春光寄給你。"
+          }
+        }
+      }
+    },
+    "显影" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DEVELOP"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯影"
           }
         }
       }
@@ -22348,6 +24913,23 @@
         }
       }
     },
+    "暂时无法确定照片所在城市，请检查网络后重试。照片仍可制作普通邮票。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The photo's city could not be determined. Check your connection and try again. You can still make a regular stamp."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫時無法確定照片所在城市，請檢查網路後再試。照片仍可製作普通郵票。"
+          }
+        }
+      }
+    },
     "暂时无法连接 App Store，请稍后重试。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -22650,6 +25232,40 @@
         }
       }
     },
+    "更新一层" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newer Layer"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新一層"
+          }
+        }
+      }
+    },
+    "更早一层" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Earlier Layer"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更早一層"
+          }
+        }
+      }
+    },
     "更暗" : {
       "localizations" : {
         "en" : {
@@ -22868,6 +25484,23 @@
         }
       }
     },
+    "有一张照片，到了再看一眼的时候" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A photo is ready to be seen again"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有一張照片，到了再看一眼的時候"
+          }
+        }
+      }
+    },
     "有一张照片无法读取" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -22881,6 +25514,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "有一張照片無法讀取"
+          }
+        }
+      }
+    },
+    "有什么没有被镜头收进来？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What did the camera leave outside the frame?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有什麼沒有被鏡頭收進來？"
           }
         }
       }
@@ -22919,6 +25569,23 @@
         }
       }
     },
+    "期待你的作品" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We can’t wait to see what you create"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期待你的作品"
+          }
+        }
+      }
+    },
     "木槿" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -22949,6 +25616,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未公開"
+          }
+        }
+      }
+    },
+    "未到" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Yet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未到"
           }
         }
       }
@@ -23016,6 +25700,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未啟用"
+          }
+        }
+      }
+    },
+    "未寻" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Found"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未尋"
           }
         }
       }
@@ -23427,6 +26128,40 @@
         }
       }
     },
+    "本目录按城市收录。由地级市代管的县级市统一计入代管市，例如余姚市计入宁波市，不单独展示或计入点亮数量。区、县同样计入可确认的所属城市。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This catalog collects by city. County-level cities administered by a prefecture-level city are included under the administering city—for example, Yuyao is counted under Ningbo—and are not shown or counted separately. Districts and counties are likewise included under an identifiable city."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本目錄按城市收錄。由地級市代管的縣級市統一計入代管市，例如餘姚市計入寧波市，不單獨顯示或計入點亮數量。區、縣同樣計入可確認的所屬城市。"
+          }
+        }
+      }
+    },
+    "本节气已寻得：%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Color found for this term: %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本節氣已尋得：%@"
+          }
+        }
+      }
+    },
     "本页字体" : {
       "localizations" : {
         "en" : {
@@ -23524,6 +26259,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "杏子"
+          }
+        }
+      }
+    },
+    "来自照片主色 · %.0f%%" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From a main photo color · %.0f%%"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "來自照片主色 · %.0f%%"
           }
         }
       }
@@ -23816,6 +26568,23 @@
         }
       }
     },
+    "查看完整十六色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View All Sixteen Colors"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看完整十六色"
+          }
+        }
+      }
+    },
     "查看更新内容" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -23879,6 +26648,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查看背面"
+          }
+        }
+      }
+    },
+    "查看行政区划数据来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Administrative-Division Source"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看行政區劃資料來源"
           }
         }
       }
@@ -24096,6 +26882,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "桃夭"
+          }
+        }
+      }
+    },
+    "桃始华" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peach Blossoms Bloom"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "桃始華"
+          }
+        }
+      }
+    },
+    "桐始华" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paulownias Bloom"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "桐始華"
           }
         }
       }
@@ -25344,6 +28164,23 @@
         }
       }
     },
+    "正面只留给照片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The front belongs to the photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正面只留給照片"
+          }
+        }
+      }
+    },
     "此刻" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25361,6 +28198,23 @@
         }
       }
     },
+    "此刻 · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Now · %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此刻 · %@"
+          }
+        }
+      }
+    },
     "此刻 · 光影留痕" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -25374,6 +28228,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此刻 · 光影留痕"
+          }
+        }
+      }
+    },
+    "此刻写于照片之后" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Written behind the photo at this moment"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此刻寫於照片之後"
           }
         }
       }
@@ -25508,6 +28379,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "每一枚票根，都可以被追溯。"
+          }
+        }
+      }
+    },
+    "每一次翻转，都是一次回望" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every flip is another look back"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每一次翻轉，都是一次回望"
           }
         }
       }
@@ -25731,6 +28619,40 @@
         }
       }
     },
+    "水始冰" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Water Begins to Freeze"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水始冰"
+          }
+        }
+      }
+    },
+    "水始涸" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Water Begins to Dry"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水始涸"
+          }
+        }
+      }
+    },
     "水平位置" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25778,6 +28700,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "水果與豐收"
+          }
+        }
+      }
+    },
+    "水泉动" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Springs Begin to Stir"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水泉動"
+          }
+        }
+      }
+    },
+    "水泽腹坚" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waters Freeze Solid"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水澤腹堅"
           }
         }
       }
@@ -25896,6 +28852,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "沙灘留待一整個下午"
+          }
+        }
+      }
+    },
+    "没有保存照片的权限。请在系统设置中允许灵动照片添加照片，再返回编辑页重试。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo-saving permission is off. Allow Lingdong Photo to add photos in Settings, then return to the editor and try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有儲存照片的權限。請在系統設定中允許靈動照片加入照片，再返回編輯頁重試。"
+          }
+        }
+      }
+    },
+    "没有发现需要导入的新收藏。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No new collections were found to import."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有發現需要匯入的新收藏。"
+          }
+        }
+      }
+    },
+    "没有对应地级市的县级市，以及无法按本规则归入城市的地区，暂不提供独立城市解锁，也不会归入邻近城市。仅有省份、城市信息冲突或无法确认城市时，不自动点亮；照片仍可制作并收藏为普通邮票。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "County-level cities without a corresponding prefecture-level city, and places that cannot be assigned under these rules, do not currently unlock independently and will not be assigned to a nearby city. If only a province is known, location details conflict, or the city cannot be confirmed, no city is unlocked automatically; the photo can still be made and saved as a regular stamp."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有對應地級市的縣級市，以及無法按本規則歸入城市的地區，暫不提供獨立城市解鎖，也不會歸入鄰近城市。僅有省份、城市資訊衝突或無法確認城市時，不自動點亮；照片仍可製作並收藏為普通郵票。"
           }
         }
       }
@@ -27000,6 +30007,40 @@
         }
       }
     },
+    "温风至" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warm Winds Arrive"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "溫風至"
+          }
+        }
+      }
+    },
+    "港澳台收录" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hong Kong, Macao, and Taiwan"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "港澳台收錄"
+          }
+        }
+      }
+    },
     "湖蓝" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -27115,6 +30156,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "潮濕也有溫柔"
+          }
+        }
+      }
+    },
+    "澳门资料来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Macao Source"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "澳門資料來源"
           }
         }
       }
@@ -27540,19 +30598,19 @@
         }
       }
     },
-    "灵动照片 3.0.0（Build 202621）" : {
+    "灵动照片 3.0.1（Build 202632）" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lingdong Photo 3.0.0 (Build 202621)"
+            "value" : "Lingdong Photo 3.0.1 (Build 202632)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "靈動照片 3.0.0（Build 202621）"
+            "value" : "靈動照片 3.0.1（Build 202632）"
           }
         }
       }
@@ -27604,6 +30662,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "靈動照片-Live.mov"
+          }
+        }
+      }
+    },
+    "灵动照片3.0创作季" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lingdong Photo 3.0 Creative Season"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "靈動照片 3.0 創作季"
           }
         }
       }
@@ -27744,6 +30819,23 @@
         }
       }
     },
+    "点亮照片去过的城市" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light up the cities your photos have visited"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點亮照片去過的城市"
+          }
+        }
+      }
+    },
     "点击 +，放入一张照片" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -27807,6 +30899,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "點擊右上角"
+          }
+        }
+      }
+    },
+    "点击底部＋收进第一张照片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap + below to add your first photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點擊底部＋收進第一張照片"
+          }
+        }
+      }
+    },
+    "点击或轻扫，翻到背面" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap or swipe to turn it over"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點擊或輕掃，翻到背面"
           }
         }
       }
@@ -28079,6 +31205,91 @@
         }
       }
     },
+    "照片 01" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo 01"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片 01"
+          }
+        }
+      }
+    },
+    "照片 02" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo 02"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片 02"
+          }
+        }
+      }
+    },
+    "照片、地点、时间与拍摄信息会依照当前空间重新组织，在紧凑或宽阔的画布中都成为完整、易读的旅途凭证。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos, places, times, and camera details reorganize for the space at hand, creating a complete, readable travel keepsake on compact and wide canvases alike."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片、地點、時間與拍攝資訊會依照當前空間重新組織，在緊湊或寬闊的畫布中都成為完整、易讀的旅途憑證。"
+          }
+        }
+      }
+    },
+    "照片、邮戳与文字会依照画布空间自然重排。从 iPhone 上的轻巧浏览到 iPad 上的宽阔创作，都保留完整、舒展的明信片体验。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos, postmarks, and words rearrange naturally with the canvas. From compact viewing on iPhone to a wider workspace on iPad, the postcard experience stays complete and spacious."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片、郵戳與文字會依照畫布空間自然重排。從 iPhone 上的輕巧瀏覽到 iPad 上的寬闊創作，都保留完整、舒展的明信片體驗。"
+          }
+        }
+      }
+    },
+    "照片不属于「%@」，请选择同一城市拍摄的照片。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This photo is not from “%@”. Please choose a photo taken in the same city."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片不屬於「%@」，請選擇在同一城市拍攝的照片。"
+          }
+        }
+      }
+    },
     "照片与主色同框\n横竖皆成卡片" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -28096,6 +31307,40 @@
         }
       }
     },
+    "照片中的六种主色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Six Main Colors in the Photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片中的六種主色"
+          }
+        }
+      }
+    },
+    "照片会按原始拍摄时间归入对应节气，提取代表色并点亮节气年；收齐后可回看属于你的一年二十四颜色。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos are placed into their solar term using the original capture date, then a representative color lights up your solar-term year. Complete the set to revisit your twenty-four colors of the year."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片會按原始拍攝時間歸入對應節氣，提取代表色並點亮節氣年；收齊後可回看屬於你的一年二十四顏色。"
+          }
+        }
+      }
+    },
     "照片化作月历壁纸，节气、主色与城市一同封存" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -28109,6 +31354,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "照片化作月曆壁紙，節氣、主色與城市一同封存"
+          }
+        }
+      }
+    },
+    "照片原始拍摄时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original Photo Capture Time"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片原始拍攝時間"
           }
         }
       }
@@ -28163,6 +31425,23 @@
         }
       }
     },
+    "照片处理失败，请换一张照片重试。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo processing failed. Please try another photo."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片處理失敗，請換一張照片重試。"
+          }
+        }
+      }
+    },
     "照片导入后自动提炼主色盘，每种颜色都有自己的占比与诗意名字。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -28176,6 +31455,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "照片匯入後自動提煉主色盤，每種顏色都有自己的佔比與詩意名字。"
+          }
+        }
+      }
+    },
+    "照片抽屉" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Drawer"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片抽屜"
+          }
+        }
+      }
+    },
+    "照片抽屉 · %lld 张待回看" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Drawer · %lld to Revisit"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片抽屜 · %lld 張待回看"
+          }
+        }
+      }
+    },
+    "照片抽屉还是空的" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Photo Drawer Is Empty"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片抽屜還是空的"
           }
         }
       }
@@ -28213,6 +31543,57 @@
         }
       }
     },
+    "照片数字化时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Digitization Time"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片數位化時間"
+          }
+        }
+      }
+    },
+    "照片文件拍摄时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo File Date"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片檔案拍攝時間"
+          }
+        }
+      }
+    },
+    "照片日期" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Date"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片日期"
+          }
+        }
+      }
+    },
     "照片明暗分布图" : {
       "localizations" : {
         "en" : {
@@ -28246,6 +31627,23 @@
         }
       }
     },
+    "照片正面" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Front"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片正面"
+          }
+        }
+      }
+    },
     "照片没有可用定位，将显示 LINGDONG" : {
       "localizations" : {
         "en" : {
@@ -28262,6 +31660,40 @@
         }
       }
     },
+    "照片没有可读取的拍摄日期。请补录日期后再收藏；卡片会保留“手动补录”标识。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This photo has no readable capture date. Enter a date before saving; the card will retain a “Manual Entry” label."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片沒有可讀取的拍攝日期。請補錄日期後再收藏；卡片會保留「手動補錄」標示。"
+          }
+        }
+      }
+    },
+    "照片留下画面，背面留下没有拍下的话。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The photo keeps the scene; its back keeps what the camera missed."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片留下畫面，背面留下沒有拍下的話。"
+          }
+        }
+      }
+    },
     "照片的六种代表色" : {
       "localizations" : {
         "en" : {
@@ -28274,6 +31706,91 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "照片的六種代表色"
+          }
+        }
+      }
+    },
+    "照片的正面，留住看见的。\n照片的背面，留住没有拍下的。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The front keeps what you saw.\nThe back keeps what the camera missed."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片的正面，留住看見的。\n照片的背面，留住沒有拍下的。"
+          }
+        }
+      }
+    },
+    "照片背后" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behind the Photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片背後"
+          }
+        }
+      }
+    },
+    "照片背面" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Backs"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片背面"
+          }
+        }
+      }
+    },
+    "照片背面操作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Back Actions"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片背面操作"
+          }
+        }
+      }
+    },
+    "照片背面资料库无法读取。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Photo Backs library could not be read."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片背面資料庫無法讀取。"
           }
         }
       }
@@ -28362,19 +31879,19 @@
         }
       }
     },
-    "版本 3.0.0 (Build 202621)" : {
+    "版本 3.0.1 (Build 202632)" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Version 3.0.0 (Build 202621)"
+            "value" : "Version 3.0.1 (Build 202632)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "版本 3.0.0 (Build 202621)"
+            "value" : "版本 3.0.1 (Build 202632)"
           }
         }
       }
@@ -28464,6 +31981,23 @@
         }
       }
     },
+    "獭祭鱼" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otters Offer Fish"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "獺祭魚"
+          }
+        }
+      }
+    },
     "玄夜" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -28481,6 +32015,57 @@
         }
       }
     },
+    "玄鸟归" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swallows Depart"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "玄鳥歸"
+          }
+        }
+      }
+    },
+    "玄鸟至" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swallows Arrive"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "玄鳥至"
+          }
+        }
+      }
+    },
+    "王瓜生" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Snake Gourds Grow"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "王瓜生"
+          }
+        }
+      }
+    },
     "现代黑体" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -28494,6 +32079,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "現代黑體"
+          }
+        }
+      }
+    },
+    "现在也可以生成阶段色谱；尚未寻得的 %d 个节气会保留留白。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can create a progress chart now; the %d solar terms not yet found will remain blank."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在也可以生成階段色譜；尚未尋得的 %d 個節氣會保留留白。"
           }
         }
       }
@@ -28532,6 +32134,40 @@
         }
       }
     },
+    "“琉璃档案”档案栏支持自由滑动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A freely movable archive bar in “Glass Archive”"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「琉璃檔案」檔案欄支援自由滑動"
+          }
+        }
+      }
+    },
+    "现在可以自由滑动档案栏，调整它在照片中的位置；导出时会保留预览中的当前排版。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can now freely drag the archive bar to reposition it over the photo. Exports preserve the layout shown in the preview."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在可以自由滑動檔案欄，調整它在照片中的位置；匯出時會保留預覽中的目前排版。"
+          }
+        }
+      }
+    },
     "琉璃档案功能设定" : {
       "localizations" : {
         "en" : {
@@ -28565,6 +32201,40 @@
         }
       }
     },
+    "琉璃档案预览，%@，%@，可拖动档案栏调整位置，双击中间标志可更换标志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glass Archive preview, %@, %@. Drag the archive bar to reposition it, or double-tap the center mark to change it."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "琉璃檔案預覽，%@，%@，可拖動檔案欄調整位置，雙擊中間標誌可更換標誌"
+          }
+        }
+      }
+    },
+    "琉璃档案预览，按照片实际比例完整显示，可拖动档案栏调整位置，双击中间标志可更换标志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glass Archive preview, shown at the photo's true ratio. Drag the archive bar to reposition it, or double-tap the center mark to change it."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "琉璃檔案預覽，按照片實際比例完整顯示，可拖動檔案欄調整位置，雙擊中間標誌可更換標誌"
+          }
+        }
+      }
+    },
     "琉璃档案预览，按照片实际比例完整显示，双击中间标志可更换标志" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -28594,6 +32264,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "琉璃色盤"
+          }
+        }
+      }
+    },
+    "琉璃色盘排版模式更名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glass Palette Layout Modes Renamed"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "琉璃色盤排版模式更名"
           }
         }
       }
@@ -28801,6 +32488,23 @@
         }
       }
     },
+    "生成年度色谱" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create Annual Color Chart"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成年度色譜"
+          }
+        }
+      }
+    },
     "生成的壁纸仅适配当前设备尺寸" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -28953,6 +32657,23 @@
         }
       }
     },
+    "用六张照片展开流光折扇，把一张照片制成邮票、明信片或月历。无论使用 iPhone 还是 iPad，每一种创作都会顺应屏幕大小与方向自然展开，以全新方式收藏光影与时间。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unfold six photos into a luminous fan, or turn one photo into a stamp, postcard, or calendar. Whether you use iPhone or iPad, every creation adapts naturally to the screen size and orientation—a new way to keep light and time."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用六張照片展開流光摺扇，把一張照片製成郵票、明信片或月曆。無論使用 iPhone 還是 iPad，每一種創作都會順應螢幕大小與方向自然展開，以全新方式收藏光影與時間。"
+          }
+        }
+      }
+    },
     "用户交流群" : {
       "localizations" : {
         "en" : {
@@ -29070,6 +32791,23 @@
         }
       }
     },
+    "用自己的照片，收集一年二十四种传统色。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use your photos to collect 24 traditional colors through the year."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用自己的照片，收集一年二十四種傳統色。"
+          }
+        }
+      }
+    },
     "用这枚邮票制作明信片" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -29133,6 +32871,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "田野交出豐收答案卷"
+          }
+        }
+      }
+    },
+    "田鼠化为鴽" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Field Mice Turn into Quails"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "田鼠化為鴽"
           }
         }
       }
@@ -29339,6 +33094,23 @@
         }
       }
     },
+    "画面外" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outside the Frame"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "畫面外"
+          }
+        }
+      }
+    },
     "画面文字：(semantic.recognizedText.prefix(2).joined(separator: " : {
       "extractionState" : "stale",
       "localizations" : {
@@ -29368,6 +33140,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "畫面文字：%@"
+          }
+        }
+      }
+    },
+    "画面里" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the Frame"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "畫面裡"
+          }
+        }
+      }
+    },
+    "界面与体验优化" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interface and experience improvements"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "介面與體驗最佳化"
           }
         }
       }
@@ -29554,6 +33360,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "白露"
+          }
+        }
+      }
+    },
+    "白露降" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "White Dew Descends"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "白露降"
           }
         }
       }
@@ -30107,6 +33930,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "確認打開"
+          }
+        }
+      }
+    },
+    "确认节气与颜色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Solar Term and Color"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認節氣與顏色"
           }
         }
       }
@@ -30829,6 +34669,23 @@
         }
       }
     },
+    "禾乃登" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grain Ripens"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "禾乃登"
+          }
+        }
+      }
+    },
     "秀动凭证" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -30858,6 +34715,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "私藏原貌 · 不參與分享"
+          }
+        }
+      }
+    },
+    "秋" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autumn"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秋"
           }
         }
       }
@@ -30943,6 +34817,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "種下一個願望，等時光替它著色。"
+          }
+        }
+      }
+    },
+    "移出照片抽屉" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from Photo Drawer"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移出照片抽屜"
           }
         }
       }
@@ -31162,6 +35053,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "立春"
+          }
+        }
+      }
+    },
+    "立春至次年大寒" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start of Spring to next year's Major Cold"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立春至次年大寒"
           }
         }
       }
@@ -31403,6 +35311,23 @@
         }
       }
     },
+    "第 %lld 次，共 %lld 次" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Echo %1$lld of %2$lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %1$lld 次，共 %2$lld 次"
+          }
+        }
+      }
+    },
     "第 %lld 页" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -31602,6 +35527,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "簽名校驗透過"
+          }
+        }
+      }
+    },
+    "简体中文按省份展示城市目录，其他语言保留已发现城市的展示方式。切换语言不会改变本目录内城市的归并结果；目录之外的旅行城市延续原有收录方式。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simplified Chinese shows the city catalog by province; other languages retain the existing display for discovered cities. Changing the language does not alter how cities in this catalog are grouped. Travel cities outside the catalog continue to use the existing collection method."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "簡體中文按省份顯示城市目錄，其他語言保留已發現城市的顯示方式。切換語言不會改變本目錄內城市的歸併結果；目錄之外的旅行城市延續原有收錄方式。"
           }
         }
       }
@@ -32329,6 +36271,7 @@
       }
     },
     "继续" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -32340,6 +36283,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "繼續"
+          }
+        }
+      }
+    },
+    "继续书写" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue Writing"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續書寫"
+          }
+        }
+      }
+    },
+    "继续使用" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繼續使用"
           }
         }
       }
@@ -32729,6 +36706,23 @@
         }
       }
     },
+    "群鸟养羞" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Birds Store Food"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "群鳥養羞"
+          }
+        }
+      }
+    },
     "羽翼掠过天光" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -32759,6 +36753,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "翡翠"
+          }
+        }
+      }
+    },
+    "翻到背面，看看当时的你留下了什么。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn it over and see what you left behind then."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻到背面，看看當時的你留下了什麼。"
           }
         }
       }
@@ -32945,6 +36956,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "腳步越過雲的邊界"
+          }
+        }
+      }
+    },
+    "腐草为萤" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rotting Grass Turns into Fireflies"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "腐草為螢"
           }
         }
       }
@@ -33356,6 +37384,23 @@
         }
       }
     },
+    "色卡生成失败，请重试。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not create the color card. Please try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "色卡生成失敗，請重試。"
+          }
+        }
+      }
+    },
     "色差成形" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -33576,6 +37621,7 @@
       }
     },
     "色盘与诗意名词免费，出处与来源需 " : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -33592,6 +37638,7 @@
       }
     },
     "色盘与诗意名词免费，出处与来源需 Pro 解锁。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -33929,6 +37976,57 @@
         }
       }
     },
+    "节气四色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Four Colors of the Solar Term"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "節氣四色"
+          }
+        }
+      }
+    },
+    "节气寻色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solar-term Colors"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "節氣尋色"
+          }
+        }
+      }
+    },
+    "节气寻色资料库无法读取，请从备份恢复。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Solar-term Colors library could not be read. Please restore it from a backup."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "節氣尋色資料庫無法讀取，請從備份恢復。"
+          }
+        }
+      }
+    },
     "节气按拍摄日期与内置日期表推导；交节日期每年略有差异，可自行修改。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34099,6 +38197,23 @@
         }
       }
     },
+    "苦菜秀" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitter Herbs Flourish"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "苦菜秀"
+          }
+        }
+      }
+    },
     "英文副标题" : {
       "localizations" : {
         "en" : {
@@ -34166,6 +38281,40 @@
         }
       }
     },
+    "草木萌动" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plants Begin to Sprout"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "草木萌動"
+          }
+        }
+      }
+    },
+    "草木黄落" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leaves Turn Yellow and Fall"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "草木黃落"
+          }
+        }
+      }
+    },
     "荒野保留真实的心跳" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -34183,6 +38332,23 @@
         }
       }
     },
+    "荔挺出" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iris Shoots Emerge"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "荔挺出"
+          }
+        }
+      }
+    },
     "荷叶" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -34196,6 +38362,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "荷葉"
+          }
+        }
+      }
+    },
+    "菊有黄华" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chrysanthemums Bloom Yellow"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "菊有黃華"
+          }
+        }
+      }
+    },
+    "萍始生" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duckweed Begins to Grow"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "萍始生"
           }
         }
       }
@@ -34369,6 +38569,23 @@
         }
       }
     },
+    "虎始交" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tigers Begin to Mate"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "虎始交"
+          }
+        }
+      }
+    },
     "虹光环带" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -34386,6 +38603,125 @@
         }
       }
     },
+    "虹始见" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rainbows Appear"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "虹始見"
+          }
+        }
+      }
+    },
+    "虹藏不见" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rainbows Hide from Sight"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "虹藏不見"
+          }
+        }
+      }
+    },
+    "蚯蚓出" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Earthworms Emerge"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蚯蚓出"
+          }
+        }
+      }
+    },
+    "蚯蚓结" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Earthworms Coil Up"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蚯蚓結"
+          }
+        }
+      }
+    },
+    "蛰虫咸俯" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hibernating Insects Retreat"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蟄蟲咸俯"
+          }
+        }
+      }
+    },
+    "蛰虫坯户" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hibernating Insects Seal Their Burrows"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蟄蟲坯戶"
+          }
+        }
+      }
+    },
+    "蛰虫始振" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hibernating Insects Stir"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蟄蟲始振"
+          }
+        }
+      }
+    },
     "蜜蜡" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -34399,6 +38735,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "蜜蠟"
+          }
+        }
+      }
+    },
+    "蜩始鸣" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cicadas Begin to Sing"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蜩始鳴"
+          }
+        }
+      }
+    },
+    "蝼蝈鸣" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mole Crickets Sing"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "螻蟈鳴"
+          }
+        }
+      }
+    },
+    "螳螂生" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Praying Mantises Hatch"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "螳螂生"
+          }
+        }
+      }
+    },
+    "蟋蟀居壁" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crickets Dwell in Walls"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "蟋蟀居壁"
           }
         }
       }
@@ -34483,6 +38887,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "街角正在發生故事"
+          }
+        }
+      }
+    },
+    "补一句“后来”" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a “Later” Note"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "補一句「後來」"
+          }
+        }
+      }
+    },
+    "补一句后来" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a Later Note"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "補一句後來"
           }
         }
       }
@@ -34652,6 +39090,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "認真吃飯就是認真生活"
+          }
+        }
+      }
+    },
+    "让一张照片陪你走过一个月" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let one photo stay with you for a month"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "讓一張照片陪你走過一個月"
+          }
+        }
+      }
+    },
+    "让六段光影沿扇面依次展开，可自动寻色，也可自由编排。画布会随屏幕与方向自然舒展，让每一片扇面都有从容的取景空间。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let six moments unfold across the fan, with automatic color matching or free arrangement. The canvas adapts naturally to every screen and orientation, giving each panel room to breathe."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "讓六段光影沿扇面依次展開，可自動尋色，也可自由編排。畫布會隨螢幕與方向自然舒展，讓每一片扇面都有從容的取景空間。"
+          }
+        }
+      }
+    },
+    "让每一段旅程，在票根集中再次相遇" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let every journey meet again in your ticket collection"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "讓每一段旅程，在票根集中再次相遇"
           }
         }
       }
@@ -34924,6 +39413,23 @@
         }
       }
     },
+    "设为代表作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set as Representative"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設為代表作"
+          }
+        }
+      }
+    },
     "设为城市代表票根" : {
       "localizations" : {
         "en" : {
@@ -35174,6 +39680,23 @@
         }
       }
     },
+    "诗词与出处，PRO 内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poem and source · PRO content"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詩詞與出處，PRO 內容"
+          }
+        }
+      }
+    },
     "该地区暂不提供独立城市解锁，也不会归入其他城市。照片仍可制作并收藏为普通邮票。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -35187,6 +39710,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "該地區暫不提供獨立城市解鎖，也不會歸入其他城市。照片仍可製作並收藏為普通郵票。"
+          }
+        }
+      }
+    },
+    "语言与目录之外的城市" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language and Cities Outside the Catalog"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "語言與目錄之外的城市"
           }
         }
       }
@@ -35494,6 +40034,23 @@
         }
       }
     },
+    "调整局部取色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjust Local Color Sampling"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調整局部取色"
+          }
+        }
+      }
+    },
     "调整文字与邮戳" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35606,6 +40163,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "調整郵票"
+          }
+        }
+      }
+    },
+    "调整邮票新增“手动选取”" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual Framing in Adjust Stamp"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「調整郵票」新增「手動選取」"
           }
         }
       }
@@ -35725,6 +40299,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "荳蔻黃"
+          }
+        }
+      }
+    },
+    "豺乃祭兽" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jackals Offer Beasts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "豺乃祭獸"
           }
         }
       }
@@ -35878,6 +40469,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "距離可見"
+          }
+        }
+      }
+    },
+    "跟着二十四节气，从照片里收集一年的颜色。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collect the colors of your year through the twenty-four solar terms."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟著二十四節氣，從照片裡收集一年的顏色。"
           }
         }
       }
@@ -36119,6 +40727,40 @@
         }
       }
     },
+    "轻扫或点击照片，翻到背面" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe or tap the photo to turn it over"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輕掃或點擊照片，翻到背面"
+          }
+        }
+      }
+    },
+    "轻扫翻回照片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe to return to the photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輕掃翻回照片"
+          }
+        }
+      }
+    },
     "轻松爪印画册" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -36132,6 +40774,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "輕鬆爪印畫冊"
+          }
+        }
+      }
+    },
+    "轻点了解支持者权益" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to learn about supporter benefits"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輕點了解支持者權益"
           }
         }
       }
@@ -36337,6 +40996,23 @@
         }
       }
     },
+    "轻点翻转" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to Flip"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輕點翻轉"
+          }
+        }
+      }
+    },
     "轻盈落在此刻" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -36465,6 +41141,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "邊緣留白"
+          }
+        }
+      }
+    },
+    "过了一段时间，你又想起了什么？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After some time, what came back to you?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過了一段時間，你又想起了什麼？"
           }
         }
       }
@@ -36786,6 +41479,23 @@
         }
       }
     },
+    "返回选择" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to Choices"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回選擇"
+          }
+        }
+      }
+    },
     "返回选择模板" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36883,6 +41593,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "還沒有影像票根作品"
+          }
+        }
+      }
+    },
+    "还没有找到这一节气的颜色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No color has been found for this solar term yet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "還沒有找到這一節氣的顏色"
           }
         }
       }
@@ -37074,6 +41801,40 @@
         }
       }
     },
+    "这一节气的照片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos for This Solar Term"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這一節氣的照片"
+          }
+        }
+      }
+    },
+    "这不是可识别的节气寻色备份，或备份版本过新。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is not a recognized Solar-term Colors backup, or it was created by a newer version."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這不是可辨識的節氣尋色備份，或備份版本過新。"
+          }
+        }
+      }
+    },
     "这不是可验证的灵动照片票根" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -37225,6 +41986,91 @@
         }
       }
     },
+    "这张照片，还有什么没有说完？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What remains unsaid in this photo?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這張照片，還有什麼沒有說完？"
+          }
+        }
+      }
+    },
+    "这张照片之外，你想留下什么？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What would you like to leave beyond this photo?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這張照片之外，你想留下什麼？"
+          }
+        }
+      }
+    },
+    "这张照片已经收藏在%@。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This photo is already collected under %@."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這張照片已經收藏在%@。"
+          }
+        }
+      }
+    },
+    "这张照片无法收进照片抽屉，请换一张重试。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This photo could not be added to the Photo Drawer. Please try another photo."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這張照片無法收進照片抽屜，請換一張重試。"
+          }
+        }
+      }
+    },
+    "这张照片没有定位信息，可以制作普通邮票，但不能加入城市邮集。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This photo has no location information. You can make a regular stamp, but it cannot be added to the city collection."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這張照片沒有定位資訊，可以製作普通郵票，但不能加入城市郵集。"
+          }
+        }
+      }
+    },
     "这张照片用较深的光影营造气氛" : {
       "localizations" : {
         "en" : {
@@ -37237,6 +42083,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "這張照片以較深的光影營造氣氛"
+          }
+        }
+      }
+    },
+    "这张照片的日期无法归入受支持的节气年份。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This photo's date does not fall within a supported solar-term year."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這張照片的日期無法歸入支援的節氣年份。"
           }
         }
       }
@@ -38150,6 +43013,23 @@
         }
       }
     },
+    "选择一张照片寻色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a Photo to Find Its Color"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇一張照片尋色"
+          }
+        }
+      }
+    },
     "选择一张纸票照片或电子凭证\n把当时的颜色留成一张记忆票" : {
       "localizations" : {
         "en" : {
@@ -38314,6 +43194,23 @@
         }
       }
     },
+    "选择喜欢的齿孔、版式与构图，把一张照片凝成微型影像作品；无论画布大小，比例、留白与操作区域始终清晰自然。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the perforation, layout, and framing you love, then shape one photo into a miniature artwork. At every canvas size, its proportions, spacing, and controls stay clear and natural."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇喜歡的齒孔、版式與構圖，把一張照片凝成微型影像作品；無論畫布大小，比例、留白與操作區域始終清晰自然。"
+          }
+        }
+      }
+    },
     "选择多张图片后会按照横竖比例自动填入空位" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -38376,6 +43273,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選擇尚未添加照片時的主頁釉彩"
+          }
+        }
+      }
+    },
+    "选择局部取色照片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a photo for local color sampling"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇局部取色照片"
           }
         }
       }
@@ -38810,6 +43724,23 @@
         }
       }
     },
+    "那一刻，你真正看见了什么？" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What did you truly see in that moment?"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "那一刻，你真正看見了什麼？"
+          }
+        }
+      }
+    },
     "那一刻的光、色与心情，被后来的你亲手封存于此。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -38929,6 +43860,23 @@
         }
       }
     },
+    "邮票制作与明信片全面适配 iPad" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stamp Maker and Postcards, fully designed for iPad"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "郵票製作與明信片全面適配 iPad"
+          }
+        }
+      }
+    },
     "邮票日期" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -38959,6 +43907,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "郵票標題"
+          }
+        }
+      }
+    },
+    "邮票模板无法读取，请重新打开后重试。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The stamp template could not be loaded. Reopen it and try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "郵票範本無法讀取，請重新開啟後再試。"
           }
         }
       }
@@ -39045,6 +44010,23 @@
         }
       }
     },
+    "邮集索引无法读取，已保留原文件。请先恢复备份，避免覆盖现有收藏。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The stamp collection index could not be read, so the original file was preserved. Restore a backup before continuing to avoid overwriting your collection."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "郵集索引無法讀取，已保留原檔案。請先恢復備份，避免覆蓋現有收藏。"
+          }
+        }
+      }
+    },
     "酡颜" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -39058,6 +44040,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "酡顏"
+          }
+        }
+      }
+    },
+    "重新查看照片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Photo Again"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新查看照片"
           }
         }
       }
@@ -39275,6 +44274,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "金桂"
+          }
+        }
+      }
+    },
+    "针对 iPad 的大屏与横屏重新设计整体布局，让每一种创作方式都拥有更大的预览、更舒展的操作区域与自然的交互。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The entire layout is redesigned for iPad’s larger landscape display, giving every creative tool a larger preview, roomier controls, and more natural interaction."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "針對 iPad 的大螢幕與橫向重新設計整體佈局，讓每一種創作方式都擁有更大的預覽、更舒展的操作區域與自然的互動。"
           }
         }
       }
@@ -39513,6 +44529,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "閃亮時刻"
+          }
+        }
+      }
+    },
+    "闭塞而成冬" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barriers Close and Winter Begins"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉塞而成冬"
           }
         }
       }
@@ -39888,6 +44921,74 @@
         }
       }
     },
+    "雀入大水为蛤" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sparrows Enter the Sea and Become Clams"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雀入大水為蛤"
+          }
+        }
+      }
+    },
+    "雁北乡" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wild Geese Turn North"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雁北鄉"
+          }
+        }
+      }
+    },
+    "雉入大水为蜃" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pheasants Enter the Sea and Become Giant Clams"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雉入大水為蜃"
+          }
+        }
+      }
+    },
+    "雉始雊" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pheasants Begin to Call"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雉始雊"
+          }
+        }
+      }
+    },
     "雨声洗亮了街道" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -40020,6 +45121,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "雪青"
+          }
+        }
+      }
+    },
+    "雷乃发声" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thunder Begins to Sound"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雷乃發聲"
+          }
+        }
+      }
+    },
+    "雷始收声" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thunder Falls Silent"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雷始收聲"
           }
         }
       }
@@ -40461,6 +45596,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "靛青"
+          }
+        }
+      }
+    },
+    "靡草死" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delicate Grasses Die"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "靡草死"
           }
         }
       }
@@ -41123,6 +46275,40 @@
         }
       }
     },
+    "香港特别行政区、澳门特别行政区各收录一枚城市邮票，不按区细分。台湾地区收录台北、新北、桃园、台中、台南、高雄、基隆、新竹、嘉义九个城市；县和县辖市暂不单独收录，也不会归入邻近城市。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hong Kong SAR and Macao SAR each have one city stamp and are not divided by district. For Taiwan, the catalog includes Taipei, New Taipei, Taoyuan, Taichung, Tainan, Kaohsiung, Keelung, Hsinchu, and Chiayi. Counties and county-administered cities are not currently collected separately or assigned to neighboring cities."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "香港特別行政區、澳門特別行政區各收錄一枚城市郵票，不按區細分。台灣地區收錄台北、新北、桃園、台中、台南、高雄、基隆、新竹、嘉義九個城市；縣和縣轄市暫不單獨收錄，也不會歸入鄰近城市。"
+          }
+        }
+      }
+    },
+    "香港资料来源" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hong Kong Source"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "香港資料來源"
+          }
+        }
+      }
+    },
     "马赛克颗粒大小" : {
       "localizations" : {
         "en" : {
@@ -41325,6 +46511,23 @@
         }
       }
     },
+    "鱼陟负冰" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fish Rise Beneath the Ice"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "魚陟負冰"
+          }
+        }
+      }
+    },
     "鲜灰两端" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -41355,6 +46558,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "鳥類"
+          }
+        }
+      }
+    },
+    "鸡乳" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hens Begin to Brood"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雞乳"
+          }
+        }
+      }
+    },
+    "鸣鸠拂其羽" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuckoos Flap Their Wings"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鳴鳩拂其羽"
           }
         }
       }
@@ -41393,6 +46630,57 @@
         }
       }
     },
+    "鸿雁来" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wild Geese Arrive"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鴻雁來"
+          }
+        }
+      }
+    },
+    "鸿雁来宾" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wild Geese Arrive as Guests"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鴻雁來賓"
+          }
+        }
+      }
+    },
+    "鵙始鸣" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shrikes Begin to Sing"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鵙始鳴"
+          }
+        }
+      }
+    },
     "鹅黄" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -41410,6 +46698,125 @@
         }
       }
     },
+    "鹊始巢" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Magpies Begin to Nest"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鵲始巢"
+          }
+        }
+      }
+    },
+    "鹖鴠不鸣" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eared Pheasants Stop Calling"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鶡鴠不鳴"
+          }
+        }
+      }
+    },
+    "鹰乃祭鸟" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hawks Offer Birds"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鷹乃祭鳥"
+          }
+        }
+      }
+    },
+    "鹰化为鸠" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hawks Turn into Doves"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鷹化為鳩"
+          }
+        }
+      }
+    },
+    "鹰始挚" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hawks Become Fierce"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鷹始摯"
+          }
+        }
+      }
+    },
+    "鹿角解" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deer Shed Their Antlers"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鹿角解"
+          }
+        }
+      }
+    },
+    "麋角解" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elk Shed Their Antlers"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麋角解"
+          }
+        }
+      }
+    },
     "麦秆" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -41423,6 +46830,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "麥稈"
+          }
+        }
+      }
+    },
+    "麦秋至" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wheat Ripens"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麥秋至"
           }
         }
       }

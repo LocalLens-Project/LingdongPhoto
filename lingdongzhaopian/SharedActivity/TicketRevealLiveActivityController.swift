@@ -15,7 +15,7 @@ enum TicketRevealIslandSupport {
         if currentWindow?.safeAreaInsets.top ?? 0 >= 51 {
             return true
         }
-        let bounds = currentWindow?.screen.bounds ?? UIScreen.main.bounds
+        let bounds = currentWindow?.windowScene?.screen.bounds ?? .zero
         let size = (Int(bounds.width.rounded()), Int(bounds.height.rounded()))
         return [(393, 852), (402, 874), (420, 912), (430, 932), (440, 956)]
             .contains { $0 == size }
@@ -37,7 +37,7 @@ enum TicketRevealIslandSupport {
         // Window not laid out yet: fall back to the known inset for the
         // current screen size. 402x874 covers iPhone 16 Pro / 17 / 17 Pro,
         // 420x912 is iPhone Air whose island sits even lower.
-        let bounds = currentWindow?.screen.bounds ?? UIScreen.main.bounds
+        let bounds = currentWindow?.windowScene?.screen.bounds ?? .zero
         let size = (Int(bounds.width.rounded()), Int(bounds.height.rounded()))
         switch size {
         case (402, 874), (440, 956):

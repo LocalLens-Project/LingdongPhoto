@@ -767,6 +767,9 @@ private enum ShareCreationMode: String, CaseIterable, Identifiable {
     case spectrumWallpaper
     case privacyMosaic
     case travelTicket
+    case glassArchive
+    case paletteCard
+    case monthlyCalendar
 
     var id: String { rawValue }
     var title: String {
@@ -778,6 +781,9 @@ private enum ShareCreationMode: String, CaseIterable, Identifiable {
         case .spectrumWallpaper: "色谱壁纸"
         case .privacyMosaic: "隐私马赛克"
         case .travelTicket: "影像票根"
+        case .glassArchive: "琉璃档案"
+        case .paletteCard: "灵动色卡"
+        case .monthlyCalendar: "灵动月历"
         }
     }
     var symbol: String {
@@ -789,6 +795,9 @@ private enum ShareCreationMode: String, CaseIterable, Identifiable {
         case .spectrumWallpaper: "rectangle.on.rectangle"
         case .privacyMosaic: "eye.slash"
         case .travelTicket: "ticket"
+        case .glassArchive: "camera.aperture"
+        case .paletteCard: "swatchpalette"
+        case .monthlyCalendar: "calendar"
         }
     }
 }

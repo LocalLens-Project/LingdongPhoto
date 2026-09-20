@@ -12,7 +12,7 @@ enum TicketPrintActivityPhase: String, Codable, Hashable {
     case failed
 }
 
-struct TicketPrintActivityAttributes: ActivityAttributes {
+nonisolated struct TicketPrintActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         var phase: TicketPrintActivityPhase
         var progress: Double

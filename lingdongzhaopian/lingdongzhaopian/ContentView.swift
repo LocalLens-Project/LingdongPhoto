@@ -25,6 +25,13 @@ private enum PhotoSelectionOperation: Equatable {
     case replace(index: Int)
 }
 
+private enum LaunchExperienceStage: Equatable {
+    case none
+    case onboarding
+    case modeLauncherChoice
+    case creationSeason
+}
+
 private struct OverflowContentHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
 
@@ -65,6 +72,8 @@ private struct OverflowOnlyVerticalScroll<Content: View>: View {
 }
 
 struct ContentView: View {
+    private static let creationSeasonEventHost = "event"
+    private static let creationSeasonEventPath = "creation-season-3"
     private static let ticketScannerIntroID = "ticketScanner"
     private static let albumIntroID = "photoAlbum"
     private static let colorRelationshipIntroID = "colorRelationship"
@@ -75,9 +84,25 @@ struct ContentView: View {
     private static let postcardIntroID = "postalPostcard"
     private static let postalCollectionIntroID = "postalCollection"
 
+    init() {
+        let defaults = UserDefaults.standard
+        let didShowOnboarding = defaults.bool(forKey: "didShowOnboardingExperience")
+        let didShowUpdate = defaults.bool(forKey: "didShowVersion301Update")
+        let presentsOnboarding = !didShowOnboarding || !didShowUpdate
+        _onboardingStartsAtUpdate = State(
+            initialValue: didShowOnboarding && !didShowUpdate
+        )
+        _launchExperienceStage = State(
+            initialValue: presentsOnboarding ? .onboarding : .none
+        )
+        _didConfigureLaunchExperience = State(initialValue: presentsOnboarding)
+    }
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var systemColorScheme
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @AppStorage("didChooseModeLauncherStyle") private var didChooseModeLauncherStyle = false
     @AppStorage("modeLauncherStyle") private var modeLauncherStyleRaw = ModeLauncherStyle.floatingMenu.rawValue
     @AppStorage("supportsLivePhotos") private var supportsLivePhotos = true
@@ -126,23 +151,30 @@ struct ContentView: View {
     @AppStorage("didShowLivePhotoPlaybackHint") private var didShowLivePhotoPlaybackHint = false
     @AppStorage("didShowLivePhotoPlaybackHintBuild1060") private var didShowLivePhotoPlaybackHintBuild1060 = false
     @AppStorage("didShowOnboardingExperience") private var didShowOnboardingExperience = false
+    @AppStorage("didShowVersion301Update") private var didShowVersion301Update = false
+    @AppStorage("didShowCreationSeasonEvent301") private var didShowCreationSeasonEvent = false
     @AppStorage("didShowModeSelectionHint101") private var didShowModeSelectionHint101 = false
     @AppStorage("didShowTicketLandscapeHint") private var didShowTicketLandscapeHint = false
-    // The previous `didShowPaletteSwapHint300` flag could be consumed while the
-    // spotlight still had no measured palette-band frame and was therefore
-    // invisible. This acknowledgement-only key gives affected installs one
-    // correct opportunity to see the repaired hint.
     @AppStorage("didAcknowledgePaletteSwapHint301") private var didAcknowledgePaletteSwapHint = false
     @AppStorage("didShowTicketNarrativePrompt") private var didShowTicketNarrativePrompt = false
 
     @State private var mode: CreationMode = .motionCard
     @State private var ipadDestination: IPadWorkspaceEntry = .creation(.motionCard)
     @State private var ipadVisitedDestinations: Set<IPadWorkspaceEntry> = []
+    @State private var ipadSidebarResetToken = 0
     @State private var ipadControlsHeight: CGFloat = 100
     @State private var ipadRelationshipPalette: [PaletteColor] = []
     @State private var ipadDrafts: [CreationMode: IPadCompositionDraft] = [:]
     @State private var modeChangeTask: Task<Void, Never>?
-    private var isIPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+    private var usesWideLayout: Bool {
+        horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
+    private var activeWindow: UIWindow? {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
+    }
     @State private var resolvedIslandLauncherSupport: Bool?
     @State private var didConfigureLaunchExperience = false
     private var modeLauncherStyle: ModeLauncherStyle {
@@ -151,15 +183,12 @@ struct ContentView: View {
     private var supportsIslandLauncher: Bool {
         if let resolvedIslandLauncherSupport { return resolvedIslandLauncherSupport }
         return TicketIslandAvailability.isSupported(
-            screenSize: UIScreen.main.bounds.size,
-            safeAreaTop: UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap(\.windows)
-                .first(where: \.isKeyWindow)?.safeAreaInsets.top ?? 0
+            screenSize: activeWindow?.windowScene?.screen.bounds.size ?? .zero,
+            safeAreaTop: activeWindow?.safeAreaInsets.top ?? 0
         )
     }
     private var usesIslandLauncher: Bool {
-        !isIPad && supportsIslandLauncher && modeLauncherStyle == .islandReveal
+        !usesWideLayout && supportsIslandLauncher && modeLauncherStyle == .islandReveal
     }
     private var usesFloatingMenuLauncher: Bool { !usesIslandLauncher }
     @State private var introPageID = CreationMode.motionCard.rawValue
@@ -211,6 +240,8 @@ struct ContentView: View {
     @State private var videoToLivePhotoPresented = false
     @State private var ticketDevelopingPresented = false
     @State private var ticketCollectionPresented = false
+    @State private var solarColorsPresented = false
+    @State private var photoBacksPresented = false
     @State private var postalDestination: PostalDestination?
     @State private var queuedPostalDestination: PostalDestination?
     @State private var toastMessage: String?
@@ -251,6 +282,8 @@ struct ContentView: View {
     @State private var storedOffset: CGSize = .zero
     @State private var paletteOffset: CGFloat = 0
     @State private var storedPaletteOffset: CGFloat = 0
+    @State private var glassArchiveBarPosition: CGFloat = 1
+    @State private var storedGlassArchiveBarPosition: CGFloat = 1
     @State private var bubbleScale: CGFloat = 1
     @State private var storedBubbleScale: CGFloat = 1
     @State private var textScale: CGFloat = 1
@@ -299,7 +332,10 @@ struct ContentView: View {
     @State private var revealTask: Task<Void, Never>?
     @State private var toastTask: Task<Void, Never>?
     @State private var livePlaybackTask: Task<Void, Never>?
+    @State private var livePreparationTask: Task<Void, Never>?
     @State private var livePlaybackSessionID: UUID?
+    @State private var livePreparationSignature: [Int: String] = [:]
+    @State private var preparedLivePlayback: LivePhotoPreview.PreparedPlayback?
     @State private var livePhotoHintTask: Task<Void, Never>?
     @State private var modeSelectionHintTask: Task<Void, Never>?
     @State private var ticketLandscapeHintTask: Task<Void, Never>?
@@ -308,11 +344,27 @@ struct ContentView: View {
     @State private var isLivePhotoHintPresented = false
     @State private var isModeSelectionHintPresented = false
     @State private var isTicketLandscapeHintPresented = false
-    @State private var onboardingPresented = false
-    @State private var modeLauncherChoicePresented = false
+    @State private var onboardingStartsAtUpdate = false
     @State private var modeLauncherDraft: ModeLauncherStyle?
+    @State private var launchExperienceStage = LaunchExperienceStage.none
+    @State private var creationSeasonEventPending = false
+    @State private var creationSeasonEventIgnoresHistory = false
     @State private var supportUsPresented = false
+    @State private var pickerMode: CreationMode?
+    @State private var photoImportRequestID: UUID?
     @StateObject private var cameraWatermarkLibrary = CameraWatermarkLibrary()
+
+    private var onboardingPresented: Bool {
+        launchExperienceStage == .onboarding
+    }
+
+    private var modeLauncherChoicePresented: Bool {
+        launchExperienceStage == .modeLauncherChoice
+    }
+
+    private var creationSeasonEventPresented: Bool {
+        launchExperienceStage == .creationSeason
+    }
 
     private var pickerLimit: Int {
         if mode == .journal, photoSelectionOperation == .append {
@@ -515,10 +567,10 @@ struct ContentView: View {
     }
     private var canPresentLivePhotoHint: Bool {
         isEditorVisible
-            && (!isIPad || ipadDestination == .creation(mode))
+            && (!usesWideLayout || ipadDestination == .creation(mode))
             && showsLivePlaybackControl
             && !liveSourceVideoURLs.isEmpty
-            && (isIPad || didShowModeSelectionHint101)
+            && (usesWideLayout || didShowModeSelectionHint101)
             && !isModeSelectionHintPresented
             && modeSelectionHintTask == nil
             && !modeLauncherChoicePresented
@@ -527,7 +579,7 @@ struct ContentView: View {
             && !isPickerPresented
     }
     private var canPresentModeSelectionHint: Bool {
-        !isIPad && isEditorVisible
+        !usesWideLayout && isEditorVisible
             && !didShowModeSelectionHint101
             && usesFloatingMenuLauncher
             && !modeLauncherChoicePresented
@@ -536,7 +588,7 @@ struct ContentView: View {
             && !isPickerPresented
     }
     private var canPresentTicketLandscapeHint: Bool {
-        !isIPad && isEditorVisible
+        !usesWideLayout && isEditorVisible
             && mode == .travelTicket
             && !isTicketLandscape
             && !didShowTicketLandscapeHint
@@ -553,7 +605,7 @@ struct ContentView: View {
     }
     private var canPresentPaletteSwapHint: Bool {
         isEditorVisible
-            && (!isIPad || ipadDestination == .creation(mode))
+            && (!usesWideLayout || ipadDestination == .creation(mode))
             && mode == .paletteCard
             && !images.isEmpty
             && hasValidPaletteBandRect
@@ -570,7 +622,7 @@ struct ContentView: View {
     }
     private var canPresentNarrativePrompt: Bool {
         isEditorVisible
-            && (!isIPad || ipadDestination == .creation(mode))
+            && (!usesWideLayout || ipadDestination == .creation(mode))
             && mode == .travelTicket
             && !didShowTicketNarrativePrompt
             && !modeLauncherChoicePresented
@@ -693,15 +745,16 @@ struct ContentView: View {
     var body: some View {
         let presentedContent = AnyView(GeometryReader { proxy in
             ZStack {
-                if isIPad && ipadDestination == .colorRelationship {
+                if usesWideLayout && ipadDestination == .colorRelationship {
                     PrototypeAmbientBackground(colors: ipadRelationshipPalette.isEmpty
                         ? emptyCanvasTheme.palette.map { PaletteColor(red: $0.red, green: $0.green, blue: $0.blue, weight: 1) }
                         : ipadRelationshipPalette)
+                        .allowsHitTesting(false)
                 } else {
                     AmbientBackground(palette: isEditorVisible ? palette : emptyCanvasTheme.palette)
                 }
 
-                if isIPad {
+                if usesWideLayout {
                     ipadWorkspace(in: proxy.size)
                 } else if isEditorVisible {
                     Group {
@@ -760,7 +813,9 @@ struct ContentView: View {
                 }
 
                 ShakeDetector(
-                    isEnabled: (!isIPad || ipadDestination == .creation(mode))
+                    isEnabled: isEditorVisible
+                        && !images.isEmpty
+                        && (!usesWideLayout || ipadDestination == .creation(mode))
                         && !editCopyPresented
                         && !settingsPresented
                         && !modeSelectionPresented
@@ -773,7 +828,7 @@ struct ContentView: View {
                 }
                     .frame(width: 0, height: 0)
 
-                if !isIPad,
+                if !usesWideLayout,
                    !isEditorVisible,
                    usesFloatingMenuLauncher,
                    didChooseModeLauncherStyle,
@@ -811,13 +866,33 @@ struct ContentView: View {
                     .zIndex(80)
                 }
 
+                if onboardingPresented {
+                    OnboardingExperienceView(
+                        supportsIslandLauncher: supportsIslandLauncher,
+                        startsAtUpdatePage: onboardingStartsAtUpdate,
+                        usesWideLayout: usesWideLayout,
+                        usesDarkAppearance: systemColorScheme == .dark,
+                        onFinish: completeOnboardingExperience
+                    )
+                    .environment(\.colorScheme, .dark)
+                    .transition(.opacity)
+                    .zIndex(300)
+                }
+
                 if modeLauncherChoicePresented {
                     ModeLauncherChoiceOverlay(
                         selection: $modeLauncherDraft,
                         onConfirm: completeModeLauncherChoice
                     )
-                    .zIndex(120)
+                    .zIndex(300)
                     .transition(.opacity)
+                }
+
+                if creationSeasonEventPresented {
+                    CreationSeasonEventView(onClose: dismissCreationSeasonEvent)
+                        .environment(\.colorScheme, .dark)
+                        .transition(.opacity)
+                        .zIndex(300)
                 }
 
                 paletteSwapHintOverlay
@@ -836,7 +911,6 @@ struct ContentView: View {
                     safeAreaTop: proxy.safeAreaInsets.top
                 )
                 resolvedIslandLauncherSupport = supportsIsland
-                configureLaunchExperience(supportsIsland: supportsIsland)
                 if canPresentPaletteSwapHint {
                     presentPaletteSwapHintIfNeeded()
                 }
@@ -850,15 +924,7 @@ struct ContentView: View {
         }
 
         .environment(\.colorScheme, .light)
-        .statusBarHidden(!isIPad)
-        .preferredColorScheme(isIPad && ipadDestination == .colorRelationship ? .dark : nil)
-        .fullScreenCover(isPresented: $onboardingPresented) {
-            OnboardingExperienceView(
-                supportsIslandLauncher: supportsIslandLauncher,
-                onFinish: completeOnboardingExperience
-            )
-                .environment(\.colorScheme, .dark)
-        }
+        .statusBarHidden(!usesWideLayout)
         .fullScreenCover(isPresented: $supportUsPresented) {
             SupportUsView {
                 poeticNamesEnabled = true
@@ -870,14 +936,16 @@ struct ContentView: View {
                 selectionLimit: pickerLimit,
                 colorScheme: systemColorScheme
             ) { selections in
-                pickerSelections = selections
+                if selections.isEmpty {
+                    pickerSelections = []
+                    pickerMode = nil
+                } else {
+                    pickerSelections = selections
+                    photoImportRequestID = UUID()
+                }
             }
             .environment(\.colorScheme, systemColorScheme)
             .ignoresSafeArea()
-        }
-        .onChange(of: isPickerPresented) { _, isPresented in
-            guard !isPresented, !pickerSelections.isEmpty else { return }
-            Task { await loadSelectedPhotos() }
         }
         .sheet(isPresented: $motionCardColorSamplerPresented) {
             if let image = images.first {
@@ -899,11 +967,11 @@ struct ContentView: View {
                 .environment(\.colorScheme, systemColorScheme)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.hidden)
-                .presentationCornerRadius(34)
+                .presentationCornerRadius(nil)
             }
         }
         .onChange(of: mode) { _, newMode in
-            if isIPad { ipadDestination = .creation(newMode) }
+            if usesWideLayout { ipadDestination = .creation(newMode) }
             if introPageID != newMode.rawValue {
                 introPageID = newMode.rawValue
             }
@@ -913,7 +981,7 @@ struct ContentView: View {
             if newMode != .travelTicket, isTicketLandscape {
                 setTicketLandscape(false)
             }
-            if !isIPad {
+            if !usesWideLayout {
                 ratio = newMode == .travelTicket && ticketLayout == .vertical
                     ? .threeFour
                     : (newMode == .travelTicket && ticketLayout == .classic
@@ -930,7 +998,7 @@ struct ContentView: View {
             if newMode == .sketch {
                 scheduleSketchPreviewRefresh()
             }
-            if newMode == .colorPalette && !isIPad {
+            if newMode == .colorPalette && !usesWideLayout {
 
                 imageScale = 1
                 storedScale = 1
@@ -994,7 +1062,7 @@ struct ContentView: View {
             .environment(\.colorScheme, systemColorScheme)
             .presentationDetents(isTicketLandscape ? [.large] : [.fraction(0.94)])
             .presentationDragIndicator(.hidden)
-            .presentationCornerRadius(38)
+            .presentationCornerRadius(nil)
             .presentationBackground(.ultraThinMaterial)
         }
         .sheet(isPresented: $modeSelectionPresented, onDismiss: presentQueuedPostalDestination) {
@@ -1008,12 +1076,14 @@ struct ContentView: View {
                 onConvertVideo: openVideoToLivePhoto,
                 onOpenTicketDeveloping: openTicketDeveloping,
                 onOpenTicketCollection: openTicketCollection,
+                onOpenSolarColors: openSolarColors,
+                onOpenPhotoBacks: openPhotoBacks,
                 onOpenPostal: openPostal
             )
             .environment(\.colorScheme, systemColorScheme)
             .presentationDetents(isTicketLandscape ? [.large] : [.fraction(0.84)])
             .presentationDragIndicator(.hidden)
-            .presentationCornerRadius(38)
+            .presentationCornerRadius(nil)
             .presentationBackground(.clear)
         }
         .sheet(isPresented: $monthlyCalendarSettingsPresented) {
@@ -1021,7 +1091,7 @@ struct ContentView: View {
                 .environment(\.colorScheme, systemColorScheme)
                 .presentationDetents([.height(190)])
                 .presentationDragIndicator(.visible)
-                .presentationCornerRadius(32)
+                .presentationCornerRadius(nil)
         }
         .sheet(isPresented: $glassArchiveSettingsPresented) {
             GlassArchiveSettingsSheet(
@@ -1032,7 +1102,7 @@ struct ContentView: View {
             .environment(\.colorScheme, systemColorScheme)
             .presentationDetents([.height(glassArchiveSettingsSheetHeight)])
             .presentationDragIndicator(.visible)
-            .presentationCornerRadius(32)
+            .presentationCornerRadius(nil)
         }
         .sheet(isPresented: $paletteCardSettingsPresented) {
             PaletteCardSettingsSheet(
@@ -1043,7 +1113,7 @@ struct ContentView: View {
             .environment(\.colorScheme, systemColorScheme)
             .presentationDetents([.height(470)])
             .presentationDragIndicator(.visible)
-            .presentationCornerRadius(32)
+            .presentationCornerRadius(nil)
         }
         .sheet(isPresented: $motionCardSettingsPresented) {
             MotionCardSettingsSheet(
@@ -1097,6 +1167,7 @@ struct ContentView: View {
                         IslandModeLauncher(
                             safeAreaTop: max(proxy.safeAreaInsets.top, 51),
                             selectedMode: mode,
+                            selectedDestination: .colorRelationship,
                             isEnabled: true,
                             onChoose: openModeLauncherDestinationFromColorRelationship
                         )
@@ -1121,7 +1192,15 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $ticketCollectionPresented) {
             PiaogenceRootView(onCreateTicket: beginTicketCreationFromCollection)
         }
-        .fullScreenCover(item: $postalDestination) { destination in
+        .fullScreenCover(isPresented: $solarColorsPresented) {
+            SolarColorFeatureRootView(prefilledPhoto: selectedPhotos.first)
+                .environment(\.colorScheme, systemColorScheme)
+        }
+        .fullScreenCover(isPresented: $photoBacksPresented) {
+            PhotoBackCollectionView(prefilledPhoto: selectedPhotos.first)
+                .environment(\.colorScheme, systemColorScheme)
+        }
+        .fullScreenCover(item: $postalDestination, onDismiss: finishPostalPresentation) { destination in
             switch destination {
             case .stamp: StampStudio(photo: selectedPhotos.first)
             case .postcard: PostcardStudio(photo: selectedPhotos.first)
@@ -1136,10 +1215,11 @@ struct ContentView: View {
                 copyWasEdited: $copyWasEdited,
                 onRegenerate: regenerateCopy
             )
-                .preferredColorScheme(.light)
+                .environment(\.colorScheme, systemColorScheme)
+                .tint(systemColorScheme == .dark ? Color.white : Color.black)
                 .presentationDetents([.large])
                 .presentationContentInteraction(.scrolls)
-                .presentationCornerRadius(34)
+                .presentationCornerRadius(nil)
         }
         .sheet(
             isPresented: $ticketMessageEditorPresented,
@@ -1159,9 +1239,10 @@ struct ContentView: View {
                 shouldExportAfterTicketMessageEditor = true
             }
             .environment(\.colorScheme, systemColorScheme)
+            .tint(systemColorScheme == .dark ? Color.white : Color.black)
             .presentationDetents(isTicketLandscape ? [.large] : [.medium, .large])
             .presentationDragIndicator(.visible)
-            .presentationCornerRadius(34)
+            .presentationCornerRadius(nil)
         }
         .sheet(isPresented: $exportCenterPresented) {
             ExportCenterView(
@@ -1198,7 +1279,7 @@ struct ContentView: View {
             .environment(\.colorScheme, systemColorScheme)
             .presentationDetents(isTicketLandscape ? [.large] : [.fraction(0.94)])
             .presentationDragIndicator(.hidden)
-            .presentationCornerRadius(38)
+            .presentationCornerRadius(nil)
             .presentationBackground(.ultraThinMaterial)
         }
         .sheet(isPresented: $ticketStudioPresented) {
@@ -1249,7 +1330,7 @@ struct ContentView: View {
             .environment(\.colorScheme, systemColorScheme)
             .presentationDetents(isTicketLandscape ? [.large] : [.fraction(0.94)])
             .presentationDragIndicator(.hidden)
-            .presentationCornerRadius(38)
+            .presentationCornerRadius(nil)
             .presentationBackground(.ultraThinMaterial)
         }
         .fullScreenCover(item: $verifiedTicket) { ticket in
@@ -1310,10 +1391,28 @@ struct ContentView: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.hidden)
-            .presentationCornerRadius(34)
+            .presentationCornerRadius(nil)
         }
 
         return presentedContent
+        .task(id: resolvedIslandLauncherSupport) {
+            guard let supportsIsland = resolvedIslandLauncherSupport,
+                  !didConfigureLaunchExperience else { return }
+            await Task.yield()
+            configureLaunchExperience(supportsIsland: supportsIsland)
+        }
+        .task(id: photoImportRequestID) {
+            guard let requestID = photoImportRequestID,
+                  !pickerSelections.isEmpty else { return }
+            let selections = pickerSelections
+            let selectedMode = pickerMode ?? mode
+            await Task.yield()
+            await loadSelectedPhotos(selections, requestedMode: selectedMode)
+            guard photoImportRequestID == requestID else { return }
+            pickerSelections = []
+            pickerMode = nil
+            photoImportRequestID = nil
+        }
         .task {
             if didShowLivePhotoPlaybackHintBuild1060 {
                 didShowLivePhotoPlaybackHint = true
@@ -1372,6 +1471,10 @@ struct ContentView: View {
     }
 
     private func handleIncomingURL(_ url: URL) {
+        if isCreationSeasonEventURL(url) {
+            requestCreationSeasonEvent(ignoresHistory: true)
+            return
+        }
         let queryItems = URLComponents(
             url: url,
             resolvingAgainstBaseURL: false
@@ -1398,6 +1501,16 @@ struct ContentView: View {
         importSharedPhotoIfAvailable(preferredModeRawValue: modeValue)
     }
 
+    private func isCreationSeasonEventURL(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == SharedPhotoHandoff.urlScheme else { return false }
+        let host = url.host?.lowercased()
+        let path = url.pathComponents.filter { $0 != "/" }
+        if host == "home" {
+            return path.isEmpty
+        }
+        return host == Self.creationSeasonEventHost && path == [Self.creationSeasonEventPath]
+    }
+
     private func importSharedPhotoIfAvailable(
         preferredModeRawValue: String? = nil,
         reportMissing: Bool = false
@@ -1420,7 +1533,7 @@ struct ContentView: View {
             sharedSelections.append(PhotoPickerSelection(sharedItem: item))
         }
         pickerSelections = sharedSelections
-        if isIPad { returnToIPadCreation() }
+        if usesWideLayout { returnToIPadCreation() }
         photoSelectionOperation = .replaceAll
         isImportingSharedPhoto = true
         Task {
@@ -1432,22 +1545,28 @@ struct ContentView: View {
 
 
     private func ipadWorkspace(in size: CGSize) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        let compactSidebar = size.width < 600
+        let sidebarWidth: CGFloat = compactSidebar
+            ? 64
+            : min(232, max(212, size.width * 0.24))
+
+        return HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 8) {
-                ipadWorkspaceTitle(compact: size.width < 600)
+                ipadWorkspaceTitle(compact: compactSidebar)
                     .padding(.horizontal, 8)
                     .frame(minHeight: 56, alignment: .leading)
                 IPadModeButtons(
                     selection: ipadDestination,
-                    compact: size.width < 600,
+                    compact: compactSidebar,
+                    width: sidebarWidth,
                     disabled: controlsAreDimmed || isLoading || ticketPrintPhase.isPresented,
                     onSelect: selectIPadEntry
                 )
+                .id(ipadSidebarResetToken)
                 .padding(.bottom, 8)
             }
-            .frame(width: size.width < 600 ? 64 : 174)
-            .environment(\.colorScheme,
-                ipadDestination == .colorRelationship ? .dark : .light)
+            .frame(width: sidebarWidth)
+            .zIndex(2)
 
 
             ZStack {
@@ -1469,6 +1588,7 @@ struct ContentView: View {
                     ColorRelationshipFeatureView(
                         onOpenModeSelection: returnToIPadCreation,
                         showsModeSelectionButton: false,
+                        showsAmbientBackground: false,
                         onPaletteChange: { ipadRelationshipPalette = $0 }
                     )
                     .opacity(ipadDestination == .colorRelationship ? 1 : 0)
@@ -1477,6 +1597,8 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
+            .zIndex(1)
         }
         .padding(.leading, 8)
         .padding(.trailing, 16)
@@ -1606,7 +1728,7 @@ struct ContentView: View {
 
     @ViewBuilder private var ipadEditorControls: some View {
         VStack(spacing: 12) {
-            if showsLivePlaybackControl {
+            if showsLivePlaybackControl && mode != .colorPalette {
                 LivePhotoPlaybackButton(
                     isAvailable: !liveSourceVideoURLs.isEmpty,
                     isPlaying: isLivePhotoPlaying,
@@ -1615,9 +1737,9 @@ struct ContentView: View {
             }
             switch mode {
             case .motionCard:
-                if templateStyle != .immersive { motionCardSamplingControls }
+                motionCardSamplingControls
             case .colorPalette:
-                ColorInsightSwitcher(selection: $colorInsightPage, reduceMotion: reduceMotion)
+                colorInsightControls
                 if colorInsightPage == .light {
                     if let lightAnalysis {
                         LightAnalysisPanel(analysis: lightAnalysis, semantic: combinedSemantic, activeRange: $activeLightToneRange)
@@ -1709,6 +1831,8 @@ struct ContentView: View {
         case .stamp: openPostal(.stamp)
         case .postcard: openPostal(.postcard)
         case .postalCollection: openPostal(.collection)
+        case .solarColors: openSolarColors()
+        case .photoBacks: openPhotoBacks()
         }
     }
 
@@ -1770,7 +1894,7 @@ struct ContentView: View {
             isBusy: isLoading && item == mode,
             isActionDisabled: isLoading,
             showsImportStatus: true,
-            action: { openPicker() }
+            action: { openPicker(for: item) }
         )
     }
 
@@ -1816,7 +1940,6 @@ struct ContentView: View {
             symbol: "ticket",
             accent: emptyCanvasTheme.accent,
             showsJournalBadge: false,
-            showsNewBadge: true,
             actionSymbol: "ticket",
             actionAccessibilityLabel: "打开票根集",
             actionAccessibilityHint: "按城市与分集浏览收藏的影像票根",
@@ -1834,7 +1957,6 @@ struct ContentView: View {
             symbol: "viewfinder",
             accent: emptyCanvasTheme.accent,
             showsJournalBadge: false,
-            showsNewBadge: true,
             actionSymbol: "viewfinder",
             actionAccessibilityLabel: "打开票根显影",
             actionAccessibilityHint: "选择纸票照片或电子凭证截图",
@@ -1903,7 +2025,6 @@ struct ContentView: View {
             symbol: symbol,
             accent: emptyCanvasTheme.accent,
             showsJournalBadge: false,
-            showsNewBadge: true,
             actionSymbol: "arrow.up.right",
             actionAccessibilityLabel: "打开\(title)",
             actionAccessibilityHint: "无需先选择照片，即可进入\(title)",
@@ -2035,7 +2156,7 @@ struct ContentView: View {
         let availableWidth = size.width - 32
         let canvasWidth: CGFloat
         if mode == .spectrumWallpaper {
-            canvasWidth = min(size.width - 96, UIScreen.main.bounds.width * 0.686)
+            canvasWidth = min(size.width - 96, size.width * 0.686)
         } else if isFeatureMode {
             let reserve: CGFloat = mode == .paletteCard ? 250 : 200
             canvasWidth = min(availableWidth, max(160, size.height - reserve) * ratioValue)
@@ -2048,7 +2169,7 @@ struct ContentView: View {
         } else if mode == .travelTicket {
             let editorReserve: CGFloat = size.height < 760 ? 250 : 215
             canvasWidth = min(availableWidth, max(280, size.height - editorReserve) * ratioValue)
-        } else if mode == .motionCard && templateStyle != .immersive {
+        } else if mode == .motionCard {
 
             let editorReserve: CGFloat = size.height < 760 ? 205 : 175
             canvasWidth = min(availableWidth, max(300, size.height - editorReserve) * ratioValue)
@@ -2186,16 +2307,14 @@ struct ContentView: View {
             .zIndex(40)
 
             if mode == .colorPalette {
-                ColorInsightSwitcher(
-                    selection: $colorInsightPage,
-                    reduceMotion: reduceMotion
-                )
+                colorInsightControls
+                .frame(width: canvasWidth)
                 .padding(.top, 10)
                 .zIndex(25)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
 
-            if showsLivePlaybackControl {
+            if showsLivePlaybackControl && mode != .colorPalette {
                 HStack(spacing: 8) {
                     LivePhotoPlaybackButton(
                         isAvailable: !liveSourceVideoURLs.isEmpty,
@@ -2289,7 +2408,7 @@ struct ContentView: View {
                 .zIndex(1)
             }
 
-            if mode == .motionCard, templateStyle != .immersive {
+            if mode == .motionCard {
                 motionCardSamplingControls
                     .frame(width: canvasWidth)
                     .padding(.top, 12)
@@ -2447,6 +2566,45 @@ struct ContentView: View {
             )
         }
         return AnyView(content)
+    }
+
+    private var colorInsightControls: some View {
+        HStack(spacing: 10) {
+            if showsLivePlaybackControl {
+                LivePhotoPlaybackButton(
+                    isAvailable: !liveSourceVideoURLs.isEmpty,
+                    isPlaying: isLivePhotoPlaying,
+                    action: playLivePhotoOnce
+                )
+                .overlay(alignment: .leading) {
+                    if isLivePhotoHintPresented {
+                        LivePhotoPlaybackHint(
+                            tint: livePhotoHintTint,
+                            foreground: livePhotoHintForeground,
+                            action: playLivePhotoOnce
+                        )
+                        .offset(x: 50)
+                        .transition(
+                            .asymmetric(
+                                insertion: .scale(scale: 0.68, anchor: .leading)
+                                    .combined(with: .opacity)
+                                    .combined(with: .move(edge: .leading)),
+                                removal: .scale(scale: 0.76, anchor: .leading)
+                                    .combined(with: .opacity)
+                            )
+                        )
+                        .zIndex(2)
+                    }
+                }
+                .zIndex(2)
+            }
+
+            ColorInsightSwitcher(
+                selection: $colorInsightPage,
+                reduceMotion: reduceMotion
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private var motionCardSamplingControls: some View {
@@ -2666,6 +2824,7 @@ struct ContentView: View {
             glassArchiveMark: activeGlassArchiveMark,
             glassArchiveHidesMissingTime: glassArchiveHidesMissingTime,
             glassArchiveShowsLocation: glassArchiveShowsLocation,
+            glassArchiveBarPosition: glassArchiveBarPosition,
             featurePaletteSide: featurePaletteSide,
             featurePaletteBandRatio: featurePaletteBandRatio,
             featurePaletteSwatchOrder: paletteCardSwatchOrder,
@@ -2676,7 +2835,11 @@ struct ContentView: View {
                 }
             },
             featureCalendarCity: featureCalendarCity,
-            featureCalendarShowsLocation: !monthlyCalendarHidesLocation
+            featureCalendarShowsLocation: !monthlyCalendarHidesLocation,
+            onEditCopy: {
+                guard mode == .motionCard else { return }
+                editCopyPresented = true
+            }
         )
         .frame(width: width, height: height)
         .scaleEffect(canvasRevealed ? 1 : 0.78)
@@ -2705,8 +2868,8 @@ struct ContentView: View {
                         ? (colorInsightPage == .light
                             ? "光影解析预览，按照片实际比例完整显示".appLocalized
                             : "琉璃色盘预览，图片完整固定显示，可拖动色盘调整位置".appLocalized)
-                        : (mode == .glassArchive
-                            ? "琉璃档案预览，按照片实际比例完整显示，双击中间标志可更换标志"
+                : (mode == .glassArchive
+                            ? "琉璃档案预览，按照片实际比例完整显示，可拖动档案栏调整位置，双击中间标志可更换标志"
                             : "\(mode.title)预览，可拖拽或双指缩放")))
         )
         .accessibilityAction(named: "编辑作品文字") {
@@ -2744,15 +2907,51 @@ struct ContentView: View {
         }
 
         if mode == .glassArchive {
-
+            let glassArchiveDragGesture = DragGesture(minimumDistance: 10)
+                .onChanged { value in
+                    let hitFrame = GlassArchiveBarGeometry.hitFrame(
+                        in: canvasSize,
+                        position: glassArchiveBarPosition
+                    )
+                    guard activeDragRole != nil || hitFrame.contains(value.startLocation) else {
+                        return
+                    }
+                    if activeDragRole == nil {
+                        activeDragRole = .palette
+                        let normalizedPosition = GlassArchiveBarGeometry.clampedPosition(
+                            glassArchiveBarPosition
+                        )
+                        glassArchiveBarPosition = normalizedPosition
+                        storedGlassArchiveBarPosition = normalizedPosition
+                    }
+                    let travelDistance = max(
+                        GlassArchiveBarGeometry.travelDistance(in: canvasSize),
+                        1
+                    )
+                    glassArchiveBarPosition = GlassArchiveBarGeometry.clampedPosition(
+                        storedGlassArchiveBarPosition + value.translation.height / travelDistance
+                    )
+                }
+                .onEnded { _ in
+                    if activeDragRole != nil {
+                        storedGlassArchiveBarPosition = glassArchiveBarPosition
+                    }
+                    activeDragRole = nil
+                }
             let glassArchiveTapGesture = SpatialTapGesture(count: 2)
                 .onEnded { tap in
-                    if GlassArchiveBarGeometry.markFrame(in: canvasSize)
+                    if GlassArchiveBarGeometry.markFrame(
+                        in: canvasSize,
+                        position: glassArchiveBarPosition
+                    )
                         .contains(tap.location) {
                         cycleGlassArchiveMark()
                     }
                 }
-            return AnyGesture(glassArchiveTapGesture.map { _ in () })
+            return AnyGesture(
+                SimultaneousGesture(glassArchiveDragGesture, glassArchiveTapGesture)
+                    .map { _ in () }
+            )
         }
 
         let canvasTapGesture = SpatialTapGesture(count: 2)
@@ -3367,8 +3566,16 @@ struct ContentView: View {
         }
     }
 
-    private func openPicker(append: Bool = false, replacing index: Int? = nil) {
+    private func openPicker(
+        for selectedMode: CreationMode? = nil,
+        append: Bool = false,
+        replacing index: Int? = nil
+    ) {
         guard !isLoading, saveState == .idle else { return }
+        if let selectedMode {
+            selectCreationMode(selectedMode)
+            introPageID = selectedMode.rawValue
+        }
         stopLivePhotoPlayback()
         dismissModeSelectionHint()
         dismissLivePhotoHint()
@@ -3380,6 +3587,7 @@ struct ContentView: View {
         } else {
             photoSelectionOperation = .replaceAll
         }
+        pickerMode = selectedMode ?? mode
         pickerSelections = []
         isPickerPresented = true
     }
@@ -3394,6 +3602,7 @@ struct ContentView: View {
               selectedPhotos.count > 1,
               selectedPhotos.indices.contains(index) else { return }
         stopLivePhotoPlayback()
+        invalidateLivePhotoPreparation()
         dismissLivePhotoHint()
         let removed = [selectedPhotos[index]]
         withAnimation(.snappy) {
@@ -3403,6 +3612,7 @@ struct ContentView: View {
             selectedJournalIndex = min(index, selectedPhotos.count - 1)
         }
         PhotoAssetLoader.removeTemporaryResources(for: removed)
+        prepareLivePhotoPlayback()
         refreshCombinedPalette()
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
     }
@@ -3411,6 +3621,8 @@ struct ContentView: View {
         guard source != destination,
               selectedPhotos.indices.contains(source),
               selectedPhotos.indices.contains(destination) else { return }
+        stopLivePhotoPlayback()
+        invalidateLivePhotoPreparation()
         let photo = selectedPhotos.remove(at: source)
         let image = images.remove(at: source)
         let transform = journalTransforms.indices.contains(source)
@@ -3420,6 +3632,7 @@ struct ContentView: View {
         images.insert(image, at: destination)
         journalTransforms.insert(transform, at: destination)
         selectedJournalIndex = destination
+        prepareLivePhotoPlayback()
         refreshCombinedPalette()
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
     }
@@ -3485,8 +3698,17 @@ struct ContentView: View {
         return PaletteExtractor.extract(from: montage)
     }
 
-    private func loadSelectedPhotos() async {
+    private func loadSelectedPhotos(
+        _ requestedSelections: [PhotoPickerSelection]? = nil,
+        requestedMode: CreationMode? = nil
+    ) async {
         guard !isLoading else { return }
+        let selections = requestedSelections ?? pickerSelections
+        guard !selections.isEmpty else { return }
+        if let requestedMode, mode != requestedMode {
+            mode = requestedMode
+            introPageID = requestedMode.rawValue
+        }
         stopLivePhotoPlayback()
         dismissLivePhotoHint()
 
@@ -3504,12 +3726,12 @@ struct ContentView: View {
 
         var imported: [SelectedPhoto] = []
         var firstImportError: Error?
-        for (index, selection) in pickerSelections.prefix(pickerLimit).enumerated() {
+        for (index, selection) in selections.prefix(pickerLimit).enumerated() {
             importStatus = String(
                 format: "正在识别第 %lld 张，共 %lld 张的画面内容…".appLocalized,
                 locale: .current,
                 Int64(index + 1),
-                Int64(min(pickerSelections.count, pickerLimit))
+                Int64(min(selections.count, pickerLimit))
             )
 
             do {
@@ -3524,7 +3746,7 @@ struct ContentView: View {
             isLoading = false
             importStatus = ""
             photoSelectionOperation = .replaceAll
-            if incremental || (isIPad && !images.isEmpty) {
+            if incremental || (usesWideLayout && !images.isEmpty) {
                 isEditorVisible = true; canSave = true; canvasRevealed = true
             }
             presentSaveError(
@@ -3535,6 +3757,7 @@ struct ContentView: View {
             return
         }
 
+        invalidateLivePhotoPreparation()
         ipadDrafts.removeAll()
         var combined: [SelectedPhoto]
         switch operation {
@@ -3573,6 +3796,7 @@ struct ContentView: View {
         let paletteResult = combinedPaletteResult(from: combined.map(\.image))
         selectedPhotos = combined
         images = combined.map(\.image)
+        prepareLivePhotoPlayback()
         scheduleLightAnalysis(for: combined.first?.image)
         if operation == .replaceAll {
             glassArchiveMarkChoiceRaw = ""
@@ -3689,9 +3913,11 @@ struct ContentView: View {
                                                      side: featurePaletteSide, bandRatio: featurePaletteBandRatio)
         }
         if mode == .spectrumWallpaper {
-            if isIPad { return 9.0 / 16.0 }
-            let bounds = UIScreen.main.bounds
-            return min(max(bounds.width / bounds.height, 0.43), 0.50)
+            if usesWideLayout { return 9.0 / 16.0 }
+            let shortSide = min(screenSize.width, screenSize.height)
+            let longSide = max(screenSize.width, screenSize.height)
+            guard longSide > 0 else { return 9.0 / 16.0 }
+            return min(max(shortSide / longSide, 0.43), 0.50)
         }
         if mode == .colorPalette,
            let image = images.first,
@@ -3713,20 +3939,23 @@ struct ContentView: View {
     }
 
     private func selectCreationMode(_ selectedMode: CreationMode) {
+        modeSelectionPresented = false
+        if introPageID != selectedMode.rawValue {
+            introPageID = selectedMode.rawValue
+        }
         guard mode != selectedMode else {
-            modeSelectionPresented = false
             return
         }
 
         modeChangeTask?.cancel()
-        if isIPad {
+        if usesWideLayout {
             ipadDrafts[mode] = IPadCompositionDraft(
                 ratio: ratio, imageScale: imageScale, imageOffset: imageOffset,
-                paletteOffset: paletteOffset, bubbleScale: bubbleScale, textScale: textScale,
+                paletteOffset: paletteOffset, glassArchiveBarPosition: glassArchiveBarPosition,
+                bubbleScale: bubbleScale, textScale: textScale,
                 fontStyle: fontStyle, journalTransforms: journalTransforms,
                 selectedJournalIndex: selectedJournalIndex
             )
-            modeSelectionPresented = false
             mode = selectedMode
             ratio = selectedMode == .travelTicket
                 ? (ticketLayout == .vertical ? .threeFour
@@ -3738,7 +3967,6 @@ struct ContentView: View {
             finishModeChange()
             return
         }
-        modeSelectionPresented = false
         withAnimation(.snappy) {
             mode = selectedMode
         }
@@ -3791,6 +4019,12 @@ struct ContentView: View {
         postalDestination = destination
     }
 
+    private func finishPostalPresentation() {
+        guard usesWideLayout else { return }
+        ipadDestination = .creation(mode)
+        ipadSidebarResetToken &+= 1
+    }
+
     private func openTicketCollection() {
         modeSelectionPresented = false
         Task { @MainActor in
@@ -3799,11 +4033,35 @@ struct ContentView: View {
         }
     }
 
+    private func openSolarColors() {
+        modeSelectionPresented = false
+        dismissModeSelectionHint()
+        dismissLivePhotoHint()
+        dismissTicketLandscapeHint()
+        if isTicketLandscape { setTicketLandscape(false) }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            solarColorsPresented = true
+        }
+    }
+
+    private func openPhotoBacks() {
+        modeSelectionPresented = false
+        dismissModeSelectionHint()
+        dismissLivePhotoHint()
+        dismissTicketLandscapeHint()
+        if isTicketLandscape { setTicketLandscape(false) }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            photoBacksPresented = true
+        }
+    }
+
     private func beginTicketCreationFromCollection() {
         ticketCollectionPresented = false
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(320))
-            if isIPad {
+            if usesWideLayout {
                 selectIPadEntry(.creation(.travelTicket))
             } else {
                 withAnimation(.snappy) { mode = .travelTicket }
@@ -3858,7 +4116,7 @@ struct ContentView: View {
     }
 
     private func openColorRelationship() {
-        if isIPad { selectIPadEntry(.colorRelationship); return }
+        if usesWideLayout { selectIPadEntry(.colorRelationship); return }
         modeSelectionPresented = false
         dismissModeSelectionHint()
         dismissLivePhotoHint()
@@ -3873,7 +4131,7 @@ struct ContentView: View {
     }
 
     private func returnFromColorRelationshipToModeSelection() {
-        if isIPad { returnToIPadCreation(); return }
+        if usesWideLayout { returnToIPadCreation(); return }
         colorRelationshipPresented = false
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(220))
@@ -3900,7 +4158,7 @@ struct ContentView: View {
         if mode == .monthlyCalendar {
             resolveFeatureCityIfNeeded()
         }
-        if isIPad, let draft = ipadDrafts[mode] {
+        if usesWideLayout, let draft = ipadDrafts[mode] {
             ratio = draft.ratio
             imageScale = draft.imageScale
             storedScale = draft.imageScale
@@ -3908,6 +4166,8 @@ struct ContentView: View {
             storedOffset = draft.imageOffset
             paletteOffset = draft.paletteOffset
             storedPaletteOffset = draft.paletteOffset
+            glassArchiveBarPosition = draft.glassArchiveBarPosition
+            storedGlassArchiveBarPosition = draft.glassArchiveBarPosition
             bubbleScale = draft.bubbleScale
             storedBubbleScale = draft.bubbleScale
             textScale = draft.textScale
@@ -3970,6 +4230,8 @@ struct ContentView: View {
             storedOffset = .zero
             paletteOffset = 0
             storedPaletteOffset = 0
+            glassArchiveBarPosition = 1
+            storedGlassArchiveBarPosition = 1
             bubbleScale = 1
             storedBubbleScale = 1
             textScale = 1
@@ -4217,6 +4479,7 @@ struct ContentView: View {
             }
 
             do {
+                var exportCompletionNotice: String?
                 let metadata = selectedPhotos.first?.metadata ?? .empty
                 let originalData = selectedPhotos.first?.originalData
                 let pairedVideoURLs: [Int: URL] = supportsLivePhotos
@@ -4235,7 +4498,7 @@ struct ContentView: View {
                 }
                 if !pairedVideoURLs.isEmpty {
                     showToast("正在生成 Live Photo 动态资源…", duration: 30)
-                    try await ArtworkExporter.saveLivePhoto(
+                    let saveResult = try await ArtworkExporter.saveLivePhoto(
                         renderedStill: image,
                         sourceVideoURLs: pairedVideoURLs,
                         metadata: metadata,
@@ -4258,6 +4521,14 @@ struct ContentView: View {
                             )
                         }
                     )
+                    switch saveResult {
+                    case .livePhoto:
+                        break
+                    case .livePhotoWithoutAudio:
+                        exportCompletionNotice = "已避开系统的 Live Photo 资源错误；动态作品已保存，本次不含声音。"
+                    case .stillImageFallback:
+                        exportCompletionNotice = "系统仍未接受这组 Live Photo 动态资源，已先为你保存静态作品。"
+                    }
                 } else if destination == .photoLibrary {
                     if !presentsTicketPrinter {
                         showToast(
@@ -4344,6 +4615,9 @@ struct ContentView: View {
                     await completeTicketPrintExperience()
                 }
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
+                if let exportCompletionNotice {
+                    showToast(exportCompletionNotice, duration: 4.8)
+                }
                 try? await Task.sleep(for: .milliseconds(1_250))
                 if presentsTicketPrinter {
                     await TicketPrintLiveActivityController.shared.end(
@@ -4474,31 +4748,45 @@ struct ContentView: View {
         guard !didConfigureLaunchExperience else { return }
         didConfigureLaunchExperience = true
         if !didShowOnboardingExperience {
-            onboardingPresented = true
+            onboardingStartsAtUpdate = false
+            launchExperienceStage = .onboarding
+        } else if !didShowVersion301Update {
+            onboardingStartsAtUpdate = true
+            launchExperienceStage = .onboarding
         } else if supportsIsland && !didChooseModeLauncherStyle {
             modeLauncherDraft = nil
-            modeLauncherChoicePresented = true
-        } else if !supportsIsland && !didChooseModeLauncherStyle {
-            modeLauncherStyleRaw = ModeLauncherStyle.floatingMenu.rawValue
-            didChooseModeLauncherStyle = true
+            launchExperienceStage = .modeLauncherChoice
+        } else {
+            if !supportsIsland && !didChooseModeLauncherStyle {
+                modeLauncherStyleRaw = ModeLauncherStyle.floatingMenu.rawValue
+                didChooseModeLauncherStyle = true
+            }
+            requestCreationSeasonEvent()
         }
     }
 
     private func completeOnboardingExperience() {
         didShowOnboardingExperience = true
-        if supportsIslandLauncher {
+        didShowVersion301Update = true
+        onboardingStartsAtUpdate = false
+
+        if supportsIslandLauncher && !didChooseModeLauncherStyle {
             modeLauncherDraft = nil
-            modeLauncherChoicePresented = true
-        } else {
+            withAnimation(.easeInOut(duration: reduceMotion ? 0.08 : 0.2)) {
+                launchExperienceStage = .modeLauncherChoice
+            }
+            return
+        }
+
+        if !supportsIslandLauncher && !didChooseModeLauncherStyle {
             modeLauncherStyleRaw = ModeLauncherStyle.floatingMenu.rawValue
             didChooseModeLauncherStyle = true
         }
 
-
-
-        onboardingPresented = false
-        if !supportsIslandLauncher {
-            presentModeSelectionHintIfNeeded()
+        launchExperienceStage = .none
+        requestCreationSeasonEvent()
+        if !creationSeasonEventPresented {
+            restorePrimaryInterfaceState()
         }
     }
 
@@ -4507,14 +4795,53 @@ struct ContentView: View {
         modeLauncherStyleRaw = modeLauncherDraft.rawValue
         didChooseModeLauncherStyle = true
         withAnimation(.easeOut(duration: reduceMotion ? 0.12 : 0.24)) {
-            modeLauncherChoicePresented = false
+            launchExperienceStage = .none
         }
-        if modeLauncherDraft == .floatingMenu {
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(reduceMotion ? 80 : 320))
-                presentModeSelectionHintIfNeeded()
-            }
+        requestCreationSeasonEvent()
+        if !creationSeasonEventPresented {
+            restorePrimaryInterfaceState()
         }
+    }
+
+    private func restorePrimaryInterfaceState() {
+        modeChangeTask?.cancel()
+        modeChangeTask = nil
+        if let selectedMode = CreationMode(rawValue: introPageID) {
+            mode = selectedMode
+        } else {
+            introPageID = mode.rawValue
+        }
+        if usesWideLayout {
+            ipadDestination = .creation(mode)
+        }
+    }
+
+    private func dismissCreationSeasonEvent() {
+        withAnimation(.easeOut(duration: reduceMotion ? 0.08 : 0.2)) {
+            launchExperienceStage = .none
+        }
+        restorePrimaryInterfaceState()
+    }
+
+    private func requestCreationSeasonEvent(ignoresHistory: Bool = false) {
+        if creationSeasonEventPresented { return }
+        guard ignoresHistory || !didShowCreationSeasonEvent else { return }
+        creationSeasonEventPending = true
+        creationSeasonEventIgnoresHistory = creationSeasonEventIgnoresHistory || ignoresHistory
+        presentCreationSeasonEventIfReady()
+    }
+
+    private func presentCreationSeasonEventIfReady() {
+        guard creationSeasonEventPending,
+              didShowOnboardingExperience,
+              didShowVersion301Update,
+              didChooseModeLauncherStyle,
+              launchExperienceStage == .none,
+              creationSeasonEventIgnoresHistory || !didShowCreationSeasonEvent else { return }
+        creationSeasonEventPending = false
+        creationSeasonEventIgnoresHistory = false
+        didShowCreationSeasonEvent = true
+        launchExperienceStage = .creationSeason
     }
 
     private func openModeLauncherDestination(_ destination: ModeLauncherDestination) {
@@ -4533,11 +4860,13 @@ struct ContentView: View {
         case .video: openVideoToLivePhoto()
         case .ticketCollection: openTicketCollection()
         case .postalCollection: openPostal(.collection)
+        case .solarColors: openSolarColors()
+        case .photoBacks: openPhotoBacks()
         }
     }
 
     private func openModeSelection() {
-        if isIPad { returnToIPadCreation(); return }
+        if usesWideLayout { returnToIPadCreation(); return }
         dismissModeSelectionHint()
         dismissLivePhotoHint()
         dismissTicketLandscapeHint()
@@ -4841,6 +5170,36 @@ struct ContentView: View {
         hidePaletteSwapHint()
     }
 
+    private func invalidateLivePhotoPreparation() {
+        livePreparationTask?.cancel()
+        livePreparationTask = nil
+        livePreparationSignature = [:]
+        preparedLivePlayback = nil
+    }
+
+    private func prepareLivePhotoPlayback() {
+        let sourceURLs = liveSourceVideoURLs
+        guard !sourceURLs.isEmpty else {
+            invalidateLivePhotoPreparation()
+            return
+        }
+        let signature = LivePhotoPreview.signature(for: sourceURLs)
+        if preparedLivePlayback?.matches(sourceURLs) == true
+            || (livePreparationTask != nil && livePreparationSignature == signature) {
+            return
+        }
+
+        livePreparationTask?.cancel()
+        preparedLivePlayback = nil
+        livePreparationSignature = signature
+        livePreparationTask = Task(priority: .userInitiated) {
+            let prepared = try? await LivePhotoPreview.prepare(sourceVideoURLs: sourceURLs)
+            guard !Task.isCancelled, livePreparationSignature == signature else { return }
+            preparedLivePlayback = prepared
+            livePreparationTask = nil
+        }
+    }
+
     private func playLivePhotoOnce() {
         dismissLivePhotoHint()
         guard showsLivePlaybackControl else { return }
@@ -4851,8 +5210,6 @@ struct ContentView: View {
             return
         }
 
-        // A second tap is an explicit restart. It must never be ignored while a
-        // previous decoder task is winding down or waiting on a slow frame.
         stopLivePhotoPlayback()
         let sessionID = UUID()
         livePlaybackSessionID = sessionID
@@ -4861,7 +5218,19 @@ struct ContentView: View {
         livePlaybackTask = Task {
             var failureDescription: String?
             do {
-                try await LivePhotoPreview.playOnce(sourceVideoURLs: sourceURLs) { frames in
+                if preparedLivePlayback?.matches(sourceURLs) != true {
+                    if livePreparationTask == nil
+                        || livePreparationSignature != LivePhotoPreview.signature(for: sourceURLs) {
+                        prepareLivePhotoPlayback()
+                    }
+                    await livePreparationTask?.value
+                }
+                try Task.checkCancellation()
+                guard let preparedLivePlayback,
+                      preparedLivePlayback.matches(sourceURLs) else {
+                    throw LivePhotoPreviewError.unreadableFrame
+                }
+                try await LivePhotoPreview.playOnce(prepared: preparedLivePlayback) { frames in
                     guard livePlaybackSessionID == sessionID else { return }
                     livePreviewFrames = frames
                 }
@@ -4997,6 +5366,7 @@ struct ContentView: View {
                 glassArchiveMark: activeGlassArchiveMark,
                 glassArchiveHidesMissingTime: glassArchiveHidesMissingTime,
                 glassArchiveShowsLocation: glassArchiveShowsLocation,
+                glassArchiveBarPosition: glassArchiveBarPosition,
                 featurePaletteSide: featurePaletteSide,
                 featurePaletteBandRatio: featurePaletteBandRatio,
                 featurePaletteSwatchOrder: paletteCardSwatchOrder,
@@ -5420,12 +5790,12 @@ private extension View {
         if #available(iOS 26.0, *) {
             self
                 .presentationSizing(.form)
-                .presentationCornerRadius(32)
+                .presentationCornerRadius(nil)
         } else {
             self
                 .presentationDetents([.height(480), .large])
                 .presentationDragIndicator(.visible)
-                .presentationCornerRadius(32)
+                .presentationCornerRadius(nil)
         }
     }
 }
@@ -5443,6 +5813,8 @@ private struct CreationModeSelectionView: View {
     let onConvertVideo: () -> Void
     let onOpenTicketDeveloping: () -> Void
     let onOpenTicketCollection: () -> Void
+    let onOpenSolarColors: () -> Void
+    let onOpenPhotoBacks: () -> Void
     let onOpenPostal: (PostalDestination) -> Void
 
     private let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
@@ -5485,6 +5857,10 @@ private struct CreationModeSelectionView: View {
                     modeButton("视频转实况", action: onConvertVideo)
                     modeButton("票根集", action: onOpenTicketCollection)
                     postalButton(.collection, title: "邮集")
+                    modeButton("节气寻色", action: onOpenSolarColors)
+                        .accessibilityIdentifier("solarColor.launcherEntry")
+                    modeButton("照片背面", action: onOpenPhotoBacks)
+                        .accessibilityIdentifier("photoBack.launcherEntry")
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
@@ -5725,7 +6101,7 @@ private struct ShakeDetector: UIViewControllerRepresentable {
     }
 }
 
-private struct MotionCardColorSamplerView: View {
+struct MotionCardColorSamplerView: View {
     private enum Corner: CaseIterable, Hashable {
         case topLeft, topRight, bottomLeft, bottomRight
     }
@@ -5734,6 +6110,7 @@ private struct MotionCardColorSamplerView: View {
     let image: UIImage
     let initialSelection: CGRect?
     let headerStyle: MotionCardHeaderStyle
+    let instruction: String
     let onApply: (CGRect, PaletteResult) -> Void
     let onReset: () -> Void
 
@@ -5745,12 +6122,14 @@ private struct MotionCardColorSamplerView: View {
         image: UIImage,
         initialSelection: CGRect?,
         headerStyle: MotionCardHeaderStyle,
+        instruction: String = "拖动选框选择取色范围，拖动四角可调整大小。此范围只影响灵动卡片顶部背景。",
         onApply: @escaping (CGRect, PaletteResult) -> Void,
         onReset: @escaping () -> Void
     ) {
         self.image = image
         self.initialSelection = initialSelection
         self.headerStyle = headerStyle
+        self.instruction = instruction
         self.onApply = onApply
         self.onReset = onReset
         _selection = State(initialValue: initialSelection ?? CGRect(x: 0.15, y: 0.20, width: 0.70, height: 0.60))
@@ -5759,7 +6138,7 @@ private struct MotionCardColorSamplerView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Text("拖动选框选择取色范围，拖动四角可调整大小。此范围只影响灵动卡片顶部背景。")
+                Text(instruction.appLocalized)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -5973,6 +6352,10 @@ private struct MotionCardColorSamplerView: View {
     }
 
     private static func extractPalette(from image: UIImage, selection: CGRect) -> PaletteResult {
+        PaletteExtractor.extract(from: croppedImage(from: image, selection: selection))
+    }
+
+    static func croppedImage(from image: UIImage, selection: CGRect) -> UIImage {
         let normalized = CGRect(
             x: min(max(selection.minX, 0), 1),
             y: min(max(selection.minY, 0), 1),
@@ -5994,7 +6377,7 @@ private struct MotionCardColorSamplerView: View {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
-        let crop = UIGraphicsImageRenderer(size: outputSize, format: format).image { context in
+        return UIGraphicsImageRenderer(size: outputSize, format: format).image { context in
             UIColor.black.setFill()
             context.fill(CGRect(origin: .zero, size: outputSize))
             image.draw(in: CGRect(
@@ -6004,6 +6387,5 @@ private struct MotionCardColorSamplerView: View {
                 height: image.size.height * scale
             ))
         }
-        return PaletteExtractor.extract(from: crop)
     }
 }

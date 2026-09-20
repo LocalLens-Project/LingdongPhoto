@@ -44,19 +44,30 @@ enum LivePhotoPreview {
         case timedOut
     }
 
-    /// Extracts the original paired video one frame at a time and feeds those
-    /// frames back into the existing artwork canvas. No preview frame is written
-    /// into the selected photo or the exported still image.
-    static func playOnce(
-        sourceVideoURLs: [Int: URL],
-        onFrame: @escaping @MainActor ([Int: UIImage]) -> Void
-    ) async throws {
-        guard let primaryEntry = sourceVideoURLs.sorted(by: { $0.key < $1.key }).first else {
+    struct PreparedPlayback: @unchecked Sendable {
+        fileprivate let signature: [Int: String]
+        fileprivate let primaryVideoURL: URL
+        fileprivate let frameInterval: Double
+        fileprivate let frames: [[Int: UIImage]]
+
+        func matches(_ sourceVideoURLs: [Int: URL]) -> Bool {
+            signature == LivePhotoPreview.signature(for: sourceVideoURLs)
+        }
+    }
+
+    static func signature(for sourceVideoURLs: [Int: URL]) -> [Int: String] {
+        sourceVideoURLs.mapValues(\.absoluteString)
+    }
+
+    static func prepare(sourceVideoURLs: [Int: URL]) async throws -> PreparedPlayback {
+        let sortedURLs = sourceVideoURLs.sorted(by: { $0.key < $1.key })
+        guard let primaryEntry = sortedURLs.first else {
             throw LivePhotoPreviewError.missingVideo
         }
 
+        let maximumDimension: CGFloat = sortedURLs.count > 2 ? 360 : 480
         var sources: [Source] = []
-        for (index, url) in sourceVideoURLs.sorted(by: { $0.key < $1.key }) {
+        for (index, url) in sortedURLs {
             let asset = AVURLAsset(url: url)
             let duration = try await asset.load(.duration)
             let videoTrack = try await asset.loadTracks(withMediaType: .video).first
@@ -65,10 +76,7 @@ enum LivePhotoPreview {
                   let videoTrack else { continue }
             let generator = AVAssetImageGenerator(asset: asset)
             generator.appliesPreferredTrackTransform = true
-            // This is an on-screen preview, not an export. Keeping decode size
-            // bounded makes a multi-photo composition much less likely to miss
-            // its presentation cadence on the first run.
-            generator.maximumSize = CGSize(width: 720, height: 720)
+            generator.maximumSize = CGSize(width: maximumDimension, height: maximumDimension)
             generator.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 30)
             generator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 30)
             sources.append(
@@ -86,52 +94,22 @@ enum LivePhotoPreview {
             throw LivePhotoPreviewError.missingVideo
         }
 
-        let frameRate = min(max(Double(primary.nominalFrameRate), 12), 18)
-        let frameInterval = 1.0 / frameRate
-        var currentFrames: [Int: UIImage] = [:]
-
-        // The first request starts AVFoundation's decoder and is noticeably
-        // slower than subsequent requests on some devices. Prepare it before
-        // starting the playback clock so decoder startup never consumes most
-        // of a short Live Photo.
-        for source in sources {
-            let warmupSecond = min(frameInterval, max(0, source.duration.seconds / 4))
-            if let image = try await loadFrame(
-                from: source,
-                at: warmupSecond,
-                attempts: source.index == primary.index ? 3 : 2,
-                timeout: .seconds(2)
-            ) {
-                currentFrames[source.index] = image
-            }
-        }
-
-        guard currentFrames[primary.index] != nil else {
-            throw LivePhotoPreviewError.unreadableFrame
-        }
-        onFrame(currentFrames)
-
-        let audioPlayer = AVPlayer(playerItem: AVPlayerItem(asset: primary.asset))
-        audioPlayer.playImmediately(atRate: 1)
         defer {
-            audioPlayer.pause()
             for source in sources {
                 source.generatorBox.generator.cancelAllCGImageGeneration()
             }
         }
 
-        // Advance by decoded frame index rather than wall-clock time. The old
-        // wall-clock loop decoded every selected Live Photo serially; a single
-        // slow frame could consume most of a short clip, making playback appear
-        // to stop after a fraction of a second. Sources are decoded concurrently
-        // and a slow decode can lengthen a frame, but can no longer truncate the
-        // remainder of the Live Photo.
+        let maximumFrameRate = sources.count > 2 ? 12.0 : 15.0
+        let frameRate = min(max(Double(primary.nominalFrameRate), 12), maximumFrameRate)
+        let frameInterval = 1.0 / frameRate
         let frameCount = max(1, Int(ceil(primary.duration.seconds * frameRate)))
-        for frameIndex in 1...frameCount {
-            try Task.checkCancellation()
-            let frameStartedAt = ContinuousClock.now
-            let normalizedProgress = min(1, Double(frameIndex) / Double(frameCount))
+        var currentFrames: [Int: UIImage] = [:]
+        var preparedFrames: [[Int: UIImage]] = []
 
+        for frameIndex in 0...frameCount {
+            try Task.checkCancellation()
+            let normalizedProgress = min(1, Double(frameIndex) / Double(frameCount))
             let results = try await withThrowingTaskGroup(of: FrameResult.self) { group in
                 for source in sources {
                     group.addTask {
@@ -139,8 +117,8 @@ enum LivePhotoPreview {
                         let image = try await loadFrame(
                             from: source,
                             at: min(source.duration.seconds * normalizedProgress, lastReadableSecond),
-                            attempts: 1,
-                            timeout: .milliseconds(450)
+                            attempts: frameIndex == 0 ? 3 : 1,
+                            timeout: frameIndex == 0 ? .seconds(2) : .milliseconds(600)
                         )
                         return FrameResult(index: source.index, image: image)
                     }
@@ -158,15 +136,46 @@ enum LivePhotoPreview {
                     currentFrames[result.index] = image
                 }
             }
+            if currentFrames[primary.index] != nil {
+                preparedFrames.append(currentFrames)
+            }
+        }
 
-            // A sporadic missed frame is not a broken Live Photo. Keep the last
-            // successfully decoded frame and continue until the next request.
-            onFrame(currentFrames)
+        guard !preparedFrames.isEmpty else {
+            throw LivePhotoPreviewError.unreadableFrame
+        }
+
+        return PreparedPlayback(
+            signature: signature(for: sourceVideoURLs),
+            primaryVideoURL: primaryEntry.value,
+            frameInterval: frameInterval,
+            frames: preparedFrames
+        )
+    }
+
+    static func playOnce(
+        prepared: PreparedPlayback,
+        onFrame: @escaping @MainActor ([Int: UIImage]) -> Void
+    ) async throws {
+        guard !prepared.frames.isEmpty else {
+            throw LivePhotoPreviewError.missingVideo
+        }
+
+        let audioPlayer = AVPlayer(url: prepared.primaryVideoURL)
+        audioPlayer.playImmediately(atRate: 1)
+        defer {
+            audioPlayer.pause()
+        }
+
+        for frames in prepared.frames {
+            try Task.checkCancellation()
+            let frameStartedAt = ContinuousClock.now
+            onFrame(frames)
 
             let frameDuration = frameStartedAt.duration(to: .now)
             let elapsed = Double(frameDuration.components.seconds)
                 + Double(frameDuration.components.attoseconds) / 1_000_000_000_000_000_000
-            let delay = frameInterval - elapsed
+            let delay = prepared.frameInterval - elapsed
             if delay > 0 {
                 try await Task.sleep(for: .seconds(delay))
             }

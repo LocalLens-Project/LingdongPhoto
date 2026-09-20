@@ -15,6 +15,9 @@ struct SettingsView: View {
 
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Binding var ratio: ArtworkRatio
     @Binding var showHexValues: Bool
     @Binding var useCustomCameraWatermarks: Bool
@@ -54,80 +57,42 @@ struct SettingsView: View {
     private var currentModeLauncherStyle: ModeLauncherStyle {
         ModeLauncherStyle(rawValue: modeLauncherStyleRaw) ?? .floatingMenu
     }
+    private var usesWideLayout: Bool {
+        horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
+    private var activeWindow: UIWindow? {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
+    }
     private var supportsIslandLauncher: Bool {
         TicketIslandAvailability.isSupported(
-            screenSize: UIScreen.main.bounds.size,
-            safeAreaTop: UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .flatMap(\.windows)
-                .first(where: \.isKeyWindow)?.safeAreaInsets.top ?? 0
+            screenSize: activeWindow?.windowScene?.screen.bounds.size ?? .zero,
+            safeAreaTop: activeWindow?.safeAreaInsets.top ?? 0
         )
     }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                Text("设置")
-                    .font(.system(size: 17, weight: .bold))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 66)
-                    .background(.ultraThinMaterial)
-                    .overlay(alignment: .trailing) {
-                        if UIDevice.current.userInterfaceIdiom == .pad {
-                            Button("完成") { dismiss() }
-                                .font(.body.weight(.semibold))
-                                .padding(.horizontal, 20)
-                                .frame(minHeight: 44)
-                                .accessibilityIdentifier("ipad.settings.done")
-                        }
+            settingsScrollContent
+            .background(settingsOuterBackground.ignoresSafeArea())
+            .navigationTitle("设置")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if usesWideLayout {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("完成") { dismiss() }
+                            .font(.body.weight(.semibold))
+                            .accessibilityIdentifier("ipad.settings.done")
                     }
-                    .zIndex(5)
-
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 28) {
-                        projectSupportSection
-                        interfaceOptions
-                        storageAndWorks
-                        paletteOptions
-                        motionTips
-                        stampTips
-                        journalOptions
-                        wallpaperOptions
-                        privacyOptions
-                        supportAndContactSection
-
-                        VStack(spacing: 10) {
-                            Text("版本 3.0.0 (Build 202621)")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
-
-                            Text("灵动照片 · 开源项目")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
-
-                            if isSimplifiedChineseLocalization {
-                                Text("浙ICP备2026035179号-6A")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.primary)
-                                    .accessibilityLabel("ICP备案号：浙ICP备2026035179号-6A")
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-
-                        maintenanceStatement
-                            .padding(.bottom, 28)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
                 }
             }
-            .background(Color(uiColor: .systemGroupedBackground))
             .navigationDestination(isPresented: $cameraWatermarkManagerPresented) {
                 CameraWatermarkManagerView(
                     isEnabled: $useCustomCameraWatermarks,
                     library: cameraWatermarkLibrary
                 )
-                .toolbar(.hidden, for: .navigationBar)
             }
             .navigationDestination(isPresented: $workManagerPresented) {
                 LingdongWorkManagerView(onLibraryChanged: refreshWorkArchiveSummary)
@@ -138,7 +103,6 @@ struct SettingsView: View {
             .navigationDestination(isPresented: $modeLauncherPickerPresented) {
                 ModeLauncherSettingsView(supportsIsland: supportsIslandLauncher)
             }
-            .toolbar(.hidden, for: .navigationBar)
             .onAppear(perform: refreshWorkArchiveSummary)
             .alert("将在默认浏览器中打开", isPresented: $sourceRepositoryConfirmationPresented) {
                 Button("取消", role: .cancel) {}
@@ -169,7 +133,7 @@ struct SettingsView: View {
                 EmptyCanvasThemePicker(selection: emptyCanvasThemeBinding)
                     .presentationDetents([.height(560)])
                     .presentationDragIndicator(.hidden)
-                    .presentationCornerRadius(34)
+                    .presentationCornerRadius(nil)
                     .presentationBackground(.ultraThinMaterial)
             }
         }
@@ -202,6 +166,54 @@ struct SettingsView: View {
                 .transition(.scale(scale: 0.88).combined(with: .opacity))
                 .zIndex(100)
             }
+        }
+        .tint(.blue)
+    }
+
+    @ViewBuilder
+    private var settingsScrollContent: some View {
+        let content = ScrollView {
+            LazyVStack(alignment: .leading, spacing: 28) {
+                projectSupportSection
+                interfaceOptions
+                storageAndWorks
+                paletteOptions
+                motionTips
+                stampTips
+                journalOptions
+                wallpaperOptions
+                privacyOptions
+                supportAndContactSection
+
+                VStack(spacing: 10) {
+                    Text("版本 3.0.1 (Build 202632)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    Text("灵动照片 · 开源项目")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    if isSimplifiedChineseLocalization {
+                        Text("浙ICP备2026035179号-6A")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .accessibilityLabel("ICP备案号：浙ICP备2026035179号-6A")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+
+                maintenanceStatement
+                    .padding(.bottom, 28)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+        }
+
+        if #available(iOS 26.0, *) {
+            content.scrollEdgeEffectStyle(.soft, for: .top)
+        } else {
+            content
         }
     }
 
@@ -257,7 +269,7 @@ struct SettingsView: View {
             .accessibilityLabel("打开灵动照片 GitHub 开源地址")
             .accessibilityHint("确认后将在系统默认浏览器中打开；本应用不会联网")
         }
-        .background(Color(UIColor.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(settingsCardBackground, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
     }
 
     private var supportCraftButton: some View {
@@ -438,8 +450,11 @@ struct SettingsView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("复制客服邮箱地址")
             .accessibilityHint("邮箱 help@locallens.cn 将被复制到剪贴板")
+
+            sectionDivider
+            tipRow(symbol: "c.circle", text: "项目源代码公开；请通过官方渠道获取应用")
         }
-        .background(Color(UIColor.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background(settingsCardBackground, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private var paletteOptions: some View {
@@ -452,6 +467,7 @@ struct SettingsView: View {
                         }
                     }
                     .labelsHidden()
+                    .pickerStyle(.segmented)
                     .tint(.blue)
                 }
                 sectionDivider
@@ -484,7 +500,6 @@ struct SettingsView: View {
                     title: "以二十四节气替换",
                     subtitle: "节气匹配色名可直接使用；\n可考出处需",
                     showsProBadge: true,
-                    showsNewBadge: true,
                     value: poeticNamesBinding
                 )
                 sectionDivider
@@ -548,8 +563,7 @@ struct SettingsView: View {
                         SettingRow(
                             symbol: "paintpalette",
                             title: "空白主界面配色",
-                            subtitle: "调整尚未选择照片时所有功能主页的背景。",
-                            showsNewBadge: true
+                            subtitle: "调整尚未选择照片时所有功能主页的背景。"
                         ) {
                             HStack(spacing: 9) {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -755,11 +769,7 @@ struct SettingsView: View {
 
     private var wallpaperOptions: some View {
         settingsSection("色谱壁纸选项") {
-            VStack(spacing: 0) {
-                tipRow(symbol: "info.circle", text: "生成的壁纸仅适配当前设备尺寸")
-                sectionDivider
-                tipRow(symbol: "c.circle", text: "项目源代码公开；请通过官方渠道获取应用")
-            }
+            tipRow(symbol: "info.circle", text: "生成的壁纸仅适配当前设备尺寸")
         }
     }
 
@@ -860,8 +870,20 @@ struct SettingsView: View {
 
             content()
                 .frame(maxWidth: .infinity)
-                .background(.background, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .background(settingsCardBackground, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         }
+    }
+
+    private var settingsOuterBackground: Color {
+        colorScheme == .dark
+            ? Color(red: 0.11, green: 0.11, blue: 0.12)
+            : Color(uiColor: .systemGroupedBackground)
+    }
+
+    private var settingsCardBackground: Color {
+        colorScheme == .dark
+            ? Color(red: 0.17, green: 0.17, blue: 0.18)
+            : Color.white
     }
 
     private func tipRow(symbol: String, text: String) -> some View {
@@ -1025,7 +1047,6 @@ private struct EmptyCanvasThemePicker: View {
                     HStack(spacing: 8) {
                         Text("主界面调色盘")
                             .font(.system(size: 20, weight: .bold, design: .rounded))
-                        NewBadge()
                     }
                     Text("选择尚未添加照片时的主页釉彩")
                         .font(.caption)

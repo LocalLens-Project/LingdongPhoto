@@ -2,77 +2,77 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleDevelopmentRegion</key>
-    <string>$(DEVELOPMENT_LANGUAGE)</string>
-    <key>CFBundleDisplayName</key>
-    <string>灵动照片</string>
-    <key>CFBundleExecutable</key>
-    <string>$(EXECUTABLE_NAME)</string>
-    <key>CFBundleIdentifier</key>
-    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-    <key>CFBundleName</key>
-    <string>$(PRODUCT_NAME)</string>
-    <key>CFBundlePackageType</key>
-    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
-    <key>CFBundleShortVersionString</key>
-    <string>$(MARKETING_VERSION)</string>
-    <key>CFBundleVersion</key>
-    <string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>灵动照片</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>灵动照片共享导入</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>lingdongphoto</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
 	<key>LingdongAppGroupIdentifier</key>
 	<string>$(APP_GROUP_IDENTIFIER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>用于扫描灵动照片票根二维码，以及拍摄制作邮票和明信片的照片。照片仅在本机处理，不会上传。</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>用于在现场拍摄邮票照片时记录城市，点亮您的邮集。相册照片直接读取自身定位，不申请设备定位权限。</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>用于将生成的灵动照片作品保存到您的相册。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>用于精确匹配您分享的实况照片并读取动态片段。照片仅在本机处理，不会上传；本应用已开源，可公开审查。</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>TicketAppClipBaseURL</key>
 	<string>https://appclip.apple.com/id?p=$(APP_CLIP_BUNDLE_IDENTIFIER)</string>
-    <key>CFBundleURLTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleURLName</key>
-            <string>灵动照片共享导入</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
-                <string>lingdongphoto</string>
-            </array>
-        </dict>
-    </array>
-    <key>UIAppFonts</key>
-    <array>
-        <string>MaShanZheng-Regular.ttf</string>
-        <string>ZCOOLXiaoWei-Regular.ttf</string>
-        <string>LongCang-Regular.ttf</string>
-        <string>LXGWWenKaiLite-Regular.ttf</string>
-    </array>
-    <key>LSApplicationCategoryType</key>
-    <string>public.app-category.utilities</string>
-    <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>用于将生成的灵动照片作品保存到您的相册。</string>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>用于精确匹配您分享的实况照片并读取动态片段。照片仅在本机处理，不会上传；本应用已开源，可公开审查。</string>
-    <key>NSSupportsLiveActivities</key>
-    <true/>
-    <key>NSLocationWhenInUseUsageDescription</key>
-    <string>用于在现场拍摄邮票照片时记录城市，点亮您的邮集。相册照片直接读取自身定位，不申请设备定位权限。</string>
-    <key>NSCameraUsageDescription</key>
-    <string>用于扫描灵动照片票根二维码，以及拍摄制作邮票和明信片的照片。照片仅在本机处理，不会上传。</string>
-    <key>UIApplicationSceneManifest</key>
-    <dict>
-        <key>UIApplicationSupportsMultipleScenes</key>
-        <false/>
-    </dict>
-    <key>UIApplicationSupportsIndirectInputEvents</key>
-    <true/>
-    <key>UILaunchScreen</key>
-    <dict/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>MaShanZheng-Regular.ttf</string>
+		<string>ZCOOLXiaoWei-Regular.ttf</string>
+		<string>LongCang-Regular.ttf</string>
+		<string>LXGWWenKaiLite-Regular.ttf</string>
+	</array>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 </dict>

@@ -42,14 +42,16 @@ enum PostalTemplate: Identifiable {
 struct PostalGripLayout {
     let canvas: CGSize
     var paperBottom: CGFloat { canvas.height * 0.57 }
-    var stride: CGFloat { min(canvas.width * 0.50, 300) }
-    var handWidth: CGFloat { min(canvas.width * 0.33, 155) }
+    private var usesRoomyLayout: Bool { canvas.width >= 560 }
+    var stride: CGFloat { min(canvas.width * 0.52, usesRoomyLayout ? 410 : 300) }
+    var handWidth: CGFloat { min(canvas.width * 0.33, usesRoomyLayout ? 210 : 155) }
     var handSize: CGSize { CGSize(width: handWidth, height: handWidth * PostalHandArtwork.aspect) }
     var handOrigin: CGPoint {
         CGPoint(x: canvas.width / 2 - handSize.width * 0.37, y: paperBottom - handSize.height * 0.09)
     }
     func paperSize(_ native: CGSize) -> CGSize {
-        let scale = min(min(canvas.width * 0.64, 300) / native.width,
+        let maximumPaperWidth: CGFloat = usesRoomyLayout ? 430 : 300
+        let scale = min(min(canvas.width * 0.68, maximumPaperWidth) / native.width,
                         max(60, paperBottom - 24) / native.height)
         return CGSize(width: native.width * scale, height: native.height * scale)
     }
@@ -294,94 +296,64 @@ struct PostalFlowPage<Actions: View>: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let usesWidePadLayout = UIDevice.current.userInterfaceIdiom == .pad && proxy.size.width >= 900
+            let detailsWidth = min(430, proxy.size.width * 0.38)
+            let seamOverlap = min(110, max(72, proxy.size.width * 0.07))
             VStack(spacing: 0) {
-                HStack {
-                    Button(action: onBack) { Image(systemName: step == .template ? "xmark" : "chevron.left").frame(width: 44, height: 44) }
-                        .accessibilityLabel(step == .template ? "关闭制作" : "返回选择模板")
-                        .accessibilityIdentifier("postal.back").disabled(busy)
-                    Spacer()
-                    Text(LocalizedStringKey(title))
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.black.opacity(0.55))
-                    Spacer()
-                    Menu {
-                        Button("我的邮票", action: onLibrary)
-                        if step == .photo && templateAvailable {
-                            Button("从相册添加照片", action: onPhoto)
-                            if UIImagePickerController.isSourceTypeAvailable(.camera) { Button("拍摄照片", action: onCamera) }
-                        }
-                    } label: { Image(systemName: "ellipsis").frame(width: 44, height: 44) }
-                    .accessibilityLabel("更多操作").disabled(busy || model.isLoading)
-                }.font(.system(size: 18, weight: .regular)).buttonStyle(.plain).padding(.horizontal, 14)
+                navigationBar
+                    .frame(maxWidth: usesWidePadLayout ? 1240 : 700)
 
-                PostalHeldCarousel(templates: templates, selection: $selection, step: step,
-                    preview: preview, hasPhoto: model.source != nil, isLoading: model.isLoading || busy,
-                    onPhoto: onPhoto, onPreview: onPreview, hasPro: supporterUnlocked)
-                    .frame(height: min(500, max(230, proxy.size.height * 0.57)))
+                if usesWidePadLayout {
+                    ZStack(alignment: .trailing) {
+                        carousel
+                            .frame(width: max(0, proxy.size.width - detailsWidth + seamOverlap))
+                            .frame(maxHeight: .infinity)
+                            .mask(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: .black, location: 0),
+                                        .init(color: .black, location: 0.82),
+                                        .init(color: .black.opacity(0.24), location: 0.94),
+                                        .init(color: .clear, location: 1)
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .offset(x: -seamOverlap / 2)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
 
-                ScrollView {
-                    VStack(spacing: 18) {
-                        if step == .template {
-                            VStack(spacing: 9) {
-                                Text(verbatim: templates[selection].title).font(.title2.weight(.medium))
-                                    .accessibilityIdentifier("postal.templateTitle")
-                                    .accessibilityHint("向上或向下轻扫切换样式")
-                                    .accessibilityAdjustableAction { direction in
-                                        switch direction {
-                                        case .increment: selection = min(templates.count - 1, selection + 1)
-                                        case .decrement: selection = max(0, selection - 1)
-                                        @unknown default: break
-                                        }
-                                    }
-                                if selectedTemplate.requiresPro { ProBadge(compact: true) }
-                                Text("左右滑动，选一个喜欢的样式").font(.subheadline).foregroundStyle(.black.opacity(0.45))
-                                HStack(spacing: 7) {
-                                    ForEach(templates.indices, id: \.self) { i in
-                                        Circle().fill(.black.opacity(i == selection ? 0.7 : 0.15)).frame(width: 5, height: 5)
-                                    }
-                                }.padding(.top, 4).accessibilityHidden(true)
-                            }
-                            if templateAvailable {
-                                Button(action: onNext) {
-                                    Text("下一步").font(.headline).frame(maxWidth: .infinity, minHeight: 52)
-                                        .foregroundStyle(.white).background(.black, in: Capsule())
-                                }.buttonStyle(.plain).accessibilityIdentifier("postal.next")
-                                    .padding(.top, 8)
-                            } else { unlockButton }
-                        } else if !templateAvailable {
-                            Text("此模板需要支持者 PRO").font(.headline)
-                            unlockButton
-                        } else {
-                            VStack(spacing: 7) {
-                                Text(LocalizedStringKey(
-                                    model.source == nil ? "点击 +，放入一张照片" : "这一刻，值得收藏"
-                                ))
-                                    .font(.title3.weight(.medium))
-                                if model.source != nil {
-                                    Text(LocalizedStringKey(
-                                        templates[selection].isPostcard
-                                            ? "双击可查看明信片大图"
-                                            : "双击可查看邮票大图"
-                                    ))
-                                        .font(.caption2).foregroundStyle(.black.opacity(0.4))
-                                        .accessibilityIdentifier("postal.previewHint")
-                                    Text(verbatim: model.locationMessage).font(.caption).foregroundStyle(.black.opacity(0.45))
-                                    if model.source?.metadata.hasLocation == true && model.source?.city == nil {
-                                        Button("重试城市识别") { Task { await model.resolveCity() } }
-                                            .font(.caption).disabled(model.isResolvingCity)
-                                    }
-                                } else {
-                                    Text("照片只在本机处理").font(.caption).foregroundStyle(.black.opacity(0.4))
-                                }
-                            }
-                            actions
+                        ScrollView {
+                            flowDetails(roomy: true)
+                                .padding(.horizontal, 22)
+                                .padding(.vertical, 34)
+                                .frame(maxWidth: .infinity)
+                                .frame(minHeight: max(0, proxy.size.height - 124), alignment: .center)
+                                .offset(y: 24)
                         }
+                        .scrollBounceBehavior(.basedOnSize)
+                        .frame(width: detailsWidth)
+                        .zIndex(1)
+                        .accessibilityIdentifier("postal.flowActions")
                     }
-                    .frame(width: max(0, min(proxy.size.width - 48, 400)))
-                    .padding(.top, 4).padding(.bottom, 22)
-                    .frame(maxWidth: .infinity)
-                }.scrollBounceBehavior(.basedOnSize).accessibilityIdentifier("postal.flowActions")
-            }.frame(maxWidth: 700).frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.bottom, 26)
+                } else {
+                    carousel
+                        .frame(height: min(500, max(230, proxy.size.height * 0.57)))
+
+                    ScrollView {
+                        flowDetails(roomy: false)
+                            .frame(width: max(0, min(proxy.size.width - 48, 400)))
+                            .padding(.top, 4)
+                            .padding(.bottom, 22)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
+                    .accessibilityIdentifier("postal.flowActions")
+                }
+            }
+            .frame(maxWidth: .infinity)
         }
         .background(PostalBackground(tint: model.tint))
         .foregroundStyle(.black).tint(.black)
@@ -394,6 +366,137 @@ struct PostalFlowPage<Actions: View>: View {
         .onChange(of: supporterUnlocked) { _, unlocked in
             if unlocked { supportPresented = false }
         }
+    }
+
+    private var navigationBar: some View {
+        HStack {
+            Button(action: onBack) {
+                Image(systemName: step == .template ? "xmark" : "chevron.left")
+                    .frame(width: 44, height: 44)
+            }
+            .accessibilityLabel(step == .template ? "关闭制作" : "返回选择模板")
+            .accessibilityIdentifier("postal.back")
+            .disabled(busy)
+
+            Spacer()
+            Text(LocalizedStringKey(title))
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.black.opacity(0.55))
+            Spacer()
+
+            Menu {
+                Button("我的邮票", action: onLibrary)
+                if step == .photo && templateAvailable {
+                    Button("从相册添加照片", action: onPhoto)
+                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                        Button("拍摄照片", action: onCamera)
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis").frame(width: 44, height: 44)
+            }
+            .accessibilityLabel("更多操作")
+            .disabled(busy || model.isLoading)
+        }
+        .font(.system(size: 18, weight: .regular))
+        .buttonStyle(.plain)
+        .padding(.horizontal, 14)
+    }
+
+    private var carousel: some View {
+        PostalHeldCarousel(
+            templates: templates,
+            selection: $selection,
+            step: step,
+            preview: preview,
+            hasPhoto: model.source != nil,
+            isLoading: model.isLoading || busy,
+            onPhoto: onPhoto,
+            onPreview: onPreview,
+            hasPro: supporterUnlocked
+        )
+    }
+
+    private func flowDetails(roomy: Bool) -> some View {
+        VStack(spacing: roomy ? 28 : 18) {
+            if step == .template {
+                VStack(spacing: roomy ? 15 : 9) {
+                    Text(verbatim: templates[selection].title)
+                        .font(roomy ? .largeTitle.weight(.medium) : .title2.weight(.medium))
+                        .accessibilityIdentifier("postal.templateTitle")
+                        .accessibilityHint("向上或向下轻扫切换样式")
+                        .accessibilityAdjustableAction { direction in
+                            switch direction {
+                            case .increment: selection = min(templates.count - 1, selection + 1)
+                            case .decrement: selection = max(0, selection - 1)
+                            @unknown default: break
+                            }
+                        }
+                    if selectedTemplate.requiresPro { ProBadge(compact: true) }
+                    Text("左右滑动，选一个喜欢的样式")
+                        .font(roomy ? .title3 : .subheadline)
+                        .foregroundStyle(.black.opacity(0.45))
+                    HStack(spacing: roomy ? 10 : 7) {
+                        ForEach(templates.indices, id: \.self) { index in
+                            Circle()
+                                .fill(.black.opacity(index == selection ? 0.7 : 0.15))
+                                .frame(width: roomy ? 7 : 5, height: roomy ? 7 : 5)
+                        }
+                    }
+                    .padding(.top, 4)
+                    .accessibilityHidden(true)
+                }
+                if templateAvailable {
+                    Button(action: onNext) {
+                        Text("下一步")
+                            .font(roomy ? .title3.bold() : .headline)
+                            .frame(maxWidth: .infinity, minHeight: roomy ? 64 : 52)
+                            .foregroundStyle(.white)
+                            .background(.black, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("postal.next")
+                    .padding(.top, 8)
+                } else {
+                    unlockButton
+                }
+            } else if !templateAvailable {
+                Text("此模板需要支持者 PRO").font(.headline)
+                unlockButton
+            } else {
+                VStack(spacing: 7) {
+                    Text(LocalizedStringKey(
+                        model.source == nil ? "点击 +，放入一张照片" : "这一刻，值得收藏"
+                    ))
+                    .font(roomy ? .title2.weight(.medium) : .title3.weight(.medium))
+                    if model.source != nil {
+                        Text(LocalizedStringKey(
+                            templates[selection].isPostcard
+                                ? "双击可查看明信片大图"
+                                : "双击可查看邮票大图"
+                        ))
+                        .font(roomy ? .subheadline : .caption2)
+                        .foregroundStyle(.black.opacity(0.4))
+                        .accessibilityIdentifier("postal.previewHint")
+                        Text(verbatim: model.locationMessage)
+                            .font(roomy ? .subheadline : .caption)
+                            .foregroundStyle(.black.opacity(0.45))
+                        if model.source?.metadata.hasLocation == true && model.source?.city == nil {
+                            Button("重试城市识别") { Task { await model.resolveCity() } }
+                                .font(roomy ? .body : .caption)
+                                .disabled(model.isResolvingCity)
+                        }
+                    } else {
+                        Text("照片只在本机处理")
+                            .font(roomy ? .subheadline : .caption)
+                            .foregroundStyle(.black.opacity(0.4))
+                    }
+                }
+                actions
+            }
+        }
+        .frame(maxWidth: 400)
+        .frame(maxWidth: .infinity)
     }
 
     private var unlockButton: some View {
@@ -413,11 +516,14 @@ struct PostalFlowPage<Actions: View>: View {
 }
 
 struct PostalFlowAction: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     var title: String
     var symbol: String
     var enabled: Bool
     var action: () -> Void
     var body: some View {
+        let roomy = horizontalSizeClass == .regular && verticalSizeClass == .regular
         Button(action: action) {
             Label {
                 Text(LocalizedStringKey(title))
@@ -426,8 +532,8 @@ struct PostalFlowAction: View {
             } icon: {
                 Image(systemName: symbol)
             }
-            .font(.system(size: 16, weight: .medium))
-            .frame(maxWidth: .infinity, minHeight: 44)
+            .font(.system(size: roomy ? 20 : 16, weight: .medium))
+            .frame(maxWidth: .infinity, minHeight: roomy ? 58 : 44)
             .foregroundStyle(enabled ? Color.black : Color.black.opacity(0.23))
         }.buttonStyle(.plain).disabled(!enabled)
     }

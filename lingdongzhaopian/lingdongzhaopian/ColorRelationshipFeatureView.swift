@@ -32,8 +32,11 @@ private enum ArtworkExportQuality: String, CaseIterable, Identifiable {
 struct ColorRelationshipFeatureView: View {
     let onOpenModeSelection: () -> Void
     var showsModeSelectionButton = true
+    var showsAmbientBackground = true
     var onPaletteChange: (([PaletteColor]) -> Void)? = nil
     @Environment(\.colorScheme) private var systemColorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @AppStorage("comparisonExportShowsPhotoLabels") private var comparisonExportShowsPhotoLabels = true
     @AppStorage("colorRelationshipExportQuality") private var exportQuality: ArtworkExportQuality = .highDefinition
     @AppStorage("emptyCanvasTheme") private var emptyCanvasThemeRaw = EmptyCanvasTheme.sky.rawValue
@@ -52,6 +55,11 @@ struct ColorRelationshipFeatureView: View {
     @State private var toast: String?
     @State private var toastVisible = false
     @State private var toastTask: Task<Void, Never>?
+    @State private var leftSamplingRect: CGRect?
+    @State private var rightSamplingRect: CGRect?
+    @State private var samplingSide: RelationshipPhotoSide = .left
+    @State private var samplingSidePickerPresented = false
+    @State private var colorSamplerPresented = false
 
     private enum PickerPurpose {
         case both
@@ -69,11 +77,17 @@ struct ColorRelationshipFeatureView: View {
         case full
     }
 
+    private var usesWideLayout: Bool {
+        horizontalSizeClass == .regular && verticalSizeClass == .regular
+    }
+
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                PrototypeAmbientBackground(colors: ambientPalette)
-                    .opacity(showsModeSelectionButton ? 1 : 0)
+                if showsAmbientBackground {
+                    PrototypeAmbientBackground(colors: ambientPalette)
+                        .allowsHitTesting(false)
+                }
                 if photos.count == 2, let relationship {
                     editorView(size: proxy.size, relationship: relationship)
                 } else {
@@ -105,8 +119,7 @@ struct ColorRelationshipFeatureView: View {
                 }
             }
         }
-        .environment(\.colorScheme, .light)
-        .statusBarHidden(UIDevice.current.userInterfaceIdiom == .phone)
+        .statusBarHidden(!usesWideLayout)
 
         .onChange(of: ambientPalette.map { [$0.red, $0.green, $0.blue, $0.weight] }, initial: true) { _, _ in
             onPaletteChange?(ambientPalette)
@@ -123,6 +136,49 @@ struct ColorRelationshipFeatureView: View {
             }
             .environment(\.colorScheme, systemColorScheme)
             .ignoresSafeArea()
+        }
+        .confirmationDialog(
+            "选择局部取色照片",
+            isPresented: $samplingSidePickerPresented,
+            titleVisibility: .visible
+        ) {
+            Button("照片 01") { openColorSampler(for: .left) }
+            Button("照片 02") { openColorSampler(for: .right) }
+            if leftSamplingRect != nil || rightSamplingRect != nil {
+                Button("恢复两张照片整图取色") {
+                    leftSamplingRect = nil
+                    rightSamplingRect = nil
+                    analyzeCurrentPair()
+                }
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("分别选择照片 01 或照片 02 中参与色彩关系分析的区域。")
+        }
+        .sheet(isPresented: $colorSamplerPresented) {
+            if photos.count == 2 {
+                let index = samplingSide == .left ? 0 : 1
+                MotionCardColorSamplerView(
+                    image: photos[index].image,
+                    initialSelection: samplingSide == .left ? leftSamplingRect : rightSamplingRect,
+                    headerStyle: .sampledGradient,
+                    instruction: "拖动选框选择取色范围，拖动四角可调整大小。此范围只影响当前照片参与色彩关系分析的颜色。",
+                    onApply: { selection, _ in
+                        setSamplingRect(selection, for: samplingSide)
+                        analyzeCurrentPair()
+                        colorSamplerPresented = false
+                    },
+                    onReset: {
+                        setSamplingRect(nil, for: samplingSide)
+                        analyzeCurrentPair()
+                        colorSamplerPresented = false
+                    }
+                )
+                .environment(\.colorScheme, systemColorScheme)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(nil)
+            }
         }
         .sheet(isPresented: $settingsPresented) {
             if let relationship, photos.count == 2 {
@@ -159,7 +215,7 @@ struct ColorRelationshipFeatureView: View {
                 .environment(\.colorScheme, systemColorScheme)
                 .presentationDetents([.fraction(0.86)])
                 .presentationDragIndicator(.hidden)
-                .presentationCornerRadius(38)
+                .presentationCornerRadius(nil)
                 .presentationBackground { readableSheetBackground }
             } else {
                 ColorRelationshipWelcomeSheet(
@@ -175,7 +231,7 @@ struct ColorRelationshipFeatureView: View {
                 .environment(\.colorScheme, systemColorScheme)
                 .presentationDetents([.height(410)])
                 .presentationDragIndicator(.hidden)
-                .presentationCornerRadius(38)
+                .presentationCornerRadius(nil)
                 .presentationBackground { readableSheetBackground }
             }
         }
@@ -203,7 +259,7 @@ struct ColorRelationshipFeatureView: View {
             )
             .presentationDetents([.height(485)])
             .presentationDragIndicator(.hidden)
-            .presentationCornerRadius(34)
+            .presentationCornerRadius(nil)
             .presentationBackground { readableSheetBackground }
         }
         .sheet(isPresented: $sharePresented, onDismiss: { shareImage = nil }) {
@@ -211,78 +267,6 @@ struct ColorRelationshipFeatureView: View {
                 ActivityView(items: [shareImage])
                     .presentationDetents([.medium, .large])
             }
-        }
-        .onAppear {
-            let arguments = ProcessInfo.processInfo.arguments
-            guard photos.isEmpty, arguments.contains("--demo") else { return }
-            if arguments.contains("--bright-demo") {
-                photos = DemoPhotos.brightPair()
-            } else if arguments.contains("--landscape-demo") {
-                photos = DemoPhotos.landscapePair()
-            } else if arguments.contains("--mixed-demo-reversed") {
-                photos = DemoPhotos.mixedPair(portraitFirst: false)
-            } else if arguments.contains("--mixed-demo") {
-                photos = DemoPhotos.mixedPair()
-            } else {
-                photos = DemoPhotos.pair()
-            }
-            analyzeCurrentPair()
-            if arguments.contains("--contrast-lens") {
-                lens = .contrast
-            } else if arguments.contains("--bridge-lens") {
-                lens = .bridge
-            }
-            if arguments.contains("--settings") {
-                Task {
-                    try? await Task.sleep(for: .milliseconds(420))
-                    settingsPresented = true
-                }
-            }
-            if arguments.contains("--export-options") {
-                Task {
-                    try? await Task.sleep(for: .milliseconds(420))
-                    exportOptionsPresented = true
-                }
-            }
-            if arguments.contains("--toast-check") {
-                Task {
-                    try? await Task.sleep(for: .milliseconds(420))
-                    showToast("对比图已保存到照片")
-                }
-            }
-#if DEBUG
-            if arguments.contains("--copy-audit") {
-                let report = RelationshipCopywriter.debugAudit()
-                let url = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("RelationshipCopyAudit.txt")
-                try? report.summary.write(to: url, atomically: true, encoding: .utf8)
-                print(report.summary)
-            }
-            if arguments.contains("--export-check") {
-                Task {
-                    try? await Task.sleep(for: .milliseconds(500))
-                    let kind: ArtworkExportKind = arguments.contains("--comparison-export-check")
-                        ? .comparison
-                        : .full
-                    let quality: ArtworkExportQuality? = arguments.contains("--hd-export-check")
-                        ? .highDefinition
-                        : nil
-                    let width = quality.map { exportCanvasWidth(kind: kind, quality: $0) } ?? 900
-                    guard let image = renderedArtwork(
-                        kind: kind,
-                        comparisonShowsLabels: arguments.contains("--comparison-no-labels")
-                            ? false
-                            : nil,
-                        canvasWidth: width
-                    ),
-                          let data = image.pngData() else { return }
-                    let url = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("ColorRelationshipExportCheck.png")
-                    try? data.write(to: url, options: .atomic)
-                    print("COLOR_RELATIONSHIP_EXPORT: \(url.path) | \(Int(image.size.width))x\(Int(image.size.height))")
-                }
-            }
-#endif
         }
         .onDisappear {
 
@@ -305,7 +289,7 @@ struct ColorRelationshipFeatureView: View {
 
     private var ambientPalette: [PaletteColor] {
         if let relationship {
-            return relationship.leftPalette + relationship.rightPalette
+            return relationship.bridge
         }
 
         let theme = EmptyCanvasTheme(rawValue: emptyCanvasThemeRaw) ?? .sky
@@ -395,8 +379,8 @@ struct ColorRelationshipFeatureView: View {
             left: photos[0].image,
             right: photos[1].image
         )
-        let availableHeight = UIDevice.current.userInterfaceIdiom == .pad
-            ? max(1, size.height - 190) : max(320, size.height - 150)
+        let availableHeight = size.width >= 700 && size.height >= 700
+            ? max(1, size.height - 244) : max(320, size.height - 204)
         let canvasWidth = min(availableWidth, availableHeight * canvasRatio)
         return VStack(spacing: 0) {
             HStack(spacing: 6) {
@@ -463,7 +447,27 @@ struct ColorRelationshipFeatureView: View {
             .foregroundStyle(.primary.opacity(0.82))
             .prototypeGlass(in: Capsule(), interactive: true, variant: .clear)
             .frame(width: canvasWidth)
-                .padding(.top, 12)
+            .padding(.top, 12)
+
+            Button {
+                samplingSidePickerPresented = true
+            } label: {
+                Label(
+                    (leftSamplingRect == nil && rightSamplingRect == nil
+                        ? "局部取色"
+                        : "调整局部取色").appLocalized,
+                    systemImage: "viewfinder"
+                )
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .frame(maxWidth: .infinity)
+                .frame(height: 42)
+            }
+            .buttonStyle(PrototypePressButtonStyle())
+            .foregroundStyle(.primary.opacity(0.82))
+            .prototypeGlass(in: Capsule(), interactive: true, variant: .clear)
+            .frame(width: canvasWidth)
+            .padding(.top, 10)
+            .accessibilityHint("分别选择两张照片中参与色彩关系分析的区域")
 
             Spacer(minLength: 18)
         }
@@ -474,6 +478,21 @@ struct ColorRelationshipFeatureView: View {
         pickerSelections = []
         pickerPurpose = purpose
         pickerPresented = true
+    }
+
+    private func openColorSampler(for side: RelationshipPhotoSide) {
+        samplingSide = side
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            colorSamplerPresented = true
+        }
+    }
+
+    private func setSamplingRect(_ selection: CGRect?, for side: RelationshipPhotoSide) {
+        switch side {
+        case .left: leftSamplingRect = selection
+        case .right: rightSamplingRect = selection
+        }
     }
 
     private func loadPickerSelections() {
@@ -488,6 +507,9 @@ struct ColorRelationshipFeatureView: View {
         guard photos.count == 2 else { return }
         withAnimation(.spring(response: 0.38, dampingFraction: 0.84)) {
             photos.swapAt(0, 1)
+            let previousLeftSelection = leftSamplingRect
+            leftSamplingRect = rightSamplingRect
+            rightSamplingRect = previousLeftSelection
             analyzeCurrentPair()
         }
         UISelectionFeedbackGenerator().selectionChanged()
@@ -522,6 +544,8 @@ struct ColorRelationshipFeatureView: View {
             }
             StaticRelationshipPhotoImporter.removeTemporarySources(for: photos)
             photos = loaded
+            leftSamplingRect = nil
+            rightSamplingRect = nil
         case .replace(let side):
             guard let photo = loaded.first, photos.count == 2 else {
                 StaticRelationshipPhotoImporter.removeTemporarySources(for: loaded)
@@ -531,9 +555,11 @@ struct ColorRelationshipFeatureView: View {
             case .left:
                 StaticRelationshipPhotoImporter.removeTemporarySources(for: [photos[0]])
                 photos[0] = photo
+                leftSamplingRect = nil
             case .right:
                 StaticRelationshipPhotoImporter.removeTemporarySources(for: [photos[1]])
                 photos[1] = photo
+                rightSamplingRect = nil
             }
         }
         analyzeCurrentPair()
@@ -541,7 +567,13 @@ struct ColorRelationshipFeatureView: View {
 
     private func analyzeCurrentPair() {
         guard photos.count == 2 else { return }
-        relationship = ColorRelationshipAnalyzer.analyze(left: photos[0].image, right: photos[1].image)
+        let leftImage = leftSamplingRect.map {
+            MotionCardColorSamplerView.croppedImage(from: photos[0].image, selection: $0)
+        } ?? photos[0].image
+        let rightImage = rightSamplingRect.map {
+            MotionCardColorSamplerView.croppedImage(from: photos[1].image, selection: $0)
+        } ?? photos[1].image
+        relationship = ColorRelationshipAnalyzer.analyze(left: leftImage, right: rightImage)
     }
 
     private func metadataDetail(from date: Date?) -> String {

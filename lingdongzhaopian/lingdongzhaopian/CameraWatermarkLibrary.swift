@@ -388,8 +388,6 @@ final class CameraWatermarkLibrary: ObservableObject {
 }
 
 struct CameraWatermarkManagerView: View {
-    @Environment(\.dismiss) private var dismiss
-
     @Binding var isEnabled: Bool
     @ObservedObject var library: CameraWatermarkLibrary
 
@@ -404,30 +402,8 @@ struct CameraWatermarkManagerView: View {
     ]
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("相机图标水印")
-                    .font(.system(size: 17, weight: .bold))
-
-                Spacer()
-
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .bold))
-                        .frame(width: 34, height: 34)
-                }
-                .buttonStyle(.plain)
-                .liquidGlass(in: Circle(), interactive: true, variant: .clear)
-            }
-            .padding(.horizontal, 18)
-            .frame(height: 66)
-            .background(.ultraThinMaterial)
-            .zIndex(5)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
                     HStack(alignment: .top, spacing: 14) {
                         Image(systemName: "building.columns")
                             .font(.system(size: 18, weight: .medium))
@@ -482,13 +458,15 @@ struct CameraWatermarkManagerView: View {
                         }
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-                .padding(.bottom, 36)
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 36)
         }
         .background(Color(uiColor: .systemGroupedBackground))
+        .navigationTitle("相机图标水印")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
         .animation(.easeInOut(duration: 0.22), value: isEnabled)
         .fileImporter(
             isPresented: $isImporterPresented,

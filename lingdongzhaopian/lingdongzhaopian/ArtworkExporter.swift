@@ -36,6 +36,12 @@ enum ArtworkExportError: LocalizedError {
     }
 }
 
+enum ArtworkPhotoLibrarySaveResult {
+    case livePhoto
+    case livePhotoWithoutAudio
+    case stillImageFallback
+}
+
 private nonisolated final class LiveAudioWriterContext: @unchecked Sendable {
     let reader: AVAssetReader
     let output: AVAssetReaderTrackOutput
@@ -73,24 +79,6 @@ enum ArtworkExporter {
             throw ArtworkExportError.permissionDenied
         }
     }
-
-#if DEBUG
-    nonisolated static func debugJPEGData(
-        _ image: UIImage,
-        metadata: PhotoMetadata,
-        originalImageData: Data?,
-        preserveLocation: Bool
-    ) throws -> Data {
-        try imageData(
-            image: image,
-            metadata: metadata,
-            originalImageData: originalImageData,
-            assetIdentifier: nil,
-            format: .jpeg,
-            metadataPolicy: preserveLocation ? .preserve : .removeLocation
-        )
-    }
-#endif
 
     nonisolated static func encodedStillData(
         _ image: UIImage,
@@ -151,7 +139,7 @@ enum ArtworkExporter {
         metadataPolicy: ArtworkMetadataPolicy = .preserve,
         renderFrame: @escaping @MainActor ([Int: UIImage], CGFloat) -> UIImage?,
         progress: @escaping @MainActor (Double) -> Void
-    ) async throws {
+    ) async throws -> ArtworkPhotoLibrarySaveResult {
         guard let primarySource = sourceVideoURLs.sorted(by: { $0.key < $1.key }).first else {
             throw ArtworkExportError.missingVideo
         }
@@ -172,26 +160,89 @@ enum ArtworkExporter {
         let videoOutputSize = try livePhotoVideoOutputSize(for: renderedStill)
 
         defer { try? FileManager.default.removeItem(at: pairedURL) }
-        try await Task.detached(priority: .userInitiated) {
-            try await makePairedVideo(
-                sourceURL: primarySource.value,
-                sourceVideoURLs: sourceVideoURLs,
-                destinationURL: pairedURL,
-                outputSize: videoOutputSize,
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                try await makePairedVideo(
+                    sourceURL: primarySource.value,
+                    sourceVideoURLs: sourceVideoURLs,
+                    destinationURL: pairedURL,
+                    outputSize: videoOutputSize,
+                    assetIdentifier: identifier,
+                    includesAudio: true,
+                    renderFrame: { frames in
+                        renderFrame(frames, videoOutputSize.width)
+                    },
+                    progress: progress
+                )
+            }.value
+            try await saveToPhotoLibrary(
+                photoData: stillData,
+                pairedVideoURL: pairedURL,
+                metadata: metadata,
+                format: .jpeg,
+                metadataPolicy: metadataPolicy
+            )
+            return .livePhoto
+        } catch {
+            guard isInvalidPhotoResourceError(error) else { throw error }
+        }
+
+        try? FileManager.default.removeItem(at: pairedURL)
+        let normalizedStillData = try await Task.detached(priority: .userInitiated) {
+            try imageData(
+                image: renderedStill,
+                metadata: metadata,
+                originalImageData: nil,
                 assetIdentifier: identifier,
-                renderFrame: { frames in
-                    renderFrame(frames, videoOutputSize.width)
-                },
-                progress: progress
+                format: .jpeg,
+                metadataPolicy: metadataPolicy
+            )
+        }.value
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                try await makePairedVideo(
+                    sourceURL: primarySource.value,
+                    sourceVideoURLs: sourceVideoURLs,
+                    destinationURL: pairedURL,
+                    outputSize: videoOutputSize,
+                    assetIdentifier: identifier,
+                    includesAudio: false,
+                    renderFrame: { frames in
+                        renderFrame(frames, videoOutputSize.width)
+                    },
+                    progress: progress
+                )
+            }.value
+            try await saveToPhotoLibrary(
+                photoData: normalizedStillData,
+                pairedVideoURL: pairedURL,
+                metadata: metadata,
+                format: .jpeg,
+                metadataPolicy: metadataPolicy
+            )
+            return .livePhotoWithoutAudio
+        } catch {
+            guard isInvalidPhotoResourceError(error) else { throw error }
+        }
+
+        let fallbackStillData = try await Task.detached(priority: .userInitiated) {
+            try imageData(
+                image: renderedStill,
+                metadata: metadata,
+                originalImageData: nil,
+                assetIdentifier: nil,
+                format: .jpeg,
+                metadataPolicy: metadataPolicy
             )
         }.value
         try await saveToPhotoLibrary(
-            photoData: stillData,
-            pairedVideoURL: pairedURL,
+            photoData: fallbackStillData,
+            pairedVideoURL: nil,
             metadata: metadata,
             format: .jpeg,
             metadataPolicy: metadataPolicy
         )
+        return .stillImageFallback
     }
 
     nonisolated private static func livePhotoVideoOutputSize(for renderedStill: UIImage) throws -> CGSize {
@@ -386,6 +437,7 @@ enum ArtworkExporter {
         destinationURL: URL,
         outputSize: CGSize,
         assetIdentifier: String,
+        includesAudio: Bool,
         renderFrame: @escaping @MainActor ([Int: UIImage]) -> UIImage?,
         progress: @escaping @MainActor (Double) -> Void
     ) async throws {
@@ -467,7 +519,8 @@ enum ArtworkExporter {
         var audioReader: AVAssetReader?
         var audioOutput: AVAssetReaderTrackOutput?
         var audioInput: AVAssetWriterInput?
-        if let sourceAudioTrack,
+        if includesAudio,
+           let sourceAudioTrack,
            let formatHint = try await sourceAudioTrack.load(.formatDescriptions).first,
            let audioDescription = CMAudioFormatDescriptionGetStreamBasicDescription(formatHint)?.pointee {
             let reader = try AVAssetReader(asset: asset)
@@ -778,6 +831,12 @@ enum ArtworkExporter {
                 }
             }
         }
+    }
+
+    private static func isInvalidPhotoResourceError(_ error: Error) -> Bool {
+        let photosError = error as NSError
+        return photosError.domain == PHPhotosError.errorDomain
+            && photosError.code == PHPhotosError.Code.invalidResource.rawValue
     }
 
     private static func addAuthorization() async -> PHAuthorizationStatus {
