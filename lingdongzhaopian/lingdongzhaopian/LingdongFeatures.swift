@@ -298,40 +298,311 @@ enum SolarTermDates {
     }
 }
 
+enum MonthlyCalendarLayoutStyle: String, CaseIterable, Identifiable {
+    case glass
+    case photoSplit
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .glass: "琉璃月历".appLocalized
+        case .photoSplit: "摄影月历".appLocalized
+        }
+    }
+}
+
+enum MonthlyCalendarPanelColorMode: String, CaseIterable, Identifiable {
+    case fixed
+    case automatic
+    case custom
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .fixed: "经典米白".appLocalized
+        case .automatic: "自动取色".appLocalized
+        case .custom: "自定义颜色".appLocalized
+        }
+    }
+}
+
 struct MonthlyCalendarCanvas: View {
     let image: UIImage
     let palette: [RGBColor]
     let captureDate: Date?
     let cityName: String?
     var showsLocation = true
+    var layoutStyle: MonthlyCalendarLayoutStyle = .glass
+    var panelColorMode: MonthlyCalendarPanelColorMode = .fixed
+    var customPanelColor = RGBColor(red: 0.965, green: 0.952, blue: 0.914)
+    var usesEnglishMonthTitle = false
+    var showsFooter = true
+    var photoScale: CGFloat = 1
+    var normalizedPhotoOffset: CGSize = .zero
 
     private var referenceDate: Date { captureDate ?? .now }
 
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            let photo = FeatureArtworkLayout.photoFrame(imageSize: image.size, in: size)
-            let card = FeatureArtworkLayout.calendarFrame(in: photo)
-            ZStack {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: photo.width, height: photo.height)
-                    .position(x: photo.midX, y: photo.midY)
-                    .accessibilityLabel("完整照片")
-                    .accessibilityIdentifier("feature.calendarPhoto")
+            Group {
+                if layoutStyle == .photoSplit {
+                    photoSplitCalendar(size: size)
+                } else {
+                    let photo = FeatureArtworkLayout.photoFrame(imageSize: image.size, in: size)
+                    let card = FeatureArtworkLayout.calendarFrame(in: photo)
+                    ZStack {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: photo.width, height: photo.height)
+                            .position(x: photo.midX, y: photo.midY)
+                            .accessibilityLabel("完整照片")
+                            .accessibilityIdentifier("feature.calendarPhoto")
 
-                glassCard(width: card.width, height: card.height)
-                    .position(x: card.midX, y: card.midY)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Text(referenceDate, format: .dateTime.year().month()))
-                    .accessibilityValue(captureDate.map { DateFormatter.localizedString(from: $0, dateStyle: .long, timeStyle: .none) } ?? "")
-                    .accessibilityIdentifier("feature.calendarPanel")
+                        glassCard(width: card.width, height: card.height)
+                            .position(x: card.midX, y: card.midY)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(Text(referenceDate, format: .dateTime.year().month()))
+                            .accessibilityValue(captureDate.map { DateFormatter.localizedString(from: $0, dateStyle: .long, timeStyle: .none) } ?? "")
+                            .accessibilityIdentifier("feature.calendarPanel")
+                    }
+                }
             }
             .frame(width: size.width, height: size.height)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("feature.monthlyCalendar")
+    }
+
+    private var panelBackground: RGBColor {
+        switch panelColorMode {
+        case .fixed:
+            RGBColor(red: 0.972, green: 0.964, blue: 0.936)
+        case .custom:
+            customPanelColor
+        case .automatic:
+            automaticPanelBackground
+        }
+    }
+
+    private var automaticPanelBackground: RGBColor {
+        let colors = palette.isEmpty ? RGBColor.fallback : palette
+        let anchor = colors.max { lhs, rhs in
+            let lhsScore = abs(lhs.red - lhs.green) + abs(lhs.green - lhs.blue) + abs(lhs.blue - lhs.red)
+            let rhsScore = abs(rhs.red - rhs.green) + abs(rhs.green - rhs.blue) + abs(rhs.blue - rhs.red)
+            return lhsScore < rhsScore
+        } ?? colors[0]
+        if anchor.relativeLuminance < 0.22 {
+            return anchor.adjusted(brightness: 0.045, saturation: -0.28)
+        }
+        return anchor.adjusted(brightness: 0.18, saturation: -0.48)
+    }
+
+    private var panelForeground: RGBColor {
+        let black = RGBColor(red: 0.075, green: 0.070, blue: 0.065)
+        let white = RGBColor(red: 0.975, green: 0.970, blue: 0.955)
+        return black.contrastRatio(with: panelBackground) >= white.contrastRatio(with: panelBackground)
+            ? black
+            : white
+    }
+
+    private var panelAccent: RGBColor {
+        let candidates = (palette.isEmpty ? RGBColor.fallback : palette) + [
+            RGBColor(red: 0.78, green: 0.20, blue: 0.18),
+            RGBColor(red: 0.18, green: 0.43, blue: 0.64)
+        ]
+        if panelColorMode == .fixed {
+            return RGBColor(red: 0.77, green: 0.19, blue: 0.18)
+        }
+        return candidates.max { lhs, rhs in
+            lhs.contrastRatio(with: panelBackground) < rhs.contrastRatio(with: panelBackground)
+        } ?? RGBColor(red: 0.77, green: 0.19, blue: 0.18)
+    }
+
+    private func photoSplitCalendar(size: CGSize) -> some View {
+        let photoWidth = size.width * 0.535
+        let panelWidth = size.width - photoWidth
+        return HStack(spacing: 0) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: photoWidth, height: size.height)
+                .scaleEffect(photoScale)
+                .offset(
+                    x: normalizedPhotoOffset.width * photoWidth,
+                    y: normalizedPhotoOffset.height * size.height
+                )
+                .frame(width: photoWidth, height: size.height)
+                .clipped()
+                .accessibilityLabel("月历照片")
+                .accessibilityIdentifier("feature.calendarPhoto")
+
+            photoSplitPanel(width: panelWidth, height: size.height)
+                .frame(width: panelWidth, height: size.height)
+                .background(panelBackground.color)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(Text(referenceDate, format: .dateTime.year().month()))
+                .accessibilityIdentifier("feature.calendarPanel")
+        }
+        .frame(width: size.width, height: size.height)
+        .clipped()
+    }
+
+    private func photoSplitPanel(width: CGFloat, height: CGFloat) -> some View {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day], from: referenceDate)
+        let year = components.year ?? 2026
+        let month = components.month ?? 1
+        let captureDay = captureDate == nil ? nil : components.day
+        let terms = SolarTermDates.terms(year: year, month: month)
+        let termByDay = Dictionary(uniqueKeysWithValues: terms.map { ($0.day, $0.name) })
+        let foreground = panelForeground.color
+        let accent = panelAccent.color
+        let horizontalPadding = width * 0.105
+
+        return VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: width * 0.035) {
+                Text(monthTitle(month: month))
+                    .font(monthTitleFont(size: width * 0.205))
+                    .foregroundStyle(accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.64)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .rotationEffect(.degrees(usesEnglishMonthTitle || LexiconLanguage.current == .english ? 0 : -2.5))
+
+                Text(String(format: "%02d", month))
+                    .font(.system(size: width * 0.072, weight: .light, design: .serif).monospacedDigit())
+                    .foregroundStyle(foreground.opacity(0.90))
+                    .rotationEffect(.degrees(-4))
+                    .padding(.top, width * 0.018)
+            }
+            .frame(height: height * 0.225, alignment: .top)
+
+            photoSplitGrid(
+                width: width - horizontalPadding * 2,
+                year: year,
+                month: month,
+                captureDay: captureDay,
+                termByDay: termByDay,
+                foreground: foreground,
+                accent: accent
+            )
+            .frame(maxHeight: .infinity)
+
+            if showsFooter {
+                HStack(alignment: .firstTextBaseline, spacing: width * 0.035) {
+                    Text(String(year))
+                        .font(.system(size: width * 0.033, weight: .medium, design: .serif))
+                    Text("慢一点，享受生活")
+                        .font(.system(size: width * 0.030, weight: .regular, design: .serif))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Spacer(minLength: 0)
+                    if showsLocation, let cityName, !cityName.isEmpty {
+                        Text(cityName)
+                            .font(.system(size: width * 0.028, weight: .medium, design: .serif))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.65)
+                    }
+                }
+                .foregroundStyle(foreground.opacity(0.66))
+                .frame(height: height * 0.11, alignment: .center)
+            }
+        }
+        .padding(.horizontal, horizontalPadding)
+        .padding(.top, height * 0.065)
+        .padding(.bottom, height * 0.035)
+    }
+
+    private func monthTitleFont(size: CGFloat) -> Font {
+        if usesEnglishMonthTitle || LexiconLanguage.current == .english {
+            .custom("Sacramento-Regular", size: size)
+        } else {
+            .custom("LiuJianMaoCao-Regular", size: size * 1.04)
+        }
+    }
+
+    private func photoSplitGrid(
+        width: CGFloat,
+        year: Int,
+        month: Int,
+        captureDay: Int?,
+        termByDay: [Int: String],
+        foreground: Color,
+        accent: Color
+    ) -> some View {
+        var calendar = Calendar.current
+        calendar.firstWeekday = 1
+        let firstOfMonth = calendar.date(from: DateComponents(year: year, month: month, day: 1)) ?? referenceDate
+        let dayCount = calendar.range(of: .day, in: .month, for: firstOfMonth)?.count ?? 30
+        let leadingBlanks = calendar.component(.weekday, from: firstOfMonth) - 1
+        let symbols = calendar.veryShortStandaloneWeekdaySymbols
+        let cell = width / 7
+
+        return VStack(spacing: cell * 0.12) {
+            HStack(spacing: 0) {
+                ForEach(0..<7, id: \.self) { index in
+                    Text(symbols[index % symbols.count])
+                        .font(.system(size: cell * 0.26, weight: .semibold, design: .serif))
+                        .foregroundStyle(index == 0 || index == 6 ? accent : foreground.opacity(0.62))
+                        .frame(width: cell)
+                }
+            }
+
+            ForEach(0..<6, id: \.self) { row in
+                HStack(spacing: 0) {
+                    ForEach(0..<7, id: \.self) { column in
+                        let dayNumber = row * 7 + column - leadingBlanks + 1
+                        let validDay = dayNumber >= 1 && dayNumber <= dayCount ? dayNumber : nil
+                        photoSplitCell(
+                            day: validDay,
+                            weekday: column,
+                            isCapture: validDay == captureDay,
+                            term: validDay.flatMap { termByDay[$0] },
+                            cell: cell,
+                            foreground: foreground,
+                            accent: accent,
+                            seed: year * 10000 + month * 100 + max(dayNumber, 0)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private func photoSplitCell(
+        day: Int?,
+        weekday: Int,
+        isCapture: Bool,
+        term: String?,
+        cell: CGFloat,
+        foreground: Color,
+        accent: Color,
+        seed: Int
+    ) -> some View {
+        VStack(spacing: 0) {
+            ZStack {
+                if isCapture {
+                    HandDrawnCalendarRing(seed: seed, color: accent)
+                        .frame(width: cell * 0.82, height: cell * 0.66)
+                }
+                Text(day.map(String.init) ?? "")
+                    .font(.system(size: cell * 0.30, weight: isCapture ? .semibold : .regular, design: .serif))
+                    .foregroundStyle(day == nil ? Color.clear : (weekday == 0 || weekday == 6 ? accent : foreground.opacity(0.90)))
+            }
+            .frame(width: cell, height: cell * 0.62)
+
+            Text(term ?? "")
+                .font(.system(size: cell * 0.16, weight: .regular, design: .serif))
+                .foregroundStyle(foreground.opacity(0.48))
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .frame(width: cell, height: cell * 0.22)
+        }
+        .frame(width: cell)
     }
 
 
@@ -370,7 +641,7 @@ struct MonthlyCalendarCanvas: View {
 
         return VStack(spacing: width * 0.032) {
             Text(monthTitle(month: month))
-                .font(.system(size: width * 0.125, weight: .medium, design: .serif))
+                .font(monthTitleFont(size: width * 0.125))
                 .foregroundStyle(.white)
                 .shadow(color: .black.opacity(0.28), radius: 6, y: 2)
 
@@ -397,6 +668,11 @@ struct MonthlyCalendarCanvas: View {
     }
 
     private func monthTitle(month: Int) -> String {
+        if usesEnglishMonthTitle {
+            let names = ["January", "February", "March", "April", "May", "June",
+                         "July", "August", "September", "October", "November", "December"]
+            return names[(month - 1) % 12]
+        }
         switch LexiconLanguage.current {
         case .english:
             let names = ["January", "February", "March", "April", "May", "June",
@@ -439,19 +715,20 @@ struct MonthlyCalendarCanvas: View {
                         cellView(day: (dayNumber >= 1 && dayNumber <= dayCount) ? dayNumber : nil,
                                  isCapture: dayNumber == captureDay,
                                  term: termByDay[dayNumber],
-                                 cell: cell)
+                                 cell: cell,
+                                 seed: year * 10000 + month * 100 + max(dayNumber, 0))
                     }
                 }
             }
         }
     }
 
-    private func cellView(day: Int?, isCapture: Bool, term: String?, cell: CGFloat) -> some View {
+    private func cellView(day: Int?, isCapture: Bool, term: String?, cell: CGFloat, seed: Int) -> some View {
         VStack(spacing: cell * 0.06) {
             ZStack {
                 if isCapture {
-                    Circle().stroke(Color.red.opacity(0.9), lineWidth: max(1, cell * 0.06))
-                        .frame(width: cell * 0.72, height: cell * 0.72)
+                    HandDrawnCalendarRing(seed: seed, color: .red)
+                        .frame(width: cell * 0.82, height: cell * 0.66)
                 }
                 Text(day.map(String.init) ?? "")
                     .font(.system(size: cell * 0.34, weight: isCapture ? .semibold : .regular, design: .serif))
@@ -474,17 +751,155 @@ struct MonthlyCalendarCanvas: View {
 
 struct MonthlyCalendarSettingsSheet: View {
     @Binding var hidesLocation: Bool
+    @Binding var layoutStyle: MonthlyCalendarLayoutStyle
+    @Binding var panelColorMode: MonthlyCalendarPanelColorMode
+    @Binding var customPanelColor: Color
+    @Binding var usesEnglishMonthTitle: Bool
+    @Binding var hidesFooter: Bool
+    let isSupporter: Bool
+    var onRequestSupport: () -> Void = {}
 
     var body: some View {
         Form {
+            Section("月历样式") {
+                Picker("月历样式", selection: $layoutStyle) {
+                    ForEach(MonthlyCalendarLayoutStyle.allCases) { style in
+                        Text(style.title).tag(style)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("feature.calendarLayout")
+            }
+
+            if layoutStyle == .photoSplit {
+                Section {
+                    Picker("底板颜色", selection: colorModeBinding) {
+                        ForEach(MonthlyCalendarPanelColorMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("feature.calendarPanelColorMode")
+
+                    if isSupporter && panelColorMode == .custom {
+                        ColorPicker("自定义底板颜色", selection: $customPanelColor, supportsOpacity: false)
+                            .accessibilityIdentifier("feature.calendarCustomPanelColor")
+                    }
+
+                    if !isSupporter {
+                        Button(action: onRequestSupport) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "lock.fill")
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("自动取色与自定义颜色")
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("支持我们后解锁，字体颜色会自动适配底板。")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                ProBadge(compact: true)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("feature.calendarPanelColorPro")
+                    }
+                } header: {
+                    Text("月历底板")
+                }
+            }
+
+            if LexiconLanguage.current != .english {
+                Section("月份标题") {
+                    Picker("月份标题", selection: $usesEnglishMonthTitle) {
+                        Text("中文标题").tag(false)
+                        Text(verbatim: "English").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("feature.calendarTitleLanguage")
+                }
+            }
+
             Section {
                 Toggle("不显示位置信息", isOn: $hidesLocation)
                     .accessibilityIdentifier("feature.calendarHideLocation")
+                if layoutStyle == .photoSplit {
+                    Toggle("隐藏底部题记", isOn: $hidesFooter)
+                        .accessibilityIdentifier("feature.calendarHideFooter")
+                }
             } footer: {
-                Text("同时隐藏月历预览与导出作品中的位置，不更改原照片。")
+                Text(layoutStyle == .photoSplit
+                     ? "可隐藏摄影月历底部的年份、题记与位置；不更改原照片。"
+                     : "同时隐藏月历预览与导出作品中的位置，不更改原照片。")
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var colorModeBinding: Binding<MonthlyCalendarPanelColorMode> {
+        Binding(
+            get: { isSupporter ? panelColorMode : .fixed },
+            set: { newValue in
+                if isSupporter || newValue == .fixed {
+                    panelColorMode = newValue
+                } else {
+                    onRequestSupport()
+                }
+            }
+        )
+    }
+}
+
+private struct HandDrawnCalendarRing: View {
+    let seed: Int
+    let color: Color
+
+    var body: some View {
+        ZStack {
+            HandDrawnCalendarOval(seed: seed)
+                .stroke(color.opacity(0.96), style: StrokeStyle(lineWidth: 1.7, lineCap: .round, lineJoin: .round))
+            HandDrawnCalendarOval(seed: seed &+ 29)
+                .stroke(color.opacity(0.46), style: StrokeStyle(lineWidth: 0.9, lineCap: .round, lineJoin: .round))
+                .scaleEffect(x: 1.04, y: 0.93)
+                .offset(x: 0.7, y: -0.4)
+        }
+        .rotationEffect(.degrees(Double((seed % 9) - 4)))
+    }
+}
+
+private struct HandDrawnCalendarOval: Shape {
+    let seed: Int
+
+    func path(in rect: CGRect) -> Path {
+        let jitterA = CGFloat((seed &* 17) % 11 - 5) * rect.width * 0.004
+        let jitterB = CGFloat((seed &* 31) % 13 - 6) * rect.height * 0.004
+        let left = rect.minX + rect.width * 0.06
+        let right = rect.maxX - rect.width * 0.03
+        let top = rect.minY + rect.height * 0.08
+        let bottom = rect.maxY - rect.height * 0.05
+        var path = Path()
+        path.move(to: CGPoint(x: left + jitterA, y: rect.midY + jitterB))
+        path.addCurve(
+            to: CGPoint(x: rect.midX, y: top),
+            control1: CGPoint(x: left, y: top + rect.height * 0.16),
+            control2: CGPoint(x: rect.midX - rect.width * 0.24, y: top - jitterB)
+        )
+        path.addCurve(
+            to: CGPoint(x: right, y: rect.midY),
+            control1: CGPoint(x: rect.midX + rect.width * 0.27, y: top + jitterA),
+            control2: CGPoint(x: right + jitterA, y: rect.midY - rect.height * 0.22)
+        )
+        path.addCurve(
+            to: CGPoint(x: rect.midX, y: bottom),
+            control1: CGPoint(x: right - jitterB, y: rect.midY + rect.height * 0.24),
+            control2: CGPoint(x: rect.midX + rect.width * 0.24, y: bottom + jitterA)
+        )
+        path.addCurve(
+            to: CGPoint(x: left + rect.width * 0.15, y: rect.midY + rect.height * 0.05),
+            control1: CGPoint(x: rect.midX - rect.width * 0.28, y: bottom - jitterB),
+            control2: CGPoint(x: left - jitterA, y: rect.midY + rect.height * 0.23)
+        )
+        return path
     }
 }
 
@@ -530,6 +945,9 @@ struct FeatureModeControls: View {
     let isResolvingCity: Bool
     var locationMessage: String? = nil
     var hidesCalendarLocation = false
+    var calendarLayoutStyle: MonthlyCalendarLayoutStyle = .glass
+    var calendarCropEditing: Binding<Bool>? = nil
+    var onResetCalendarCrop: () -> Void = {}
     var onCalendarSettings: () -> Void = {}
     var onPaletteCardSettings: () -> Void = {}
 
@@ -544,7 +962,7 @@ struct FeatureModeControls: View {
                 }
 
                 HStack(spacing: 10) {
-                    Image(systemName: "rectangle.bottomthird.inset.filled")
+                    Image(systemName: paletteSide.symbol)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.primary.opacity(0.62))
                         .frame(width: 18)
@@ -567,6 +985,49 @@ struct FeatureModeControls: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("feature.paletteCardSettings")
             case .monthlyCalendar:
+                if calendarLayoutStyle == .photoSplit, let calendarCropEditing {
+                    HStack(spacing: 8) {
+                        Button {
+                            calendarCropEditing.wrappedValue.toggle()
+                            UISelectionFeedbackGenerator().selectionChanged()
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: calendarCropEditing.wrappedValue ? "checkmark" : "crop")
+                                    .font(.system(size: 14, weight: .semibold))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(calendarCropEditing.wrappedValue ? "完成取景" : "调整取景")
+                                        .font(.system(size: 13, weight: .semibold))
+                                    Text(calendarCropEditing.wrappedValue ? "在上方拖动照片，双指缩放" : "默认使用自动裁切")
+                                        .font(.system(size: 11.5))
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                            }
+                            .foregroundStyle(.primary.opacity(0.82))
+                            .padding(.horizontal, 2)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 42)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(LiquidPressButtonStyle())
+
+                        if calendarCropEditing.wrappedValue {
+                            Button {
+                                onResetCalendarCrop()
+                                UISelectionFeedbackGenerator().selectionChanged()
+                            } label: {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .frame(width: 48, height: 48)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.primary.opacity(0.82))
+                            .background(Color.primary.opacity(0.07), in: Circle())
+                            .accessibilityLabel("复位取景")
+                        }
+                    }
+                }
+
                 HStack(spacing: 8) {
                     Image(systemName: hidesCalendarLocation ? "location.slash" : "location.fill")
                         .font(.system(size: 12, weight: .semibold))

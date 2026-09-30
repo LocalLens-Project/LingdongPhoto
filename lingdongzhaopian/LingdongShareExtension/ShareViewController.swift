@@ -777,7 +777,7 @@ private enum ShareCreationMode: String, CaseIterable, Identifiable {
         case .motionCard: "灵动卡片"
         case .colorPalette: "琉璃色盘"
         case .journal: "一键手帐"
-        case .bubbleStamp: "气泡印章"
+        case .bubbleStamp: "光影签章"
         case .spectrumWallpaper: "色谱壁纸"
         case .privacyMosaic: "隐私马赛克"
         case .travelTicket: "影像票根"

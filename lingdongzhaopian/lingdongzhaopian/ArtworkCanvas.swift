@@ -17,6 +17,7 @@ struct ArtworkCanvas: View {
     let imageOffset: CGSize
     var metadata: PhotoMetadata = .empty
     var showMissingCaptureTime = true
+    var showsCaptureTime = true
     var copy: ArtworkCopy = ArtworkCopy()
     var fontStyle: ArtworkFontStyle = .rounded
     var templateStyle: ArtworkTemplateStyle = .classic
@@ -47,6 +48,9 @@ struct ArtworkCanvas: View {
     var ticketDeviceSealEnabled = true
     var ticketCodeImageOverride: UIImage?
     var sketchImage: UIImage? = nil
+    var sketchParameters: SketchParameters = .defaultBrush
+    var classicSketchImage: UIImage? = nil
+    var classicSketchParameters: ClassicSketchParameters = .defaultPencil
     var showsColorPaletteOverlay = true
     var lightToneOverlay: UIImage? = nil
     var glassArchiveMark: GlassArchiveMark = .apple
@@ -55,6 +59,10 @@ struct ArtworkCanvas: View {
 
     var glassArchiveShowsLocation = true
     var glassArchiveBarPosition: CGFloat = 1
+    var glassArchivePinnedColors: [RGBColor] = []
+    var glassArchivePinnedEdge: GlassArchivePinnedEdge = .leading
+    var glassArchiveCustomText: String? = nil
+    var glassArchiveCustomFont: PostalFont = .original
 
     var featurePaletteSide: FeaturePaletteSide = .bottom
     var featurePaletteBandRatio: Double = 0.295
@@ -63,6 +71,26 @@ struct ArtworkCanvas: View {
     var featurePaletteBandRectChange: ((CGRect?) -> Void)? = nil
     var featureCalendarCity: String?
     var featureCalendarShowsLocation = true
+    var featureCalendarLayoutStyle: MonthlyCalendarLayoutStyle = .glass
+    var featureCalendarPanelColorMode: MonthlyCalendarPanelColorMode = .fixed
+    var featureCalendarCustomPanelColor = RGBColor(red: 0.972, green: 0.964, blue: 0.936)
+    var featureCalendarUsesEnglishMonthTitle = false
+    var featureCalendarShowsFooter = true
+    var featureCalendarPhotoScale: CGFloat = 1
+    var featureCalendarPhotoOffset: CGSize = .zero
+    var signatureStampPage: SignatureStampPage = .bubble
+    var signatureStampText = ""
+    var signatureStampFont: PostalFont = .original
+    var signatureStampImage: UIImage? = nil
+    var signatureStampSource: SignatureStampSource = .text
+    var signatureStampTextScale: CGFloat = 1
+    var signatureStampImageScale: CGFloat = 1
+    var signatureStampOffset: CGSize = .zero
+    var signatureStampShowsDate = false
+    var signatureStampShowsTime = false
+    var signatureStampUsesEnglishDateTime = false
+    var signatureStampDateTimeScale: CGFloat = 1
+    var signatureStampDateTimeOffset = CGSize(width: 0.25, height: 0.40)
     var onEditCopy: (() -> Void)? = nil
 
     private var colors: [RGBColor] {
@@ -187,6 +215,8 @@ struct ArtworkCanvas: View {
         case .travelTicket:
             travelTicket(size: size)
         case .sketch:
+            classicSketch(size: size)
+        case .imagePainting:
             sketch(size: size)
         case .glassArchive:
             glassArchive(size: size)
@@ -214,7 +244,14 @@ struct ArtworkCanvas: View {
             if let image = images.first {
                 MonthlyCalendarCanvas(image: image, palette: palette,
                                       captureDate: metadata.captureDate, cityName: featureCalendarCity,
-                                      showsLocation: featureCalendarShowsLocation)
+                                      showsLocation: featureCalendarShowsLocation,
+                                      layoutStyle: featureCalendarLayoutStyle,
+                                      panelColorMode: featureCalendarPanelColorMode,
+                                      customPanelColor: featureCalendarCustomPanelColor,
+                                      usesEnglishMonthTitle: featureCalendarUsesEnglishMonthTitle,
+                                      showsFooter: featureCalendarShowsFooter,
+                                      photoScale: featureCalendarPhotoScale,
+                                      normalizedPhotoOffset: featureCalendarPhotoOffset)
             } else {
                 Color.clear
             }
@@ -739,7 +776,7 @@ struct ArtworkCanvas: View {
                             .font(fontStyle.font(size: max(10, size.width * 0.040) * textScale, weight: .semibold))
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
-                        if metadata.captureDate != nil || showMissingCaptureTime {
+                        if showsCaptureTime && (metadata.captureDate != nil || showMissingCaptureTime) {
                             Text(LocalizedStringKey(metadata.captureTimeText))
                                 .font(.system(size: max(7, size.width * 0.020), weight: .medium))
                         }
@@ -771,7 +808,7 @@ struct ArtworkCanvas: View {
                         .font(fontStyle.font(size: max(8, size.width * 0.026) * textScale, weight: .semibold))
                         .lineLimit(2)
                         .multilineTextAlignment(.center)
-                    if metadata.captureDate != nil || showMissingCaptureTime {
+                    if showsCaptureTime && (metadata.captureDate != nil || showMissingCaptureTime) {
                         Text(LocalizedStringKey(metadata.captureTimeText))
                             .font(.system(size: max(6, size.width * 0.017), weight: .medium))
                     }
@@ -1000,12 +1037,15 @@ struct ArtworkCanvas: View {
     }
 
     private func bubbleStamp(size: CGSize) -> AnyView {
+        if signatureStampPage == .signature {
+            return AnyView(signatureStamp(size: size))
+        }
+
         let isCamera = metadata.captureDevice.category == .camera
         let deviceBubbleDiameter = size.width * (isCamera ? 0.11 : 0.10) * bubbleScale
         let deviceMarkWidth = cameraWatermarkImage.map {
             customWatermarkWidth(for: $0, height: deviceBubbleDiameter)
         } ?? deviceBubbleDiameter
-
         if templateStyle == .immersive {
             return AnyView(
                 ZStack(alignment: .bottom) {
@@ -1155,6 +1195,87 @@ struct ArtworkCanvas: View {
         })
     }
 
+    private func signatureStamp(size: CGSize) -> some View {
+        ZStack {
+            Color.black
+            if let image = images.first {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size.width, height: size.height)
+            }
+            signatureStampOverlay(size: size)
+            signatureStampDateTimeOverlay(size: size)
+        }
+        .frame(width: size.width, height: size.height)
+        .clipped()
+    }
+
+    @ViewBuilder
+    private func signatureStampDateTimeOverlay(size: CGSize) -> some View {
+        if let text = signatureStampDateTimeText {
+            Text(verbatim: text)
+                .font(Font(signatureStampFont.uiFont(size: max(10, size.width * 0.030) * signatureStampDateTimeScale)))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .padding(.horizontal, size.width * 0.018)
+                .padding(.vertical, size.width * 0.010)
+                .background(.black.opacity(0.20), in: Capsule())
+                .shadow(color: .black.opacity(0.82), radius: max(1.5, size.width * 0.008), y: 1)
+                .position(
+                    x: size.width * (0.5 + signatureStampDateTimeOffset.width),
+                    y: size.height * (0.5 + signatureStampDateTimeOffset.height)
+                )
+        }
+    }
+
+    private var signatureStampDateTimeText: String? {
+        guard signatureStampShowsDate || signatureStampShowsTime,
+              let date = metadata.captureDate else { return nil }
+        let formatter = DateFormatter()
+        let usesEnglish = signatureStampUsesEnglishDateTime || LexiconLanguage.current == .english
+        formatter.locale = Locale(identifier: usesEnglish ? "en_US" : "zh_CN")
+        if signatureStampShowsDate && signatureStampShowsTime {
+            formatter.dateFormat = usesEnglish ? "MMM d, yyyy · h:mm a" : "yyyy年M月d日 HH:mm"
+        } else if signatureStampShowsDate {
+            formatter.dateFormat = usesEnglish ? "MMM d, yyyy" : "yyyy年M月d日"
+        } else {
+            formatter.dateFormat = usesEnglish ? "h:mm a" : "HH:mm"
+        }
+        return formatter.string(from: date)
+    }
+
+    @ViewBuilder
+    private func signatureStampOverlay(size: CGSize) -> some View {
+        let center = CGPoint(
+            x: size.width * (0.5 + signatureStampOffset.width),
+            y: size.height * (0.5 + signatureStampOffset.height)
+        )
+        if signatureStampSource == .image, let image = signatureStampImage {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(
+                    width: size.width * 0.30 * signatureStampImageScale,
+                    height: size.height * 0.22 * signatureStampImageScale
+                )
+                .shadow(color: .black.opacity(0.28), radius: max(1, size.width * 0.008), y: 1)
+                .position(center)
+        } else if !signatureStampText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            Text(verbatim: signatureStampText)
+                .font(Font(signatureStampFont.uiFont(size: max(18, size.width * 0.075) * signatureStampTextScale)))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.5)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, size.width * 0.025)
+                .shadow(color: .black.opacity(0.78), radius: max(1.5, size.width * 0.010), y: 1)
+                .position(center)
+        }
+    }
+
+
     private func captureDeviceBubble(
         diameter: CGFloat,
         fill: Color,
@@ -1251,6 +1372,26 @@ struct ArtworkCanvas: View {
             : nil
 
         let bar = HStack(spacing: barHeight * 0.18) {
+            if let customText = glassArchiveCustomText {
+                if glassArchivePinnedEdge == .leading {
+                    glassArchivePinnedSwatches(barHeight: barHeight)
+                }
+                Text(customText.isEmpty ? "轻点档案栏，写下此刻".appLocalized : customText)
+                    .font(glassArchiveCustomTextFont(barHeight: barHeight))
+                    .opacity(customText.isEmpty ? 0.62 : 1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.35)
+                    .allowsTightening(true)
+                    .frame(
+                        maxWidth: .infinity,
+                        alignment: glassArchivePinnedColors.isEmpty
+                            ? .center
+                            : (glassArchivePinnedEdge == .leading ? .trailing : .leading)
+                    )
+                if glassArchivePinnedEdge == .trailing {
+                    glassArchivePinnedSwatches(barHeight: barHeight)
+                }
+            } else {
             VStack(alignment: .leading, spacing: barHeight * 0.05) {
 
                 Text(LocalizedStringKey(deviceName))
@@ -1302,6 +1443,7 @@ struct ArtworkCanvas: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .foregroundStyle(.white)
         .padding(.horizontal, barHeight * 0.34)
@@ -1317,6 +1459,13 @@ struct ArtworkCanvas: View {
         .shadow(color: .black.opacity(0.20), radius: 12, y: 5)
         .position(x: barFrame.midX, y: barFrame.midY)
 
+        let barStateDescription: String
+        if let customText = glassArchiveCustomText, !customText.isEmpty {
+            barStateDescription = customText
+        } else {
+            barStateDescription = "\(deviceName)，\(timeText)"
+        }
+
         return ZStack {
             primaryPhoto(size: size, cornerRadius: 0)
 
@@ -1324,8 +1473,29 @@ struct ArtworkCanvas: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
-            "琉璃档案预览，\(deviceName)，\(timeText)，可拖动档案栏调整位置，双击中间标志可更换标志"
+            "琉璃档案预览，\(barStateDescription)，可拖动档案栏调整位置，双击中间标志可更换标志"
         )
+    }
+
+    private func glassArchiveCustomTextFont(barHeight: CGFloat) -> Font {
+        let size = barHeight * 0.26
+        if glassArchiveCustomFont == .original {
+            return .system(size: size, weight: .semibold)
+        }
+        return Font(glassArchiveCustomFont.uiFont(size: size))
+    }
+
+    @ViewBuilder
+    private func glassArchivePinnedSwatches(barHeight: CGFloat) -> some View {
+        if !glassArchivePinnedColors.isEmpty {
+            HStack(spacing: barHeight * 0.10) {
+                ForEach(Array(glassArchivePinnedColors.enumerated()), id: \.offset) { _, pinnedColor in
+                    Circle()
+                        .fill(pinnedColor.color)
+                        .frame(width: barHeight * 0.28, height: barHeight * 0.28)
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -1421,6 +1591,22 @@ struct ArtworkCanvas: View {
         SketchCanvas(
             sourceImage: images.first,
             sketchImage: sketchImage,
+            palette: palette,
+            palettePercentages: palettePercentages,
+            metadata: metadata,
+            parameters: sketchParameters,
+            imageScale: imageScale,
+            imageOffset: imageOffset,
+            isExporting: isExporting
+        )
+        .frame(width: size.width, height: size.height)
+    }
+
+    @ViewBuilder
+    private func classicSketch(size: CGSize) -> some View {
+        ClassicSketchCanvas(
+            sourceImage: images.first,
+            sketchImage: classicSketchImage,
             imageScale: imageScale,
             imageOffset: imageOffset,
             isExporting: isExporting

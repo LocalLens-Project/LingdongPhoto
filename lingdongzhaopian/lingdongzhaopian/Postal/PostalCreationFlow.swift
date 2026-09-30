@@ -277,6 +277,7 @@ struct PostalFlowPage<Actions: View>: View {
     @AppStorage("supporterUnlocked") private var supporterUnlocked = false
     @AppStorage("poeticNamesEnabled") private var poeticNamesEnabled = false
     @State private var supportPresented = false
+    @State private var livePlayback = false
     let title: String
     let step: PostalCreationStep
     let templates: [PostalTemplate]
@@ -293,6 +294,12 @@ struct PostalFlowPage<Actions: View>: View {
     @ViewBuilder var actions: Actions
     private var selectedTemplate: PostalTemplate { templates[selection] }
     private var templateAvailable: Bool { selectedTemplate.isAvailable(hasPro: supporterUnlocked) }
+    private var liveRectFraction: CGRect? {
+        switch selectedTemplate {
+        case .stamp(let format): format.livePhotoRectFraction
+        case .postcard: nil
+        }
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -361,6 +368,15 @@ struct PostalFlowPage<Actions: View>: View {
         .fullScreenCover(isPresented: $supportPresented) {
             SupportUsView {
                 poeticNamesEnabled = true
+            }
+        }
+        .fullScreenCover(isPresented: $livePlayback) {
+            if let preview, let videoURL = model.source?.liveVideoURL {
+                PostalLivePlaybackView(
+                    artwork: preview,
+                    videoURL: videoURL,
+                    photoRectFraction: liveRectFraction ?? CGRect(x: 0, y: 0, width: 1, height: 1)
+                )
             }
         }
         .onChange(of: supporterUnlocked) { _, unlocked in
@@ -491,6 +507,10 @@ struct PostalFlowPage<Actions: View>: View {
                             .font(roomy ? .subheadline : .caption)
                             .foregroundStyle(.black.opacity(0.4))
                     }
+                }
+                if model.source?.liveVideoURL != nil, preview != nil, liveRectFraction != nil {
+                    PostalLiveBadge { livePlayback = true }
+                        .padding(.top, 2)
                 }
                 actions
             }

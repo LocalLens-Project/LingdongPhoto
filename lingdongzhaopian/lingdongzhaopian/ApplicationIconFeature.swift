@@ -105,6 +105,7 @@ struct ApplicationIconPicker: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var store = ApplicationIconStore.shared
     @State private var unlockPrompt = false
+    @State private var unlockPromptDismissTask: Task<Void, Never>?
     @State private var supportPresented = false
     @State private var error: String?
 
@@ -133,11 +134,16 @@ struct ApplicationIconPicker: View {
         .onAppear { store.refresh() }
         .onChange(of: scenePhase) { _, phase in if phase == .active { store.refresh() } }
         .onChange(of: supporterUnlocked) { _, unlocked in
-            if unlocked { unlockPrompt = false; supportPresented = false }
+            if unlocked {
+                unlockPromptDismissTask?.cancel()
+                unlockPrompt = false
+                supportPresented = false
+            }
         }
         .overlay(alignment: .bottom) {
             if unlockPrompt && !supporterUnlocked {
                 SupporterProUnlockPrompt(message: "支持我们后，即可解锁全部应用图标。") {
+                    unlockPromptDismissTask?.cancel()
                     unlockPrompt = false
                     supportPresented = true
                 }
@@ -145,6 +151,9 @@ struct ApplicationIconPicker: View {
                 .transition(.scale(scale: 0.92).combined(with: .opacity))
                 .accessibilityIdentifier("appIcon.unlockPrompt")
             }
+        }
+        .onDisappear {
+            unlockPromptDismissTask?.cancel()
         }
         .fullScreenCover(isPresented: $supportPresented) {
             SupportUsView {
@@ -161,7 +170,13 @@ struct ApplicationIconPicker: View {
         let locked = !supporterUnlocked && icon != .original
         return Button {
             guard !locked else {
+                unlockPromptDismissTask?.cancel()
                 withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { unlockPrompt = true }
+                unlockPromptDismissTask = Task {
+                    try? await Task.sleep(for: .seconds(6))
+                    guard !Task.isCancelled else { return }
+                    withAnimation(.easeOut(duration: 0.22)) { unlockPrompt = false }
+                }
                 return
             }
             Task {

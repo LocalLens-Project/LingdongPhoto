@@ -233,6 +233,7 @@ struct ModeSelectionHint: View {
 struct TicketLandscapeHint: View {
     let tint: Color
     let foreground: Color
+    let featureName: String
     let action: () -> Void
 
     var body: some View {
@@ -253,8 +254,8 @@ struct TicketLandscapeHint: View {
             shape.fill(tint.opacity(0.18))
         }
         .liquidGlass(in: shape, interactive: true, variant: .clear)
-        .accessibilityLabel("点击翻转，横屏预览票根效果更佳")
-        .accessibilityHint("切换到应用内横屏票根工作区")
+        .accessibilityLabel("点击翻转，横屏预览\(featureName)效果更佳")
+        .accessibilityHint("切换到横屏\(featureName)工作区")
     }
 }
 

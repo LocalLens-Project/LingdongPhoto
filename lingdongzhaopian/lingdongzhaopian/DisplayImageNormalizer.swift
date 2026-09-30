@@ -6,7 +6,7 @@ import UIKit
 /// Flattens HDR/EDR image representations into a standard-dynamic-range
 /// bitmap before they enter SwiftUI composition. This prevents an HDR photo
 /// from changing the apparent brightness of nearby SDR text and controls.
-enum DisplayImageNormalizer {
+nonisolated enum DisplayImageNormalizer {
     static func standardDynamicRange(_ image: UIImage) -> UIImage {
         guard image.size.width > 0, image.size.height > 0 else { return image }
 

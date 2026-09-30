@@ -29,7 +29,13 @@ struct PostcardStudio: View {
     @State private var renderTask: Task<Void, Never>?
 
     init(photo: SelectedPhoto? = nil, source: PostalSource? = nil, stamp: PostalStamp? = nil, store: PostalStore? = nil) {
-        pendingSource = source ?? photo.map { PostalSource(image: $0.image, metadata: $0.metadata) }
+        pendingSource = source ?? photo.map {
+            PostalSource(
+                image: $0.image,
+                metadata: $0.metadata,
+                liveVideoURL: nil
+            )
+        }
         _selectedStamp = State(initialValue: stamp); self.store = store ?? .shared
     }
     private var selection: Binding<Int> {

@@ -6,7 +6,7 @@ import Foundation
 /// A deliberately finite set of literary color names. Colors are matched to
 /// the nearest reference swatch in OKLab, whose distances better reflect
 /// perceived differences than raw RGB channel distances.
-enum LiteraryColorCatalog {
+nonisolated enum LiteraryColorCatalog {
     static let count = swatches.count
 
     static func name(red: Double, green: Double, blue: Double) -> String {

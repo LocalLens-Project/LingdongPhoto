@@ -1,6 +1,6 @@
 import Foundation
 
-enum CaptureDeviceCategory: String, Equatable {
+nonisolated enum CaptureDeviceCategory: String, Equatable {
     case iPhone
     case smartphone
     case tablet
@@ -18,7 +18,7 @@ enum CaptureDeviceCategory: String, Equatable {
     }
 }
 
-struct CaptureDeviceDescriptor: Equatable {
+nonisolated struct CaptureDeviceDescriptor: Equatable {
     let category: CaptureDeviceCategory
     let manufacturer: String?
     let model: String?

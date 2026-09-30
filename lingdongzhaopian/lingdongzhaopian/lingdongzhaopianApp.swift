@@ -54,10 +54,8 @@ struct lingdongzhaopianApp: App {
             ContentView()
                 .tint(.black)
                 .task {
-
                     await SupporterStore.shared.bootstrap()
                 }
         }
     }
-
 }

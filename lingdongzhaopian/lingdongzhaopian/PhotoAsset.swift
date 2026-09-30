@@ -6,7 +6,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
 
-struct PhotoMetadata: Equatable {
+nonisolated struct PhotoMetadata: Equatable, Sendable {
     var make: String?
     var model: String?
     var lensModel: String?
@@ -355,6 +355,11 @@ enum PhotoImportError: LocalizedError {
 }
 
 enum PhotoAssetLoader {
+    private struct SharedDecodedPhoto: @unchecked Sendable {
+        let image: UIImage
+        let metadata: PhotoMetadata
+    }
+
     private struct LivePhotoResourceInfo {
         let isLivePhoto: Bool
         let imageData: Data?
@@ -439,15 +444,25 @@ enum PhotoAssetLoader {
     private static func loadSharedItem(
         _ item: SharedPhotoHandoff.Item
     ) async throws -> SelectedPhoto {
-        guard let decodedImage = UIImage(data: item.imageData) else {
+        let decoded: SharedDecodedPhoto
+        do {
+            decoded = try await Task.detached(priority: .userInitiated) {
+                guard let decodedImage = UIImage(data: item.imageData) else {
+                    throw PhotoImportError.unreadableImage
+                }
+                return SharedDecodedPhoto(
+                    image: DisplayImageNormalizer.standardDynamicRange(decodedImage),
+                    metadata: PhotoMetadata.read(from: item.imageData)
+                )
+            }.value
+        } catch {
             if let url = item.pairedVideoURL {
                 try? FileManager.default.removeItem(at: url)
             }
-            throw PhotoImportError.unreadableImage
+            throw error
         }
-        let image = DisplayImageNormalizer.standardDynamicRange(decodedImage)
         async let semanticAnalysis = PhotoContentAnalyzer.analyze(item.imageData)
-        var metadata = PhotoMetadata.read(from: item.imageData)
+        var metadata = decoded.metadata
         if let coordinate = metadataCoordinate(metadata) {
             metadata.placeName = await reverseGeocode(coordinate)
         }
@@ -463,7 +478,7 @@ enum PhotoAssetLoader {
             throw PhotoImportError.missingLivePhotoVideo
         }
         return SelectedPhoto(
-            image: image,
+            image: decoded.image,
             originalData: item.imageData,
             metadata: metadata,
             semantic: await semanticAnalysis,

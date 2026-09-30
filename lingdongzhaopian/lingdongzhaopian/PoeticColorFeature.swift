@@ -424,10 +424,14 @@ struct SupportUsView: View {
         .task {
             await supporterStore.bootstrap()
             await supporterStore.refreshProductIfNeeded()
+            await supporterStore.revalidateEntitlement()
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
-            Task { await supporterStore.refreshProductIfNeeded() }
+            Task {
+                await supporterStore.refreshProductIfNeeded()
+                await supporterStore.revalidateEntitlement()
+            }
         }
         .alert("提示".appLocalized, isPresented: Binding(
             get: { supporterStore.errorMessage != nil },
@@ -491,6 +495,14 @@ struct SupportUsView: View {
             supportFeature("envelope", "更多明信片版式", "解锁竖版寄语、白边快照与满版邮趣；经典邮政版式免费。")
             supportFeatureDivider
             supportFeature("app.badge", "专属应用图标", "解锁四款应用图标，随心更换主屏幕上的灵动照片。")
+            supportFeatureDivider
+            supportFeature("text.below.photo", "琉璃档案自定义", "档案栏开头或末尾可固定一至六色琉璃色，亦可书写专属文字并选用内置字体。")
+            supportFeatureDivider
+            supportFeature("textformat", "自定义画笺字体", "支持我们，即可为一照两境画笺选用邮票与明信片的内置字体。")
+            supportFeatureDivider
+            supportFeature("calendar.badge.plus", "灵动月历专属底板", "摄影月历可自动提取照片颜色或自定义底板，文字深浅会自动适配。")
+            supportFeatureDivider
+            supportFeature("signature", "光影签章自定义", "解锁全部签章字体，并可导入自己的 PNG 签章留在完整影像上。")
             supportFeatureDivider
             supportFeature(
                 "checkmark.seal",
@@ -663,9 +675,9 @@ struct SupportUsView: View {
 
     private var supportSubtitle: String {
         if supporterUnlocked {
-            return "你已可以使用节气诗名、典藏票面、全部邮票与明信片模板、专属应用图标及支持者标志。".appLocalized
+            return "你已可以使用节气诗名、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、专属应用图标及支持者标志。".appLocalized
         }
-        return "一次解锁节气词库、典藏票面、全部邮票与明信片模板、专属应用图标及支持者标志。".appLocalized
+        return "一次解锁节气词库、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、专属应用图标及支持者标志。".appLocalized
     }
 
     private var firstBatchBannerText: String? {
@@ -727,13 +739,12 @@ private struct SupportTicketShowcase: View {
         SupportShowcaseAsset(name: "SupportPhotoTicket\($0)", width: 184, height: 79)
     }
 
-    private static let developedTickets = [
-        SupportShowcaseAsset(name: "SupportDevelopRailway", width: 184, height: 79),
-        SupportShowcaseAsset(name: "SupportDevelopLive", width: 66, height: 88),
-        SupportShowcaseAsset(name: "SupportDevelopFlight", width: 184, height: 79),
-        SupportShowcaseAsset(name: "SupportDevelopExhibition", width: 66, height: 88),
-        SupportShowcaseAsset(name: "SupportDevelopCinema", width: 184, height: 79),
-        SupportShowcaseAsset(name: "SupportDevelopFestival", width: 66, height: 88)
+    private static let postalCreations = [
+        SupportShowcaseAsset(name: "SupportShowcase1", width: 128, height: 101),
+        SupportShowcaseAsset(name: "SupportShowcase2", width: 128, height: 101),
+        SupportShowcaseAsset(name: "SupportShowcase3", width: 128, height: 94),
+        SupportShowcaseAsset(name: "SupportShowcase4", width: 128, height: 85),
+        SupportShowcaseAsset(name: "SupportShowcase5", width: 128, height: 85)
     ]
 
     var body: some View {
@@ -749,13 +760,13 @@ private struct SupportTicketShowcase: View {
                 .frame(height: 79)
 
                 SupportTicketMarqueeRow(
-                    assets: Self.developedTickets,
+                    assets: Self.postalCreations,
                     direction: .trailing,
                     speed: 26,
                     phaseOffset: 0.43,
                     reduceMotion: reduceMotion
                 )
-                .frame(height: 88)
+                .frame(height: 101)
             }
             .saturation(0.82)
             .brightness(-0.12)
@@ -776,7 +787,7 @@ private struct SupportTicketShowcase: View {
 
             applicationIcon
         }
-        .frame(height: 178)
+        .frame(height: 191)
         .mask {
             LinearGradient(
                 stops: [
@@ -790,7 +801,7 @@ private struct SupportTicketShowcase: View {
             )
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("上排影像票根、下排票根显影作品")
+        .accessibilityLabel("上排影像票根、下排邮票与明信片作品")
         .accessibilityValue(ApplicationIconStore.shared.selected.title)
         .accessibilityIdentifier("support.showcase")
     }
@@ -803,8 +814,8 @@ private struct SupportTicketShowcase: View {
                     RadialGradient(
                         stops: [
                             .init(color: .white.opacity(0.20), location: 0),
-                            .init(color: Color(red: 0.80, green: 0.96, blue: 0.62).opacity(0.16), location: 0.28),
-                            .init(color: Color(red: 0.56, green: 0.89, blue: 0.88).opacity(0.10), location: 0.60),
+                            .init(color: Color(red: 0.34, green: 0.72, blue: 1.00).opacity(0.18), location: 0.28),
+                            .init(color: Color(red: 0.34, green: 0.86, blue: 0.55).opacity(0.10), location: 0.60),
                             .init(color: .clear, location: 1)
                         ],
                         center: .center,
@@ -823,7 +834,7 @@ private struct SupportTicketShowcase: View {
                     .stroke(.white.opacity(0.38), lineWidth: 0.85)
             }
             .shadow(color: .white.opacity(0.15), radius: 5)
-            .shadow(color: Color(red: 0.58, green: 0.91, blue: 0.85).opacity(0.22), radius: 20)
+            .shadow(color: Color(red: 0.34, green: 0.72, blue: 1.00).opacity(0.22), radius: 20)
             .shadow(color: .black.opacity(0.30), radius: 10, y: 6)
         }
     }
@@ -888,11 +899,17 @@ private struct SupportTicketMarqueeRow: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: asset.width, height: asset.height)
-                    .background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(
+                        asset.name == "SupportShowcase3" ? Color.clear : Color.white.opacity(0.035),
+                        in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(.white.opacity(0.13), lineWidth: 0.7)
+                            .stroke(
+                                asset.name == "SupportShowcase3" ? Color.clear : Color.white.opacity(0.13),
+                                lineWidth: 0.7
+                            )
                     }
                     .shadow(color: .black.opacity(0.28), radius: 7, y: 4)
             }

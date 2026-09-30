@@ -97,6 +97,7 @@ struct PostalCollectionView: View {
     @State private var notice: String?
     @State private var lockedCity: PostalCity?
     @State private var lockedHintGeneration = 0
+    @State private var livePlayback = false
     init(store: PostalStore? = nil) { self.store = store ?? .shared }
     private var tint: PostalTint { selected?.tint ?? store.cities.first?.tint ?? .init() }
     var body: some View {
@@ -201,6 +202,18 @@ struct PostalCollectionView: View {
             }
             .sheet(isPresented: $newCity) { StampStudio(store: store) }
             .sheet(isPresented: $library) { PostalStampLibrary(store: store) }
+            .fullScreenCover(isPresented: $livePlayback) {
+                if let selected, let stamp = store.representative(for: selected.city),
+                   let videoURL = store.liveVideoURL(for: stamp),
+                   let artwork = store.image(stamp, fullSize: true) {
+                    PostalLivePlaybackView(
+                        artwork: artwork,
+                        videoURL: videoURL,
+                        photoRectFraction: stamp.format.livePhotoRectFraction
+                            ?? CGRect(x: 0, y: 0, width: 1, height: 1)
+                    )
+                }
+            }
             .sheet(isPresented: $collectionNotes) {
                 if PostalCollectionLanguage.usesProvinceLayout { PostalCityCollectionNotes() }
             }
@@ -344,6 +357,9 @@ struct PostalCollectionView: View {
 
                 VStack(spacing: 12) {
                     Text(slot.city.name).font(.headline)
+                    if let stamp, store.liveVideoURL(for: stamp) != nil {
+                        PostalLiveBadge { livePlayback = true }
+                    }
                     if reduceMotion {
                         Button(isShowingBack ? "查看正面" : "查看背面") { setRotation(isShowingBack ? 0 : 180) }
                             .font(.subheadline).accessibilityIdentifier("postal.reducedFlip")
@@ -358,7 +374,7 @@ struct PostalCollectionView: View {
                         Button("删除这枚邮票", role: .destructive) { deleting = true }.font(.caption)
                     }
                 }
-                .frame(width: min(340, proxy.size.width - 48), height: 170, alignment: .top)
+                .frame(width: min(340, proxy.size.width - 48), height: 200, alignment: .top)
                 .position(x: proxy.size.width / 2, y: centerY + size.height / 2 + 24 + 85)
 
                 Button { close() } label: {

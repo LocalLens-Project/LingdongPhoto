@@ -186,7 +186,7 @@ struct SettingsView: View {
                 supportAndContactSection
 
                 VStack(spacing: 10) {
-                    Text("版本 3.0.1 (Build 202632)")
+                    Text("版本 3.0.2 (Build 202635)")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
 
@@ -695,7 +695,7 @@ struct SettingsView: View {
     }
 
     private var stampTips: some View {
-        settingsSection("气泡印章操作技巧") {
+        settingsSection("光影签章操作技巧") {
             VStack(spacing: 0) {
                 cameraWatermarkNavigationRow
                 sectionDivider

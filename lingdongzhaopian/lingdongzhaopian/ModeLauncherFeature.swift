@@ -8,7 +8,7 @@ import Darwin
 enum LocalizedVisualPolicy {
     static func showsOnboardingFeatureImage(languageCode: String, imageName: String) -> Bool {
         if languageCode == "en" { return false }
-        if languageCode == "zh-Hant", imageName == "postalcollection" { return false }
+        if languageCode == "zh-Hant", ["postalcollection", "monthlycalendarphoto"].contains(imageName) { return false }
         return true
     }
 
@@ -164,6 +164,9 @@ struct IslandModeLauncher: View {
     let safeAreaTop: CGFloat
     let selectedMode: CreationMode
     var selectedDestination: ModeLauncherDestination? = nil
+    var isLandscape = false
+    var rotatesExpandedContent = false
+    var preservesPortraitSurface = false
     let isEnabled: Bool
     let onChoose: (ModeLauncherDestination) -> Void
 
@@ -171,6 +174,7 @@ struct IslandModeLauncher: View {
     @State private var isExpanded = false
     @State private var expansionProgress: CGFloat = 0
     @State private var transitionTask: Task<Void, Never>?
+    @State private var navigationWorkItem: DispatchWorkItem?
     @State private var settleOffset: CGFloat = 0
     @State private var page = 0
 
@@ -197,7 +201,11 @@ struct IslandModeLauncher: View {
                     .allowsHitTesting(isExpanded)
                     .onTapGesture { setExpanded(false) }
 
-                islandSurface(screenWidth: proxy.size.width)
+                if preservesPortraitSurface {
+                    portraitPinnedSurface(screenSize: proxy.size)
+                } else {
+                    islandSurface(screenSize: proxy.size)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .ignoresSafeArea()
@@ -210,20 +218,29 @@ struct IslandModeLauncher: View {
         }
     }
 
-    private func islandSurface(screenWidth: CGFloat) -> some View {
+    private func islandSurface(screenSize: CGSize) -> some View {
         let progress = min(max(expansionProgress, 0), 1)
-        let expandedWidth = min(max(320, screenWidth - 16), 408)
+        let usesPortraitSurface = rotatesExpandedContent || preservesPortraitSurface
+        let expandedWidth = usesPortraitSurface
+            ? min(max(320, screenSize.width - 16), 408)
+            : isLandscape
+                ? min(max(520, screenSize.width - 80), 720)
+                : min(max(320, screenSize.width - 16), 408)
         let islandWidth: CGFloat = IslandLauncherDevice.usesCompactIslandGeometry ? 95 : 126
         let width = islandWidth + (expandedWidth - islandWidth) * progress
         let islandHeight: CGFloat = 37
-        let expandedHeight = max(340, safeAreaTop + 289)
+        let expandedHeight = usesPortraitSurface
+            ? max(340, safeAreaTop + 289)
+            : isLandscape
+                ? min(max(220, safeAreaTop + 170), max(180, screenSize.height - 16))
+                : max(340, safeAreaTop + 289)
         let height = islandHeight + (expandedHeight - islandHeight) * progress
 
 
 
 
         let collapsedRadius = islandHeight / 2
-        let expandedHorizontalInset = max(0, (screenWidth - expandedWidth) / 2)
+        let expandedHorizontalInset = max(0, (screenSize.width - expandedWidth) / 2)
         let collapsedTopInset = max(8, safeAreaTop - 49)
         let expandedTopInset = min(collapsedTopInset, expandedHorizontalInset)
         let topInset = collapsedTopInset
@@ -234,7 +251,7 @@ struct IslandModeLauncher: View {
 
         let expandedTopRadius = min(
             54,
-            max(46, screenWidth * 0.14 - expandedHorizontalInset)
+            max(46, screenSize.width * 0.14 - expandedHorizontalInset)
         )
         let topCornerRadius = collapsedRadius + (expandedTopRadius - collapsedRadius) * progress
         let bottomCornerRadius = collapsedRadius + (38 - collapsedRadius) * progress
@@ -248,7 +265,25 @@ struct IslandModeLauncher: View {
         )
             .fill(Color.black)
             .overlay(alignment: .top) {
-                contentColumn(width: width, topInset: topInset, progress: contentProgress)
+                if preservesPortraitSurface {
+                    rotatedContentColumn(
+                        width: width,
+                        height: height,
+                        topInset: topInset,
+                        progress: contentProgress,
+                        degrees: 90
+                    )
+                } else if rotatesExpandedContent {
+                    rotatedContentColumn(
+                        width: width,
+                        height: height,
+                        topInset: topInset,
+                        progress: contentProgress,
+                        degrees: 90
+                    )
+                } else {
+                    contentColumn(width: width, topInset: topInset, progress: contentProgress)
+                }
             }
             .overlay(alignment: .bottom) {
 
@@ -266,6 +301,42 @@ struct IslandModeLauncher: View {
             )
             .offset(y: topInset)
             .accessibilityIdentifier("modeLauncher.expandingSurface")
+    }
+
+    private func portraitPinnedSurface(screenSize: CGSize) -> some View {
+        let portraitSize = CGSize(
+            width: min(screenSize.width, screenSize.height),
+            height: max(screenSize.width, screenSize.height)
+        )
+        let progress = min(max(expansionProgress, 0), 1)
+        let expandedWidth = min(max(320, portraitSize.width - 16), 408)
+        let islandWidth: CGFloat = IslandLauncherDevice.usesCompactIslandGeometry ? 95 : 126
+        let width = islandWidth + (expandedWidth - islandWidth) * progress
+        let islandHeight: CGFloat = 37
+        let expandedHeight = max(340, safeAreaTop + 289)
+        let height = islandHeight + (expandedHeight - islandHeight) * progress
+
+        return islandSurface(screenSize: portraitSize)
+            .rotationEffect(.degrees(-90))
+            .frame(width: height, height: width)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+
+    private func rotatedContentColumn(
+        width: CGFloat,
+        height: CGFloat,
+        topInset: CGFloat,
+        progress: CGFloat,
+        degrees: Double
+    ) -> some View {
+        contentColumn(
+            width: height,
+            topInset: topInset,
+            progress: progress
+        )
+        .frame(width: height, height: width)
+        .rotationEffect(.degrees(degrees))
+        .frame(width: width, height: height)
     }
 
     private var tailButton: some View {
@@ -295,7 +366,7 @@ struct IslandModeLauncher: View {
         VStack(spacing: 0) {
 
 
-            Color.clear.frame(height: max(44, safeAreaTop - topInset + 1))
+            Color.clear.frame(height: max(isLandscape ? 42 : 44, safeAreaTop - topInset + 1))
 
             TabView(selection: $page) {
                 ForEach(Array(pages.enumerated()), id: \.offset) { pageIndex, entries in
@@ -305,7 +376,8 @@ struct IslandModeLauncher: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(width: width, height: 240)
+            .frame(width: width, height: isLandscape ? 126 : 240)
+            .id(modePageLayoutIdentity)
             .accessibilityIdentifier("modeLauncher.pages")
 
             HStack(spacing: 10) {
@@ -328,16 +400,24 @@ struct IslandModeLauncher: View {
         )
     }
 
+    private var modePageLayoutIdentity: String {
+        if #available(iOS 27.0, *) {
+            return isLandscape ? "landscape" : "portrait"
+        }
+        return "stable"
+    }
+
     private func modePage(_ entries: [ModeLauncherDestination]) -> some View {
         LazyVGrid(
-            columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)],
+            columns: Array(
+                repeating: GridItem(.flexible(), spacing: 8),
+                count: isLandscape ? 4 : 2
+            ),
             spacing: 8
         ) {
             ForEach(entries) { entry in
                 Button {
-                    setExpanded(false) {
-                        onChoose(entry)
-                    }
+                    closeAndChoose(entry)
                 } label: {
                     VStack(spacing: 5) {
                         Image(systemName: entry.symbol)
@@ -378,7 +458,25 @@ struct IslandModeLauncher: View {
         return false
     }
 
-    private func setExpanded(_ expanded: Bool, completion: (() -> Void)? = nil) {
+    private func closeAndChoose(_ entry: ModeLauncherDestination) {
+        setExpanded(false)
+        navigationWorkItem?.cancel()
+        let workItem = DispatchWorkItem {
+            onChoose(entry)
+            navigationWorkItem = nil
+        }
+        navigationWorkItem = workItem
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + (reduceMotion ? 0.14 : 1.01),
+            execute: workItem
+        )
+    }
+
+    private func setExpanded(_ expanded: Bool) {
+        if expanded {
+            navigationWorkItem?.cancel()
+            navigationWorkItem = nil
+        }
         transitionTask?.cancel()
         transitionTask = nil
         isExpanded = expanded
@@ -407,7 +505,6 @@ struct IslandModeLauncher: View {
                     try? await Task.sleep(for: .seconds(0.4))
                     guard !Task.isCancelled else { return }
                 }
-                completion?()
                 transitionTask = nil
             }
         }

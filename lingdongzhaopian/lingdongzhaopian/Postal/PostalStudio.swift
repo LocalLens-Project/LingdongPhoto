@@ -6,6 +6,18 @@ struct PostalSource {
     let image: UIImage
     var metadata: PhotoMetadata
     var city: PostalCity?
+    var liveVideoURL: URL?
+}
+
+enum PostalLiveVideoStore {
+    static func persist(_ url: URL?) -> URL? {
+        guard let url else { return nil }
+        let destination = FileManager.default.temporaryDirectory
+            .appendingPathComponent("postal-live-\(UUID().uuidString)")
+            .appendingPathExtension("mov")
+        guard (try? FileManager.default.copyItem(at: url, to: destination)) != nil else { return nil }
+        return destination
+    }
 }
 
 @MainActor @Observable
@@ -19,17 +31,27 @@ final class PostalEditorModel {
     private var importID = UUID()
 
     init(photo: SelectedPhoto? = nil, source: PostalSource? = nil) {
-        self.source = source ?? photo.map { PostalSource(image: $0.image, metadata: $0.metadata) }
+        self.source = source ?? photo.map {
+            PostalSource(
+                image: $0.image,
+                metadata: $0.metadata,
+                liveVideoURL: PostalLiveVideoStore.persist($0.pairedVideoURL)
+            )
+        }
         if let image = self.source?.image { tint = .extract(image) }
     }
     func load(_ selection: PhotoPickerSelection) async {
         let id = UUID(); importID = id; isLoading = true; isResolvingCity = false
         defer { if id == importID { isLoading = false } }
         do {
-            let photo = try await PhotoAssetLoader.load(selection, includeLiveResource: false)
+            let photo = try await PhotoAssetLoader.load(selection, includeLiveResource: true)
             defer { PhotoAssetLoader.removeTemporaryResources(for: [photo]) }
             guard id == importID, !Task.isCancelled else { return }
-            source = PostalSource(image: photo.image, metadata: photo.metadata)
+            source = PostalSource(
+                image: photo.image,
+                metadata: photo.metadata,
+                liveVideoURL: PostalLiveVideoStore.persist(photo.pairedVideoURL)
+            )
             tint = .extract(photo.image)
             await resolveCity()
         } catch { if id == importID { self.error = error.localizedDescription } }
@@ -135,7 +157,13 @@ struct StampStudio: View {
 
     init(photo: SelectedPhoto? = nil, source: PostalSource? = nil, store: PostalStore? = nil,
          targetCity: PostalCity? = nil, onSaved: ((PostalStamp) -> Void)? = nil) {
-        pendingSource = source ?? photo.map { PostalSource(image: $0.image, metadata: $0.metadata) }
+        pendingSource = source ?? photo.map {
+            PostalSource(
+                image: $0.image,
+                metadata: $0.metadata,
+                liveVideoURL: PostalLiveVideoStore.persist($0.pairedVideoURL)
+            )
+        }
         self.store = store ?? .shared; self.targetCity = targetCity; self.onSaved = onSaved
     }
     private var selection: Binding<Int> {
@@ -188,6 +216,11 @@ struct StampStudio: View {
                 PostalFlowAction(title: "保存 PNG 到相册", symbol: "photo.badge.arrow.down", enabled: canSave) {
                     Task { await save(toPhotos: true) }
                 }.accessibilityIdentifier("postal.exportStamp")
+                if model.source?.liveVideoURL != nil {
+                    PostalFlowAction(title: "保存实况照片到相册", symbol: "livephoto", enabled: canSave) {
+                        Task { await saveLivePhoto() }
+                    }.accessibilityIdentifier("postal.exportLiveStamp")
+                }
                 PostalFlowAction(title: "用这枚邮票制作明信片", symbol: "envelope", enabled: canSave) {
                     Task {
                         guard canSave else { return }
@@ -357,7 +390,8 @@ struct StampStudio: View {
         do {
             let image = try StampRenderer.render(photo: source.image, format: format, transform: transform, lettering: lettering)
             let stamp = try store.add(image: image, format: format, metadata: source.metadata,
-                                     city: source.city, tint: model.tint, targetCity: targetCity)
+                                     city: source.city, tint: model.tint, targetCity: targetCity,
+                                     liveVideoURL: source.liveVideoURL)
             savedStamp = stamp
             return stamp
         } catch { model.error = error.localizedDescription; return nil }
@@ -378,6 +412,36 @@ struct StampStudio: View {
                 notice = String(format: "已收藏，%@已点亮。".appLocalized, city.name)
             } else {
                 notice = "已收藏为普通邮票，可在明信片中使用。".appLocalized
+            }
+        } catch { model.error = error.localizedDescription }
+    }
+    private func saveLivePhoto() async {
+        guard canSave, let source = model.source, let liveURL = source.liveVideoURL else { return }
+        busy = true; defer { busy = false }
+        let format = format, transform = transform, lettering = lettering
+        do {
+            let rendered = try StampRenderer.render(photo: source.image, format: format,
+                                                    transform: transform, lettering: lettering)
+            notice = "正在生成实况照片…".appLocalized
+            let result = try await ArtworkExporter.saveLivePhoto(
+                renderedStill: rendered,
+                sourceVideoURLs: [0: liveURL],
+                metadata: source.metadata,
+                originalImageData: nil,
+                renderFrame: { frames, _ in
+                    guard let frame = frames[0] else { return nil }
+                    return try? StampRenderer.render(photo: frame, format: format,
+                                                     transform: transform, lettering: lettering)
+                },
+                progress: { _ in }
+            )
+            switch result {
+            case .livePhoto:
+                notice = "已保存实况照片到相册。".appLocalized
+            case .livePhotoWithoutAudio:
+                notice = "实况照片已保存，本次不含声音。".appLocalized
+            case .stillImageFallback:
+                notice = "系统未接受实况动态资源，已先为你保存静态邮票。".appLocalized
             }
         } catch { model.error = error.localizedDescription }
     }

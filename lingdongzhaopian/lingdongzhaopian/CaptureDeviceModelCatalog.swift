@@ -8,7 +8,7 @@ import Foundation
 /// The catalog deliberately returns `nil` when a code cannot be identified with
 /// confidence. The caller then keeps the original EXIF model, so a future or
 /// regional device is never hidden or mislabeled.
-enum CaptureDeviceModelCatalog {
+nonisolated enum CaptureDeviceModelCatalog {
     static func displayName(
         manufacturer: String?,
         model: String?,

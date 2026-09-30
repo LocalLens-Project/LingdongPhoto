@@ -2,9 +2,9 @@
 
 > **Language notice:** The Android version is currently not available in English. Its interface remains in Simplified Chinese for now.
 
-Lingdong Photo is a local-first photo creation app for iOS and Android. The iOS app is built with SwiftUI, while the Android app uses Kotlin and Jetpack Compose. Both versions can extract perceptual colors, understand image content, read real capture metadata, and create photo cards, palettes, journals, bubble stamps, wallpapers, privacy masks, verifiable Photo Tickets, and multi-page Photo Albums. Color Relationship compares the shared, contrasting, and transitional colors of two photos. The iOS version also includes a plain-language Light Analysis for everyday users, turns photos into pencil, charcoal, or watercolor sketches, converts a selected video segment into a Live Photo with a user-selected key photo, arranges six photos into a complete Flowing-Light Fan, collects traditional colors by solar term in Solar-term Colors, and preserves thoughts beyond the frame in Photo Backs.
+Lingdong Photo is a local-first photo creation app for iOS and Android. The iOS app is built with SwiftUI, while the Android app uses Kotlin and Jetpack Compose. Both versions can extract perceptual colors, understand image content, read real capture metadata, and create photo cards, palettes, journals, bubble stamps, wallpapers, privacy masks, verifiable Photo Tickets, and multi-page Photo Albums. Color Relationship compares the shared, contrasting, and transitional colors of two photos. The iOS version also includes a plain-language Light Analysis for everyday users, turns photos into pencil, charcoal, or watercolor sketches, blends original photos into watercolor study sheets with Photo Painting, adds text or PNG artwork with Photo Signatures, converts a selected video segment into a Live Photo with a user-selected key photo, arranges photos into a complete Flowing-Light Fan, collects traditional colors by solar term in Solar-term Colors, and preserves thoughts beyond the frame in Photo Backs.
 
-**Official App Store release:** [Download Lingdong Photo](https://apps.apple.com/cn/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
+**Official App Store release (iOS 3.0.2, Build 202635):** [Download Lingdong Photo](https://apps.apple.com/cn/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
 
 The app is free to download, with no subscriptions or advertising. The iOS app offers optional “Support Us” content through a one-time purchase. Photo recognition, color analysis, and artwork rendering are performed on the device.
 
@@ -56,7 +56,7 @@ The Android version is written in Kotlin and Jetpack Compose and supports Androi
 
 The project began as an experiment: how difficult is it to build a polished, small photo tool from scratch? The first iOS implementation studied publicly visible interaction patterns, but it did not use or reverse-engineer any third-party source code, assets, or private resources.
 
-It has since grown far beyond an interface exercise. The project now includes perceptual OKLab color, weighted K-Means, color percentages, two-photo relationships, Apple Vision analysis, a category-based copy library, real EXIF metadata, Live Photo export, plain-language Light Analysis, video-to-Live Photo conversion, multi-photo journals, privacy masking, photo sketching, verifiable Photo Tickets, device seals, in-app scanning, an App Clip, multi-page albums, Solar-term Colors, Photo Backs, a Photos action extension, App Shortcuts, and an export center. Android independently implements the same core workflow with platform-appropriate tools.
+It has since grown far beyond an interface exercise. The project now includes perceptual OKLab color, weighted K-Means, color percentages, two-photo relationships, Apple Vision analysis, a category-based copy library, real EXIF metadata, Live Photo export, plain-language Light Analysis, video-to-Live Photo conversion, multi-photo journals, privacy masking, Photo Sketch, Photo Painting, Photo Signatures, verifiable Photo Tickets, device seals, in-app scanning, an App Clip, multi-page albums, Solar-term Colors, Photo Backs, a Photos action extension, App Shortcuts, and an export center. Android independently implements the same core workflow with platform-appropriate tools.
 
 Some similar utilities charge a monthly subscription or a one-time fee. That is a valid choice for their developers; this project instead publishes its implementation so others can inspect, modify, and improve it.
 
@@ -64,16 +64,18 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 
 ### Creation modes and interface
 
-- Browse eleven creation modes, plus independent Flowing-Light Fan, Photo Album, Color Relationship, Photo Ticket Reveal, Stamp Maker, Postcard, Scan Photo Tickets, Video to Live Photo, Ticket Collection, Stamp Collection, Solar-term Colors, and Photo Backs tools.
+- Browse twelve creation modes, plus independent Flowing-Light Fan, Photo Album, Color Relationship, Photo Ticket Reveal, Stamp Studio, Postcards, Scan and verify Photo Ticket, Video to Live Photo, Ticket Stubs, Stamp Collection, Solar-term Colors, and Photo Backs tools.
 - Open independent tools without first entering the main editor. After importing a photo, switch creation modes or enter any tool from the same panel without selecting the image again.
 - The mode picker uses translucent Liquid Glass and follows the system light or dark appearance.
 - Every feature reorganizes its preview and controls for iPad portrait, landscape, larger displays, and resizable windows while retaining the compact iPhone experience.
 - The Simplified and Traditional Chinese interfaces present the Lingdong Photo 3.0 Creation Season after onboarding; `lingdongphoto://home` can reopen it at any time.
 
-### Motion Palette and Motion Calendar
+### Palette Card and Lingdong Calendar
 
-- Motion Palette extracts dominant colors and extends the color strip below, left, or right without covering or cropping the photo.
-- Motion Calendar preserves landscape, portrait, and square aspect ratios while fitting a calendar panel that records the capture date and solar term.
+- Palette Card extracts dominant colors and extends the color strip below, left, or right without covering or cropping the photo.
+- Lingdong Calendar includes Glass Calendar and Photo Calendar. Glass Calendar preserves the photo ratio and records its capture date and solar term; Photo Calendar places the photo beside a single-month calendar.
+- Photo Calendar supports framing adjustments, hand-drawn date rings, Chinese or English month titles, and Hide Bottom Inscription. Supporters can also use Auto Color or a custom panel color.
+- Glass Archive and Lingdong Calendar support landscape viewing on iPhone.
 
 ### Solar-term Colors
 
@@ -90,13 +92,15 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 ### Flowing-Light Fan
 
 - Arrange six photos across a complete open folding fan, with one photo presented independently on each panel.
+- Single Photo Fan fills the complete fan with one image.
 - Auto Color searches authorized photos on the device and combines six images from the same color family.
 - Free Arrangement accepts up to six manually selected photos and lets you replace, pan, and zoom each panel for precise framing.
 - Save the finished fan as a transparent 2400 × 1800 PNG.
 
 ### Stamps, postcards, and Stamp Collection
 
-- Stamp Maker offers five perforation templates with photo, title, date, and font controls, and can collect the result or save it as PNG. Manual Framing supports direct dragging and pinch-to-zoom for precise composition.
+- Stamp Studio offers five perforation templates with photo, title, date, and font controls, and can collect the result or save it as PNG. Manual Framing supports direct dragging and pinch-to-zoom for precise composition.
+- Stamps support Live Photo playback and can save the animated result to Photos.
 - Postcard combines a photo, message, stamp, and postmark in four layouts.
 - Stamp Collection stores geotagged stamps, reveals visited cities, and supports free rotation with a long press.
 
@@ -104,14 +108,15 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 
 - Photo Ticket Collections organize tickets from trips, performances, or meaningful periods.
 - Photo Ticket Developing recognizes an imported physical ticket on the device and recreates it as a verifiable Photo Ticket.
-- Glass Archive preserves original device, capture-setting, and coordinate records in a Liquid Glass archive panel. The panel can move freely up and down, and exports retain its current relative position.
+- Glass Archive preserves original device, capture-setting, and coordinate records in a Liquid Glass archive panel. The panel can move freely and pin one to six glass colors.
+- Supporters can add custom archive text and choose a built-in font.
 - Find Original on This Device scans a Photo Ticket and searches the local photo library for its original image.
 
 ### Personalization and supporter content
 
 - Empty-screen Themes set a preferred primary color for every feature home screen before a photo is selected.
-- Motion Card, Bubble Stamp, and Glass Archive settings are available directly inside their respective tools.
-- A one-time Support Us purchase unlocks poetic solar-term color names, collector Photo Ticket designs, all stamp and postcard templates, exclusive app icons, and a supporter badge.
+- Motion Card, Photo Signatures, and Glass Archive settings are available directly inside their respective tools.
+- A one-time Support Us purchase unlocks poetic solar-term color names, collector Photo Ticket designs, all stamp and postcard templates, Glass Archive customization, Photo Painting fonts, Photo Calendar panels, Photo Signatures customization, exclusive app icons, and a supporter badge.
 - Eligible early users of version 1.0.0 receive the same entitlement at no charge.
 - When the entitlement is already active, the Support page explicitly says that no purchase is required and offers “Already Unlocked · Continue.” An account without an entitlement sees the localized price, and tapping the button starts the StoreKit purchase flow.
 
@@ -122,6 +127,7 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 - Create a coordinated text area from the dominant color and its image coverage.
 - Choose dark or light text with a target contrast ratio of at least 7:1.
 - Use a solid-color or sampled gradient header.
+- Change the displayed time with the system date picker or hide it.
 - Motion Card Settings and Partial color selection remain available in Classic, Airy, and Immersive templates; drag and resize the sampling region or restore full-image sampling.
 - All three templates support direct text editing, dragging, pinching, font changes, and type-size adjustments.
 
@@ -149,12 +155,15 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 - Select, replace, delete, reorder, reposition, and scale each photo independently.
 - Generate copy and Emoji from on-device image analysis, regenerate alternatives, or edit them manually.
 
-### Bubble Stamp
+### Photo Signatures
 
+- Switch between Bubble Stamp and Custom Signature.
 - Combine the photo, copy, dominant color, and real capture parameters into a photographic stamp.
 - Map internal camera product codes to readable names across major phone, camera, drone, and action-camera brands.
 - Import local PNG camera marks for supported brands. Multicolor icons keep their colors; monochrome icons adapt to the artwork.
 - Adjust image composition, typography, bubble scale, device information, and decorations.
+- Custom Signature adds a text signature, date and time, or a PNG signature to the full photo, with free positioning and scaling.
+- The system font is free; supporters can unlock every signature font and custom PNG signatures.
 
 ### Spectrum Wallpaper
 
@@ -176,6 +185,11 @@ Automatic detection is an aid and can miss or misclassify content. Always review
 - Create pencil, charcoal, or watercolor interpretations entirely on the device.
 - Adjust strength, stroke weight, original-color retention, and paper texture.
 - Reset each style to its own defaults.
+
+### Photo Painting
+
+- Blend the original photo into layered watercolor washes, choose a brush direction, and adjust the framing.
+- Customize the study-sheet title; supporters can also use the built-in stamp and postcard fonts.
 
 ### Photo Ticket
 
@@ -342,15 +356,19 @@ The Debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`. For a s
         ├── Assets.xcassets/    # Public commercial-license notice placeholders
         ├── OnboardingScreens/  # Publishable onboarding screenshots and GIFs
         ├── Piaogence/          # Ticket collections, developing, and editions
-        ├── Postal/             # Stamps, postcards, collections, and city resolution
+        ├── Postal/             # Stamps, postcards, collections, Live Photos, and city resolution
         ├── PostalFonts/        # OFL fonts and complete license texts
         ├── Album*.swift
+        ├── ApplicationIconFeature.swift
         ├── ColorRelationship*.swift
         ├── CreationSeasonEventView.swift
         ├── FanGalleryFeature.swift
         ├── IPadWorkspace.swift
+        ├── LingdongFeatures.swift # Palette Card and Lingdong Calendar
         ├── ModeLauncherFeature.swift
         ├── PhotoBack*.swift
+        ├── SignatureStampFeature.swift
+        ├── SketchStudio.swift  # Photo Sketch and Photo Painting
         ├── SolarColor*.swift
         ├── SolarTermCalendar.swift
         ├── SupporterStore.swift             # Public fallback

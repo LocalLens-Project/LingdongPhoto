@@ -4,6 +4,26 @@
     "" : {
 
     },
+    "\n\n" : {
+
+    },
+    " 后，可让底板自动取自照片颜色，或自由选择颜色，文字深浅会自动适配。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " to derive the panel color from the photo or choose your own; text contrast adapts automatically."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " 後，可讓底板自動取自照片顏色，或自由選擇顏色，文字深淺會自動配合。"
+          }
+        }
+      }
+    },
     " 解锁。" : {
       "localizations" : {
         "en" : {
@@ -150,6 +170,91 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「在靈動照片中繼續」。"
+          }
+        }
+      }
+    },
+    "“气泡印章”功能升级，可在完整照片上添加文字签名或自定义 PNG 签章" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bubble Stamp has been upgraded with text and custom PNG signatures on the full photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「氣泡印章」功能升級，可在完整照片上加入文字簽名或自訂 PNG 簽章"
+          }
+        }
+      }
+    },
+    "“气泡印章”功能升级：新增文字签名与自定义 PNG 签章，可自由放置。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bubble Stamp is upgraded with text and custom PNG signatures that you can place freely."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「氣泡印章」功能升級：新增文字簽名與自訂 PNG 簽章，可自由放置。"
+          }
+        }
+      }
+    },
+    "“琉璃档案”档案栏支持自由滑动" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A freely movable archive bar in “Glass Archive”"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「琉璃檔案」檔案欄支援自由滑動"
+          }
+        }
+      }
+    },
+    "”用户专属\n· 档案栏开头或末尾固定一至六色\n· 专属文字搭配邮票与明信片字体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "” users\n· Pin one to six colors at the bar's start or end\n· Custom text in stamp and postcard fonts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "」使用者專屬\n· 檔案欄開頭或末尾固定一至六色\n· 專屬文字搭配郵票與明信片字體"
+          }
+        }
+      }
+    },
+    "”用户专属，可选用邮票与明信片的内置字体。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "” users. Choose from the built-in stamp and postcard fonts."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "」使用者專屬，可選用郵票與明信片的內建字體。"
           }
         }
       }
@@ -1148,6 +1253,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@，已點亮 %lld 座城市"
+          }
+        }
+      }
+    },
+    "%@，支持者专属功能" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, supporter-exclusive feature"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@，支持者專屬功能"
           }
         }
       }
@@ -2207,6 +2328,23 @@
         }
       }
     },
+    "iOS 端使用横向照片时，可将琉璃档案与灵动月历翻转为横屏查看，预览更宽阔，所有操作集中在右侧。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On iOS, landscape photos in Glass Archive and Lingdong Calendar can now be viewed in landscape, with a wider preview and all controls arranged on the right."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 iOS 端使用橫向照片時，可將琉璃檔案與靈動月曆翻轉為橫屏查看，預覽更寬闊，所有操作集中在右側。"
+          }
+        }
+      }
+    },
     "iOS 系统字体由系统提供。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2495,6 +2633,23 @@
         }
       }
     },
+    "PNG 大小" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PNG Size"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PNG 大小"
+          }
+        }
+      }
+    },
     "POST" : {
       "localizations" : {
         "en" : {
@@ -2541,6 +2696,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "PRO · C%@"
+          }
+        }
+      }
+    },
+    "PRO 专属\n琉璃档案，由你书写" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRO Exclusive\nGlass Archive, Written by You"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRO 專屬\n琉璃檔案，由你書寫"
+          }
+        }
+      }
+    },
+    "PRO 专属功能" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRO Exclusive Feature"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRO 專屬功能"
           }
         }
       }
@@ -2657,6 +2846,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一個按鈕，開啟全部創作方式。"
+          }
+        }
+      }
+    },
+    "一个月，一张照片，把日子留在画面旁边。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One month, one photo—keep the days beside the scene."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一個月，一張照片，把日子留在畫面旁邊。"
           }
         }
       }
@@ -2983,6 +3189,57 @@
         }
       }
     },
+    "一次解锁节气词库、典藏票面、全部邮票与明信片模板、琉璃档案自定义、专属应用图标及支持者标志。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock once: the solar-term lexicon, collector ticket faces, all stamp and postcard templates, Glass Archive customization, exclusive app icons, and the supporter badge."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一次解鎖節氣詞庫、典藏票面、全部郵票與明信片模板、琉璃檔案自訂、專屬應用圖標及支持者標誌。"
+          }
+        }
+      }
+    },
+    "一次解锁节气词库、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、专属应用图标及支持者标志。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One purchase unlocks the solar-term lexicon, collector ticket designs, every stamp and postcard template, Glass Archive customization, Lingdong Calendar panels, exclusive app icons, and the supporter badge."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一次解鎖節氣詞庫、典藏票面、全部郵票與明信片範本、琉璃檔案自訂、靈動月曆專屬底板、專屬應用程式圖示及支持者標誌。"
+          }
+        }
+      }
+    },
+    "一次解锁节气词库、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、专属应用图标及支持者标志。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock the solar-term color library, collectible ticket faces, all stamp and postcard templates, Glass Archive customization, Lingdong Calendar panels, Light & Signature customization, exclusive app icons, and the supporter badge with one purchase."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一次解鎖節氣詞庫、典藏票面、全部郵票與明信片範本、琉璃檔案自訂、靈動月曆專屬底板、光影簽章自訂、專屬應用程式圖示及支持者標誌。"
+          }
+        }
+      }
+    },
     "一池清澈收藏天色" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3030,6 +3287,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一點相認"
+          }
+        }
+      }
+    },
+    "一照两境" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo & Painting"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一照兩境"
+          }
+        }
+      }
+    },
+    "一照两境画笺" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo and painting study sheet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一照兩境畫箋"
+          }
+        }
+      }
+    },
+    "一照两境画笺专属字体" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exclusive Photo & Painting fonts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一照兩境畫箋專屬字體"
+          }
+        }
+      }
+    },
+    "一照两境自定义字体" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Photo & Painting Fonts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一照兩境自訂字體"
           }
         }
       }
@@ -3304,7 +3627,25 @@
         }
       }
     },
+    "上扬" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rising"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上揚"
+          }
+        }
+      }
+    },
     "上排影像票根、下排票根显影作品" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3316,6 +3657,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上排影像票根、下排票根顯影作品"
+          }
+        }
+      }
+    },
+    "上排影像票根、下排邮票与明信片作品" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo tickets above and stamp and postcard creations below"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上排影像票根、下排郵票與明信片作品"
           }
         }
       }
@@ -3416,6 +3774,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下一站正在展開"
+          }
+        }
+      }
+    },
+    "下掠" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falling"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下掠"
           }
         }
       }
@@ -4471,7 +4846,6 @@
       }
     },
     "中文" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4483,6 +4857,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "中文"
+          }
+        }
+      }
+    },
+    "中文标题" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chinese"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中文標題"
           }
         }
       }
@@ -5407,6 +5798,23 @@
         }
       }
     },
+    "仅接受 PNG 文件。导入后可在画面中拖动签章，并用滑块调整大小。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only PNG files are accepted. After importing, drag the signature on the photo and use the slider to resize it."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅接受 PNG 檔案。匯入後可在畫面中拖動簽章，並用滑桿調整大小。"
+          }
+        }
+      }
+    },
     "仅本机私藏" : {
       "localizations" : {
         "en" : {
@@ -5927,6 +6335,40 @@
         }
       }
     },
+    "从照片取出琉璃颜料，以水色、墨意与纸性重绘记忆" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draw glass-like pigments from your photo and repaint the memory in watercolor, ink, and textured paper"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從照片取出琉璃顏料，以水色、墨意與紙性重繪記憶"
+          }
+        }
+      }
+    },
+    "从照片取出琉璃颜料，以水色或墨意在棉纸、细宣与粗纹纸上重绘；一照两境将原片、画意、地点、日期与专属色盘收进同一张画笺。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draw pigments from the photo, then repaint it in watercolor or ink on cotton, xuan, or rough paper. Photo & Painting gathers the original, artwork, place, date, and personal palette onto one study sheet."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從照片取出琉璃顏料，以水色或墨意在棉紙、細宣與粗紋紙上重繪；一照兩境將原片、畫意、地點、日期與專屬色盤收進同一張畫箋。"
+          }
+        }
+      }
+    },
     "从照片提取主色，色条可向下、向左或向右延伸；调整大小不遮挡、不裁切照片。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6230,6 +6672,23 @@
         }
       }
     },
+    "以照片与色彩，重新描绘灵动照片。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lingdong Photo, redrawn through photos and color."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以照片與色彩，重新描繪靈動照片。"
+          }
+        }
+      }
+    },
     "以照片为证 · 珍藏每次抵达" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6362,6 +6821,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "住址"
+          }
+        }
+      }
+    },
+    "体验优化" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Experience Improvements"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "體驗優化"
           }
         }
       }
@@ -6601,6 +7077,57 @@
         }
       }
     },
+    "你已可以使用节气诗名、典藏票面、全部邮票与明信片模板、琉璃档案自定义、专属应用图标及支持者标志。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can now use solar-term poetic names, collector ticket faces, all stamp and postcard templates, Glass Archive customization, exclusive app icons, and the supporter badge."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你已可以使用節氣詩名、典藏票面、全部郵票與明信片模板、琉璃檔案自訂、專屬應用圖標及支持者標誌。"
+          }
+        }
+      }
+    },
+    "你已可以使用节气诗名、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、专属应用图标及支持者标志。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You now have access to poetic solar-term color names, collector ticket designs, every stamp and postcard template, Glass Archive customization, Lingdong Calendar panels, exclusive app icons, and the supporter badge."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你已可使用節氣詩名、典藏票面、全部郵票與明信片範本、琉璃檔案自訂、靈動月曆專屬底板、專屬應用程式圖示及支持者標誌。"
+          }
+        }
+      }
+    },
+    "你已可以使用节气诗名、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、专属应用图标及支持者标志。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can now use solar-term poetic names, collectible ticket faces, all stamp and postcard templates, Glass Archive customization, Lingdong Calendar panels, Light & Signature customization, exclusive app icons, and the supporter badge."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你已可以使用節氣詩名、典藏票面、全部郵票與明信片範本、琉璃檔案自訂、靈動月曆專屬底板、光影簽章自訂、專屬應用程式圖示及支持者標誌。"
+          }
+        }
+      }
+    },
     "你已可以使用节气诗名、典藏票面、全部邮票与明信片模板及支持者标志。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6765,6 +7292,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用此風格"
+          }
+        }
+      }
+    },
+    "使用系统日期与时间面板修改卡片中显示的时间，不会更改原照片信息。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the system date and time picker to change the time shown on the card. The original photo remains unchanged."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用系統日期與時間面板修改卡片中顯示的時間，不會更改原照片資訊。"
           }
         }
       }
@@ -7000,6 +7544,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保存完整分析"
+          }
+        }
+      }
+    },
+    "保存实况照片到相册" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save Live Photo to Photos"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將原況照片儲存到相簿"
           }
         }
       }
@@ -7289,6 +7850,40 @@
         }
       }
     },
+    "保留气泡信息，也可添加文字签名或自己的 PNG 签章并自由放置。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the bubble details, or add and freely position text or your own PNG signature."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留氣泡資訊，也可加入文字簽名或自己的 PNG 簽章並自由放置。"
+          }
+        }
+      }
+    },
+    "保留气泡印章，也可在完整照片上添加文字签名或自定义 PNG 签章" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Bubble Stamp, or add text and custom PNG signatures to the full photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留氣泡印章，也可在完整照片上加入文字簽名或自訂 PNG 簽章"
+          }
+        }
+      }
+    },
     "保留清爽的信息层级与票型辨识" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7353,6 +7948,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "修正了部分已知問題，並優化了整體使用體驗。"
+          }
+        }
+      }
+    },
+    "修复了部分错误和界面显示问题，并提升了整体使用流畅性。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixed several issues and interface display problems, and improved overall responsiveness."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修復了部分錯誤和介面顯示問題，並提升了整體使用流暢度。"
           }
         }
       }
@@ -7629,6 +8241,91 @@
         }
       }
     },
+    "光影签章" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Signatures"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "光影簽章"
+          }
+        }
+      }
+    },
+    "光影签章操作技巧" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Signatures Tips"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "光影簽章操作技巧"
+          }
+        }
+      }
+    },
+    "光影签章视图" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Signatures View"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "光影簽章檢視"
+          }
+        }
+      }
+    },
+    "光影签章自定义" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light & Signature Customization"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "光影簽章自訂"
+          }
+        }
+      }
+    },
+    "光影签章设定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Signatures Settings"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "光影簽章設定"
+          }
+        }
+      }
+    },
     "光影落在纸上，时光有了回响。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7793,6 +8490,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全新創作活動 · 為每一塊螢幕而生"
+          }
+        }
+      }
+    },
+    "全新的应用图标以照片与色彩为灵感，让熟悉的创作入口以更清晰、明快的模样回到主屏幕。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inspired by photos and color, the new app icon brings a cleaner, brighter creative entrance to your Home Screen."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全新的應用程式圖示以照片與色彩為靈感，讓熟悉的創作入口以更清晰、明快的模樣回到主畫面。"
+          }
+        }
+      }
+    },
+    "全色" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全色"
           }
         }
       }
@@ -8303,6 +9034,7 @@
       }
     },
     "关闭后，照片没有日期信息时不显示“拍摄时间未记录”。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8884,6 +9616,23 @@
         }
       }
     },
+    "写下此刻" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write this moment"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "寫下此刻"
+          }
+        }
+      }
+    },
     "写下照片背面" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8914,6 +9663,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "寫下這一頁"
+          }
+        }
+      }
+    },
+    "写实" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Realistic"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "寫實"
+          }
+        }
+      }
+    },
+    "写意" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expression"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "寫意"
           }
         }
       }
@@ -9508,7 +10291,24 @@
         }
       }
     },
+    "切换到“一照两境”后可编辑标题、地点与字体" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch to “Photo & Painting” to edit the title, location, and font."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切換到「一照兩境」後可編輯標題、地點與字體"
+          }
+        }
+      }
+    },
     "切换到应用内横屏票根工作区" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9520,6 +10320,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "切換到應用程式內橫螢幕票根工作區"
+          }
+        }
+      }
+    },
+    "切换到横屏%@工作区" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch to the landscape %@ workspace"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "切換到橫屏%@工作區"
           }
         }
       }
@@ -10360,6 +11176,23 @@
         }
       }
     },
+    "单张成扇" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Single Photo Fan"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "單張成扇"
+          }
+        }
+      }
+    },
     "单指：%@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10663,6 +11496,22 @@
         }
       }
     },
+    "原片裁入笔触" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo clipped into the stroke"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原片裁入筆觸"
+          }
+        }
+      }
+    },
     "原生字体" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10878,6 +11727,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "雙指縮放 · 拖拽平移 · 雙擊還原"
+          }
+        }
+      }
+    },
+    "双指缩放预览，细看扇面上的连续画面。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pinch to zoom the preview and admire the continuous scene across the fan."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雙指縮放預覽，細看扇面上的連續畫面。"
           }
         }
       }
@@ -11225,6 +12091,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "可選擇在編輯頁標題旁或標題位置顯示 PRO"
+          }
+        }
+      }
+    },
+    "可隐藏摄影月历底部的年份、题记与位置；不更改原照片。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can hide the year, inscription, and location at the bottom of Photo Calendar without changing the original photo."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可隱藏攝影月曆底部的年份、題記與位置；不更改原照片。"
           }
         }
       }
@@ -11839,6 +12722,23 @@
         }
       }
     },
+    "固定琉璃色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pinned Glass Colors"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定琉璃色"
+          }
+        }
+      }
+    },
     "图1与图2保持接近色温" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12212,6 +13112,23 @@
         }
       }
     },
+    "图片签章" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Signature"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "圖片簽章"
+          }
+        }
+      }
+    },
     "圆体" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12347,6 +13264,22 @@
         }
       }
     },
+    "在上方拖动照片，双指缩放" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag the artwork above and pinch to zoom"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在上方拖動照片，雙指縮放"
+          }
+        }
+      }
+    },
     "在人潮里收藏坐标" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12394,6 +13327,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在場票"
+          }
+        }
+      }
+    },
+    "在完整照片上添加气泡信息、文字签名或自定义 PNG 签章" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add bubble details, a text signature, or a custom PNG signature without cropping the photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在完整照片上加入氣泡資訊、文字簽名或自訂 PNG 簽章"
           }
         }
       }
@@ -12667,7 +13617,6 @@
       }
     },
     "地点" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -12971,7 +13920,6 @@
       }
     },
     "复位取景" : {
-      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -13151,6 +14099,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "夏至"
+          }
+        }
+      }
+    },
+    "多" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多"
           }
         }
       }
@@ -13540,6 +14505,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "天邊點亮最後一盞燈"
+          }
+        }
+      }
+    },
+    "奔放" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expressive"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "奔放"
           }
         }
       }
@@ -14000,6 +14982,22 @@
         }
       }
     },
+    "完成取景" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish Crop"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成取景"
+          }
+        }
+      }
+    },
     "完成涂抹" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -14213,6 +15211,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "原況照片動態資源不可用"
+          }
+        }
+      }
+    },
+    "实况照片已保存，本次不含声音。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Photo saved without audio this time."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原況照片已儲存，本次不含聲音。"
           }
         }
       }
@@ -14707,6 +15722,23 @@
         }
       }
     },
+    "导入 PNG" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import PNG"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匯入 PNG"
+          }
+        }
+      }
+    },
     "导入几张照片，自动排版成一页页手帐。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15109,6 +16141,23 @@
         }
       }
     },
+    "将照片与当月月历并排放入横向画布，实况照片只让左侧画面流动，右侧日期始终清晰；拍摄当天会以手绘双线圈轻轻标出。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Place a photo beside its month on a landscape canvas. Live Photos animate only on the left, keeping the calendar sharp, while a hand-drawn double ring marks the day it was taken."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將照片與當月月曆並排放入橫向畫布，原況照片只讓左側畫面流動，右側日期始終清晰；拍攝當天會以手繪雙線圈輕輕標出。"
+          }
+        }
+      }
+    },
     "将票根、色盘、卡片或手帐装订进来" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -15311,6 +16360,23 @@
         }
       }
     },
+    "少" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Less"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "少"
+          }
+        }
+      }
+    },
     "少量呼应色避免两端完全断开" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -15324,6 +16390,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "少量呼應色避免兩端完全斷開"
+          }
+        }
+      }
+    },
+    "尺素行草" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letter Cursive"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尺素行草"
           }
         }
       }
@@ -15852,6 +16935,23 @@
         }
       }
     },
+    "已保存实况照片到相册。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Photo saved to Photos."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已將原況照片儲存到相簿。"
+          }
+        }
+      }
+    },
     "已保存的作品" : {
       "localizations" : {
         "en" : {
@@ -15864,6 +16964,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已保存的作品"
+          }
+        }
+      }
+    },
+    "已入画" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Included"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已入畫"
           }
         }
       }
@@ -16695,6 +17812,40 @@
         }
       }
     },
+    "应用图标焕然一新" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Fresh New App Icon"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "應用程式圖示煥然一新"
+          }
+        }
+      }
+    },
+    "底板颜色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel Color"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "底板顏色"
+          }
+        }
+      }
+    },
     "底色相认" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -16797,6 +17948,23 @@
         }
       }
     },
+    "开启" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟"
+          }
+        }
+      }
+    },
     "开启后，导出图片下方将附上六色的可考出处。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -16848,6 +18016,23 @@
         }
       }
     },
+    "开启后档案栏原有内容将清空。轻点预览中的透明档案栏即可唤起键盘书写，至多 12 字；关闭后可恢复原有内容。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turning this on clears the archive bar. Tap the transparent archive bar in the preview to bring up the keyboard and write up to 12 characters; turn it off to restore the original content."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開啟後檔案欄原有內容將清空。輕點預覽中的透明檔案欄即可喚起鍵盤書寫，至多 12 字；關閉後可恢復原有內容。"
+          }
+        }
+      }
+    },
     "开启节气诗名" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -16861,6 +18046,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開啟節氣詩名"
+          }
+        }
+      }
+    },
+    "开头" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開頭"
           }
         }
       }
@@ -17062,6 +18264,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "張力清楚但仍能找到共同色"
+          }
+        }
+      }
+    },
+    "弧扫" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arc"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "弧掃"
           }
         }
       }
@@ -17504,6 +18723,73 @@
         }
       }
     },
+    "影像入画" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Painting"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影像入畫"
+          }
+        }
+      }
+    },
+    "影像入画·一照两境" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Painting: Two Visions"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影像入畫·一照兩境"
+          }
+        }
+      }
+    },
+    "影像入画作品" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Painting artwork"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影像入畫作品"
+          }
+        }
+      }
+    },
+    "影像入画使用实况照片的关键帧生成静态画作" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Painting uses the key frame from the Live Photo to create a still artwork."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "影像入畫會使用原況照片的關鍵影格生成靜態畫作。"
+          }
+        }
+      }
+    },
     "影像档案" : {
       "localizations" : {
         "en" : {
@@ -17554,6 +18840,7 @@
       }
     },
     "影像票根" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -18174,6 +19461,22 @@
         }
       }
     },
+    "恢复当前画法" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Current Style"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢復當前畫法"
+          }
+        }
+      }
+    },
     "恢复当前风格的默认参数" : {
       "localizations" : {
         "en" : {
@@ -18251,6 +19554,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "恢復構圖"
+          }
+        }
+      }
+    },
+    "恢复照片地点" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Photo Location"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢復照片地點"
+          }
+        }
+      }
+    },
+    "恢复照片拍摄时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Photo Capture Time"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢復照片拍攝時間"
           }
         }
       }
@@ -18423,6 +19759,23 @@
         }
       }
     },
+    "慢一点，享受生活" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slow down and enjoy life"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "慢一點，享受生活"
+          }
+        }
+      }
+    },
     "慢慢喝也慢慢生活" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -18487,6 +19840,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "成熟自有回甘"
+          }
+        }
+      }
+    },
+    "成片构图" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Composition"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "成片構圖"
           }
         }
       }
@@ -19662,6 +21032,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "把一瞬風景，收藏成自己的郵票。"
+          }
+        }
+      }
+    },
+    "把原照片融入多层水彩洗染画心，可选不同笔势、自定义画笺标题，也可排成兼有原片、画意与琉璃颜料的一照两境；PRO 用户还可自由选用邮笺字体。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blend the original photo into layered watercolor washes, choose different brush directions, customize the art-sheet title, or arrange the original, painting, and glass pigments together in a dual-view composition. PRO users can also choose from stationery fonts."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把原照片融入多層水彩洗染畫心，可選不同筆勢、自訂畫箋標題，也可排成兼有原片、畫意與琉璃顏料的一照兩境；PRO 使用者還可自由選用郵箋字體。"
+          }
+        }
+      }
+    },
+    "把原照片裁入带笔锋、飞白与晕边的笔刷外形，可选不同方向，也可排成兼有原片、画意与琉璃颜料的一照两境画笺。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clip the original photo into a directional brush shape with bristle tips, dry gaps, and soft bleed, or compose a Photo & Painting sheet with the original, artwork, and glass pigments."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把原照片裁入帶筆鋒、飛白與暈邊的筆刷外形，可選不同方向，也可排成兼有原片、畫意與琉璃顏料的一照兩境畫箋。"
           }
         }
       }
@@ -21061,6 +22465,40 @@
         }
       }
     },
+    "摄影月历" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Calendar"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "攝影月曆"
+          }
+        }
+      }
+    },
+    "摄影月历可自动提取照片颜色或自定义底板，文字深浅会自动适配。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Calendar can derive its panel color from the photo or use a custom color, with automatically adaptive text contrast."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "攝影月曆可自動提取照片顏色或自訂底板，文字深淺會自動配合。"
+          }
+        }
+      }
+    },
     "撕纸旅途" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -21107,6 +22545,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "播放一次並關閉提示"
+          }
+        }
+      }
+    },
+    "播放实况照片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play Live Photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放原況照片"
           }
         }
       }
@@ -21228,6 +22683,57 @@
         }
       }
     },
+    "支持我们 " : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support us "
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們 "
+          }
+        }
+      }
+    },
+    "支持我们 PRO，即可使用全部签章字体。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support Us PRO unlocks every signature font."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們 PRO，即可使用全部簽章字體。"
+          }
+        }
+      }
+    },
+    "支持我们 PRO，即可导入自己的 PNG 签章。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support Us PRO lets you import your own PNG signature."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們 PRO，即可匯入自己的 PNG 簽章。"
+          }
+        }
+      }
+    },
     "支持我们，了解支持者礼物" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -21241,6 +22747,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "支持我們，了解支持者禮物"
+          }
+        }
+      }
+    },
+    "支持我们，即可为一照两境画笺选用邮票与明信片的内置字体。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support us to use the built-in stamp and postcard fonts on Photo & Painting study sheets."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們，即可為一照兩境畫箋選用郵票與明信片的內建字體。"
           }
         }
       }
@@ -21275,6 +22798,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "支持我們，即可在匯出作品中附帶六種節氣色名的可考出處。"
+          }
+        }
+      }
+    },
+    "支持我们，即可在档案栏固定一至六色琉璃色、自定义档案文字并选用邮票与明信片的内置字体。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support us to pin one to six glass colors in the archive bar, write custom archive text, and use the built-in stamp and postcard fonts."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們，即可在檔案欄固定一至六色琉璃色、自訂檔案文字並選用郵票與明信片的內建字體。"
           }
         }
       }
@@ -21364,6 +22904,23 @@
         }
       }
     },
+    "支持我们后，即可把琉璃六色与专属文字写进档案。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once you support us, you can pin the six glass colors and write your own words into the archive."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們後，即可把琉璃六色與專屬文字寫進檔案。"
+          }
+        }
+      }
+    },
     "支持我们后，即可解锁全部应用图标。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -21381,6 +22938,40 @@
         }
       }
     },
+    "支持我们后，可从邮票与明信片内置字体中自由选择，让画笺的标题、地点、日期与题识共用同一种字韵。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After supporting us, choose from the built-in stamp and postcard fonts so the sheet's title, location, date, and inscription share one typographic voice."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們後，可從郵票與明信片內建字體中自由選擇，讓畫箋的標題、地點、日期與題識共用同一種字韻。"
+          }
+        }
+      }
+    },
+    "支持我们后，档案栏开头或末尾可固定显示琉璃色盘中的一至六色，亦可写下专属文字，并选用邮票与明信片的内置字体。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After supporting us, pin one to six colors from the glass palette at the start or end of the archive bar, write your own words, and use the built-in stamp and postcard fonts."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們後，檔案欄開頭或末尾可固定顯示琉璃色盤中的一至六色，亦可寫下專屬文字，並選用郵票與明信片的內建字體。"
+          }
+        }
+      }
+    },
     "支持我们后可将可考出处一并导出。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -21394,6 +22985,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "支持我們後可將可考出處一併匯出。"
+          }
+        }
+      }
+    },
+    "支持我们后解锁，字体颜色会自动适配底板。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock by supporting us. Text color automatically adapts to the panel."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們後解鎖，字體顏色會自動配合底板。"
           }
         }
       }
@@ -21631,6 +23239,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "收攏回聲"
+          }
+        }
+      }
+    },
+    "收敛" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tight"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收斂"
           }
         }
       }
@@ -22307,6 +23932,23 @@
         }
       }
     },
+    "文字签名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text Signature"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字簽名"
+          }
+        }
+      }
+    },
     "文字颜色" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -22607,6 +24249,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新增「郵集」功能"
+          }
+        }
+      }
+    },
+    "新增水色与墨意画法，由显著主体、人脸、结构与琉璃色盘共同决定笔触；可调整写意、墨骨、水分、留白、设色与纸性，并导出独幅画心或一照两境画笺。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New watercolor and ink styles use salient subjects, faces, structure, and the photo palette to shape every mark. Tune expression, ink form, water, blank space, color, and paper, then export a standalone artwork or a Photo & Painting study sheet."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增水色與墨意畫法，由顯著主體、人臉、結構與琉璃色盤共同決定筆觸；可調整寫意、墨骨、水分、留白、設色與紙性，並匯出獨幅畫心或一照兩境畫箋。"
+          }
+        }
+      }
+    },
+    "新增照片与单月月历并排的摄影排版，圈出拍摄当天；PRO 用户还可自动取色或自定义底板颜色。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new photo-and-calendar layout places one photo beside one month and circles the capture day. PRO users can also use Auto Color or choose a custom panel color."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增照片與單月月曆並排的攝影排版，圈出拍攝當天；PRO 使用者還可自動取色或自訂底板顏色。"
+          }
+        }
+      }
+    },
+    "新增照片与单月月历并排的横向样式，手绘双线圈标出拍摄当天；实况照片只让左侧画面流动，右侧日期保持清晰。PRO 用户还可自动取色或自定义底板颜色。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new landscape layout places one photo beside one month, marks the capture day with a hand-drawn double ring, and keeps the calendar sharp while only the photo animates. PRO users can also use Auto Color or choose a custom panel color."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增照片與單月月曆並排的橫向樣式，以手繪雙線圈標出拍攝當天；原況照片只讓左側畫面流動，右側日期保持清晰。PRO 使用者還可自動取色或自訂底板顏色。"
           }
         }
       }
@@ -23147,6 +24840,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法導入靈動作品"
+          }
+        }
+      }
+    },
+    "无法导入签章" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to Import Signature"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法匯入簽章"
           }
         }
       }
@@ -23906,6 +25616,74 @@
         }
       }
     },
+    "日期与时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date & Time"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期與時間"
+          }
+        }
+      }
+    },
+    "日期与时间使用所选签章字体，可在画面中单独拖动，并用滑块调整大小。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date and time use the selected signature font. Drag them independently on the photo and use the slider to resize them."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期與時間使用所選簽章字體，可在畫面中單獨拖動，並用滑桿調整大小。"
+          }
+        }
+      }
+    },
+    "日期时间大小" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date & Time Size"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期時間大小"
+          }
+        }
+      }
+    },
+    "日期时间语言" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date & Time Language"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日期時間語言"
+          }
+        }
+      }
+    },
     "日期未记录" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24512,6 +26290,23 @@
         }
       }
     },
+    "显示位置" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Display Position"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示位置"
+          }
+        }
+      }
+    },
     "显示位置信息" : {
       "localizations" : {
         "en" : {
@@ -24557,6 +26352,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顯示手機和相機訊息"
+          }
+        }
+      }
+    },
+    "显示拍摄时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Capture Time"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示拍攝時間"
           }
         }
       }
@@ -24607,6 +26419,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顯示日期"
+          }
+        }
+      }
+    },
+    "显示时间" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Time"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示時間"
           }
         }
       }
@@ -24723,6 +26552,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "晃動手機以恢復卡片初始視圖"
+          }
+        }
+      }
+    },
+    "晕染" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bleed"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暈染"
           }
         }
       }
@@ -25399,6 +27245,23 @@
         }
       }
     },
+    "月份标题" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Month Title"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月份標題"
+          }
+        }
+      }
+    },
     "月历以拍摄日期为准，拍摄当日红圈标记，节气同日标注。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -25412,6 +27275,56 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "月曆以拍攝日期為準，拍攝當日紅圈標記，節氣同日標註。"
+          }
+        }
+      }
+    },
+    "月历底板" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendar Panel"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月曆底板"
+          }
+        }
+      }
+    },
+    "月历样式" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendar Style"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月曆樣式"
+          }
+        }
+      }
+    },
+    "月历照片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendar Photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月曆照片"
           }
         }
       }
@@ -25603,6 +27516,23 @@
         }
       }
     },
+    "未入画" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not Included"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未入畫"
+          }
+        }
+      }
+    },
     "未公开" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -25717,6 +27647,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未尋"
+          }
+        }
+      }
+    },
+    "未找到可用于高清入画的原图。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No original photo is available for high-resolution painting."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到可用於高清入畫的原圖。"
           }
         }
       }
@@ -25874,6 +27821,23 @@
         }
       }
     },
+    "未记录地点" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location Not Recorded"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未記錄地點"
+          }
+        }
+      }
+    },
     "未记录定位 · 可制作普通邮票" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -25904,6 +27868,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未選擇"
+          }
+        }
+      }
+    },
+    "末尾" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "末尾"
           }
         }
       }
@@ -26433,6 +28414,23 @@
         }
       }
     },
+    "枯笔" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dry Brush"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "枯筆"
+          }
+        }
+      }
+    },
     "柔光拱廊" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -26514,6 +28512,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "柔軟日常"
+          }
+        }
+      }
+    },
+    "柔边" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soft"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "柔邊"
           }
         }
       }
@@ -26920,6 +28935,40 @@
         }
       }
     },
+    "档案字体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archive Font"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "檔案字體"
+          }
+        }
+      }
+    },
+    "档案栏开头或末尾可固定一至六色琉璃色，亦可书写专属文字并选用内置字体。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pin one to six glass colors at the start or end of the archive bar, or write your own words with the built-in fonts."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "檔案欄開頭或末尾可固定一至六色琉璃色，亦可書寫專屬文字並選用內建字體。"
+          }
+        }
+      }
+    },
     "档案等宽" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -27001,6 +29050,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "夢從此刻出發"
+          }
+        }
+      }
+    },
+    "棉纸" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cotton"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棉紙"
           }
         }
       }
@@ -27220,6 +29286,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "橫屏才能完整呈現左右跨頁與翻頁效果"
+          }
+        }
+      }
+    },
+    "横扫" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sweep"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "橫掃"
           }
         }
       }
@@ -27846,6 +29929,40 @@
         }
       }
     },
+    "正在生成实况照片…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generating Live Photo…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在產生原況照片…"
+          }
+        }
+      }
+    },
+    "正在生成当前入画效果，请稍候…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generating the current painting effect…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在生成目前的入畫效果，請稍候…"
+          }
+        }
+      }
+    },
     "正在生成当前素描效果，请稍候…" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -28109,6 +30226,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在連接 App Store…"
+          }
+        }
+      }
+    },
+    "正在重绘高清纸上颜料…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redrawing high-resolution pigments on paper…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重繪高清紙上顏料…"
           }
         }
       }
@@ -28602,6 +30736,23 @@
         }
       }
     },
+    "气泡记录拍摄信息，字迹与自定义 PNG 签章则可在完整画面上自由落款。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bubbles preserve camera details, while lettering and custom PNG signatures can be placed freely on the full photo."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "氣泡記錄拍攝資訊，字跡與自訂 PNG 簽章則可在完整畫面上自由落款。"
+          }
+        }
+      }
+    },
     "水光把时间揉碎" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -28615,6 +30766,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "水光把時間揉碎"
+          }
+        }
+      }
+    },
+    "水分" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Water"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水分"
           }
         }
       }
@@ -28768,6 +30936,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "水碧"
+          }
+        }
+      }
+    },
+    "水色" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watercolor"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水色"
           }
         }
       }
@@ -29141,6 +31326,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "流光摺扇"
+          }
+        }
+      }
+    },
+    "流光折扇单张成扇" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flowing Light Fan: A Single Photo Becomes a Fan"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "流光折扇單張成扇"
+          }
+        }
+      }
+    },
+    "流光折扇新增单张成扇：一张照片自动铺满整个扇面，成扇后双指捏合缩放，细看扇面上的连续画面。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flowing Light Fan adds a single-photo mode: one photo automatically fills the entire fan surface, then pinch with two fingers to zoom into the continuous imagery."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "流光折扇新增單張成扇：一張照片自動鋪滿整個扇面，成扇後雙指捏合縮放，細看扇面上的連續畫面。"
           }
         }
       }
@@ -29601,6 +31820,23 @@
         }
       }
     },
+    "深" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deep"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深"
+          }
+        }
+      }
+    },
     "深呼吸便抵达远方" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -29854,6 +32090,39 @@
         }
       }
     },
+    "清空画笺标题" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Study Sheet Title"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清空畫箋標題"
+          }
+        }
+      }
+    },
+    "清脆" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crisp"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清脆"
+          }
+        }
+      }
+    },
     "清透明信片画册" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -30054,6 +32323,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "湖藍"
+          }
+        }
+      }
+    },
+    "湿边" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wet Edge"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "濕邊"
           }
         }
       }
@@ -30498,6 +32784,40 @@
         }
       }
     },
+    "灵动月历·摄影排版" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lingdong Calendar · Photo Layout"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "靈動月曆·攝影排版"
+          }
+        }
+      }
+    },
+    "灵动月历专属底板" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lingdong Calendar Panels"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "靈動月曆專屬底板"
+          }
+        }
+      }
+    },
     "灵动月历设定" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -30611,6 +32931,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "靈動照片 3.0.1（Build 202632）"
+          }
+        }
+      }
+    },
+    "灵动照片 3.0.2（Build 202635）" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lingdong Photo 3.0.2 (Build 202635)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "靈動照片 3.0.2（Build 202635）"
           }
         }
       }
@@ -30802,6 +33139,23 @@
         }
       }
     },
+    "炭笔" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charcoal"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "炭筆"
+          }
+        }
+      }
+    },
     "炭笔速写" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -30988,6 +33342,22 @@
         }
       }
     },
+    "点击翻转，横屏预览%@效果更佳" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to flip; %@ works better in landscape"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點擊翻轉，橫屏預覽%@效果更佳"
+          }
+        }
+      }
+    },
     "点击翻转，横屏预览更佳" : {
       "localizations" : {
         "en" : {
@@ -31005,6 +33375,7 @@
       }
     },
     "点击翻转，横屏预览票根效果更佳" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -31303,6 +33674,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "照片與主色同框\n橫豎皆成卡片"
+          }
+        }
+      }
+    },
+    "照片与单月月历并排呈现，圈出拍摄当天。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A photo and its month appear side by side, with the capture day circled."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片與單月月曆並排呈現，圈出拍攝當天。"
           }
         }
       }
@@ -31811,6 +34199,40 @@
         }
       }
     },
+    "照片记下所见，笔墨留下所感\n水色、墨意与一照两境，由琉璃颜料重绘" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A photo records what you saw; brush and ink preserve what you felt\nWatercolor, ink, and Two Visions, repainted with glass-like pigments"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片記下所見，筆墨留下所感\n水色、墨意與一照兩境，由琉璃顏料重繪"
+          }
+        }
+      }
+    },
+    "照片记下所见，笔墨留下所感。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A photo records what you see; brush and ink preserve what you feel."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片記下所見，筆墨留下所感。"
+          }
+        }
+      }
+    },
     "熟悉的人就在身旁" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -31862,6 +34284,23 @@
         }
       }
     },
+    "版式、画法与取景" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout, Style & Crop"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版式、畫法與取景"
+          }
+        }
+      }
+    },
     "版本 3.0.0 (Build 202603)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -31896,6 +34335,23 @@
         }
       }
     },
+    "版本 3.0.2 (Build 202635)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version 3.0.2 (Build 202635)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版本 3.0.2 (Build 202635)"
+          }
+        }
+      }
+    },
     "特别行政区" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -31926,6 +34382,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "狗狗"
+          }
+        }
+      }
+    },
+    "独幅画心" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artwork"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "獨幅畫心"
           }
         }
       }
@@ -32100,6 +34573,23 @@
         }
       }
     },
+    "现在可以自由滑动档案栏，调整它在照片中的位置；导出时会保留预览中的当前排版。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can now freely drag the archive bar to reposition it over the photo. Exports preserve the layout shown in the preview."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在可以自由滑動檔案欄，調整它在照片中的位置；匯出時會保留預覽中的目前排版。"
+          }
+        }
+      }
+    },
     "现场永远不可复制" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -32113,6 +34603,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "現場永遠不可複製"
+          }
+        }
+      }
+    },
+    "琉璃月历" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glass Calendar"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "琉璃月曆"
           }
         }
       }
@@ -32134,36 +34641,36 @@
         }
       }
     },
-    "“琉璃档案”档案栏支持自由滑动" : {
+    "琉璃档案，由你书写" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A freely movable archive bar in “Glass Archive”"
+            "value" : "Glass Archive, Written by You"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「琉璃檔案」檔案欄支援自由滑動"
+            "value" : "琉璃檔案，由你書寫"
           }
         }
       }
     },
-    "现在可以自由滑动档案栏，调整它在照片中的位置；导出时会保留预览中的当前排版。" : {
+    "琉璃档案与灵动月历横屏查看" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You can now freely drag the archive bar to reposition it over the photo. Exports preserve the layout shown in the preview."
+            "value" : "Landscape View for Glass Archive and Lingdong Calendar"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "現在可以自由滑動檔案欄，調整它在照片中的位置；匯出時會保留預覽中的目前排版。"
+            "value" : "琉璃檔案與靈動月曆橫屏查看"
           }
         }
       }
@@ -32180,6 +34687,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "琉璃檔案功能設定"
+          }
+        }
+      }
+    },
+    "琉璃档案自定义" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glass Archive Customization"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "琉璃檔案自訂"
+          }
+        }
+      }
+    },
+    "琉璃档案自定义功能为“支持我们 " : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glass Archive customization is exclusive to “Support Us "
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "琉璃檔案自訂功能為「支持我們 "
           }
         }
       }
@@ -32218,19 +34759,18 @@
         }
       }
     },
-    "琉璃档案预览，按照片实际比例完整显示，可拖动档案栏调整位置，双击中间标志可更换标志" : {
-      "extractionState" : "manual",
+    "琉璃档案预览，%@，可拖动档案栏调整位置，双击中间标志可更换标志" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Glass Archive preview, shown at the photo's true ratio. Drag the archive bar to reposition it, or double-tap the center mark to change it."
+            "value" : "Glass Archive preview, %@. Drag the archive bar to reposition it. Double-tap the center mark to change it."
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "琉璃檔案預覽，按照片實際比例完整顯示，可拖動檔案欄調整位置，雙擊中間標誌可更換標誌"
+            "value" : "琉璃檔案預覽，%@，可拖動檔案欄調整位置，點兩下中間標誌可更換標誌"
           }
         }
       }
@@ -32248,6 +34788,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "琉璃檔案預覽，按照片實際比例完整顯示，雙擊中間標誌可更換標誌"
+          }
+        }
+      }
+    },
+    "琉璃档案预览，按照片实际比例完整显示，可拖动档案栏调整位置，双击中间标志可更换标志" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glass Archive preview, shown at the photo's true ratio. Drag the archive bar to reposition it, or double-tap the center mark to change it."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "琉璃檔案預覽，按照片實際比例完整顯示，可拖動檔案欄調整位置，雙擊中間標誌可更換標誌"
           }
         }
       }
@@ -32315,6 +34872,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "琉璃色盤預覽，圖片完整固定顯示，可拖動色盤調整位置"
+          }
+        }
+      }
+    },
+    "琉璃颜料" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glass Pigments"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "琉璃顏料"
           }
         }
       }
@@ -32657,6 +35230,23 @@
         }
       }
     },
+    "用代码生成带笔锋、飞白与晕边的笔刷外形，把原照片自然裁入纸面；可选横扫、上扬、下掠、竖落、弧扫与枯笔，照片色彩保持自然。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code generates a brush shape with bristle tips, dry gaps, and soft bleed, then naturally clips the original photo into paper. Choose sweep, rising, falling, vertical, arc, or dry brush while keeping the photo's color natural."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用程式碼生成帶筆鋒、飛白與暈邊的筆刷外形，把原照片自然裁入紙面；可選橫掃、上揚、下掠、豎落、弧掃與枯筆，照片色彩保持自然。"
+          }
+        }
+      }
+    },
     "用六张照片展开流光折扇，把一张照片制成邮票、明信片或月历。无论使用 iPhone 还是 iPad，每一种创作都会顺应屏幕大小与方向自然展开，以全新方式收藏光影与时间。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32670,6 +35260,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "用六張照片展開流光摺扇，把一張照片製成郵票、明信片或月曆。無論使用 iPhone 還是 iPad，每一種創作都會順應螢幕大小與方向自然展開，以全新方式收藏光影與時間。"
+          }
+        }
+      }
+    },
+    "用多层水彩洗染画心把原照片自然融入纸面；可选横扫、上扬、下掠、竖落、弧扫与枯笔，还可拖动、缩放调整取景并自定义画笺标题。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blend the original photo naturally into paper with layered watercolor washes. Choose Sweep, Rising, Falling, Vertical, Arc, or Dry Brush; drag and pinch to adjust the crop, and customize the study sheet title."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用多層水彩洗染畫心把原照片自然融入紙面；可選橫掃、上揚、下掠、豎落、弧掃與枯筆，還可拖動、縮放調整取景並自訂畫箋標題。"
           }
         }
       }
@@ -32791,6 +35398,40 @@
         }
       }
     },
+    "用纯代码叠加多层水彩洗染，将原照片融入横扫、上扬、下掠、竖落、弧扫或枯笔画心；可调整笔锋、晕染与飞白，也可拖动、缩放调整取景并修改画笺标题。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layered procedural watercolor washes blend the original photo into Sweep, Rising, Falling, Vertical, Arc, or Dry Brush artwork. Adjust bristles, bleed, and dry gaps; drag and pinch to reframe; and edit the study sheet title."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用純程式碼疊加多層水彩洗染，將原照片融入橫掃、上揚、下掠、豎落、弧掃或枯筆畫心；可調整筆鋒、暈染與飛白，也可拖動、縮放調整取景並修改畫箋標題。"
+          }
+        }
+      }
+    },
+    "用纯代码绘制多束笔毛蒙版，将原照片裁成横扫、上扬、下掠、竖落、弧扫或枯笔；可调整笔锋、晕染与飞白，并导出独幅画心或一照两境画笺。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A procedural multi-bristle mask clips the original photo into sweep, rising, falling, vertical, arc, or dry-brush forms. Tune bristles, bleed, and dry gaps, then export an artwork or a Photo & Painting study sheet."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用純程式碼繪製多束筆毛蒙版，將原照片裁成橫掃、上揚、下掠、豎落、弧掃或枯筆；可調整筆鋒、暈染與飛白，並匯出獨幅畫心或一照兩境畫箋。"
+          }
+        }
+      }
+    },
     "用自己的照片，收集一年二十四种传统色。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32821,6 +35462,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "用這枚郵票製作明信片"
+          }
+        }
+      }
+    },
+    "用铅笔、炭笔、水色与墨意重绘照片，也可排成兼有原片、画意与琉璃颜料的一照两境画笺。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repaint a photo in pencil, charcoal, watercolor, or ink, or compose a Photo & Painting sheet with the original, artwork, and glass pigments."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用鉛筆、炭筆、水色與墨意重繪照片，也可排成兼有原片、畫意與琉璃顏料的一照兩境畫箋。"
           }
         }
       }
@@ -33057,6 +35715,73 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "畫布寬度最高 2400 px，適合日常保存與分享"
+          }
+        }
+      }
+    },
+    "画意" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expression"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "畫意"
+          }
+        }
+      }
+    },
+    "画笺" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Art Sheet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "畫箋"
+          }
+        }
+      }
+    },
+    "画笺字体" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sheet Font"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "畫箋字體"
+          }
+        }
+      }
+    },
+    "画笺纸面" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Art Sheet"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "畫箋紙面"
           }
         }
       }
@@ -35176,6 +37901,23 @@
         }
       }
     },
+    "竖落" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertical"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "豎落"
+          }
+        }
+      }
+    },
     "竹青" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -35210,6 +37952,22 @@
         }
       }
     },
+    "笔刷外形" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brush Shape"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "筆刷外形"
+          }
+        }
+      }
+    },
     "笔触" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -35223,6 +37981,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "筆觸"
+          }
+        }
+      }
+    },
+    "笔锋" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bristle"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "筆鋒"
           }
         }
       }
@@ -35531,6 +38306,40 @@
         }
       }
     },
+    "签章字体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signature Fonts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "簽章字體"
+          }
+        }
+      }
+    },
+    "签章文字" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signature Text"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "簽章文字"
+          }
+        }
+      }
+    },
     "简体中文按省份展示城市目录，其他语言保留已发现城市的展示方式。切换语言不会改变本目录内城市的归并结果；目录之外的旅行城市延续原有收录方式。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -35578,6 +38387,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "粗"
+          }
+        }
+      }
+    },
+    "粗纹" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rough"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "粗紋"
+          }
+        }
+      }
+    },
+    "系统未接受实况动态资源，已先为你保存静态邮票。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The system rejected the live assets, so a still stamp was saved instead."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系統未接受原況動態資源，已先為你儲存靜態郵票。"
           }
         }
       }
@@ -35900,6 +38743,23 @@
         }
       }
     },
+    "纸感与题签" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paper & Inscription"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紙感與題簽"
+          }
+        }
+      }
+    },
     "纸票照片或电子凭证截图" : {
       "localizations" : {
         "en" : {
@@ -36012,6 +38872,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "細"
+          }
+        }
+      }
+    },
+    "细宣" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fine Xuan"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "細宣"
           }
         }
       }
@@ -36135,6 +39012,23 @@
         }
       }
     },
+    "经典米白" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classic Ivory"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "經典米白"
+          }
+        }
+      }
+    },
     "经典邮政" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -36165,6 +39059,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "經典郵政版式免費，其他明信片版式需 "
+          }
+        }
+      }
+    },
+    "结构" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Structure"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結構"
           }
         }
       }
@@ -36487,6 +39398,23 @@
         }
       }
     },
+    "编辑内容" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Content"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編輯內容"
+          }
+        }
+      }
+    },
     "编辑封面文字" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -36774,7 +39702,24 @@
         }
       }
     },
+    "翻转为横屏%@预览" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flip to a landscape %@ preview"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻轉為橫屏%@預覽"
+          }
+        }
+      }
+    },
     "翻转为横屏票根预览" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -36993,6 +39938,40 @@
         }
       }
     },
+    "自动取色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Color"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動取色"
+          }
+        }
+      }
+    },
+    "自动取色与自定义颜色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto & Custom Colors"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動取色與自訂顏色"
+          }
+        }
+      }
+    },
     "自动寻色" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37095,6 +40074,56 @@
         }
       }
     },
+    "自定义 PNG" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom PNG"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂 PNG"
+          }
+        }
+      }
+    },
+    "自定义字体" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Fonts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂字體"
+          }
+        }
+      }
+    },
+    "自定义底板颜色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Panel Color"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂底板顏色"
+          }
+        }
+      }
+    },
     "自定义影像书" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -37108,6 +40137,124 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自訂影像書"
+          }
+        }
+      }
+    },
+    "自定义档案文字" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Archive Text"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂檔案文字"
+          }
+        }
+      }
+    },
+    "自定义档案文字开启时，时间与位置信息将自动隐藏。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "While custom archive text is on, time and location details are hidden automatically."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂檔案文字開啟時，時間與位置資訊將自動隱藏。"
+          }
+        }
+      }
+    },
+    "自定义画笺字体" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Study Sheet Fonts"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂畫箋字體"
+          }
+        }
+      }
+    },
+    "自定义画笺字体为“支持我们 " : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom study sheet fonts are exclusive to “Support Us "
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂畫箋字體為「支持我們 "
+          }
+        }
+      }
+    },
+    "自定义签章" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Signature"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂簽章"
+          }
+        }
+      }
+    },
+    "自定义签章设定" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Signature Settings"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂簽章設定"
+          }
+        }
+      }
+    },
+    "自定义颜色" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom Color"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂顏色"
           }
         }
       }
@@ -39043,6 +42190,23 @@
         }
       }
     },
+    "解锁全部签章字体，并可导入自己的 PNG 签章留在完整影像上。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock every signature font and import your own PNG signature onto the full photo."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解鎖全部簽章字體，並可匯入自己的 PNG 簽章留在完整影像上。"
+          }
+        }
+      }
+    },
     "解锁四款应用图标，随心更换主屏幕上的灵动照片。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39128,6 +42292,23 @@
         }
       }
     },
+    "让名字、字迹与图章留在完整影像上。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave a name, handwritten feel, or personal mark on the full photo."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "讓名字、字跡與圖章留在完整影像上。"
+          }
+        }
+      }
+    },
     "让每一段旅程，在票根集中再次相遇" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -39141,6 +42322,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "讓每一段旅程，在票根集中再次相遇"
+          }
+        }
+      }
+    },
+    "让气泡、字迹与私人印记，自由落在完整光影之上" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let bubbles, lettering, and personal marks settle freely across the full image"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "讓氣泡、字跡與私人印記，自由落在完整光影之上"
           }
         }
       }
@@ -39559,6 +42757,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "設定"
+          }
+        }
+      }
+    },
+    "设色" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Color"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設色"
           }
         }
       }
@@ -40001,6 +43216,22 @@
         }
       }
     },
+    "调整取景" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjust Crop"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調整取景"
+          }
+        }
+      }
+    },
     "调整取色范围" : {
       "localizations" : {
         "en" : {
@@ -40102,6 +43333,23 @@
         }
       }
     },
+    "调整气泡印章、签章文字、字体与 PNG 图片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjust the bubble stamp, signature text, fonts, and PNG image"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調整氣泡印章、簽章文字、字體與 PNG 圖片"
+          }
+        }
+      }
+    },
     "调整气泡印章的作品模板、图片比例与信息显示" : {
       "localizations" : {
         "en" : {
@@ -40146,6 +43394,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "調整琉璃檔案欄的時間與位置資訊顯示"
+          }
+        }
+      }
+    },
+    "调整签章文字、字体与 PNG 图片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjust signature text, fonts, and PNG images"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調整簽章文字、字體與 PNG 圖片"
           }
         }
       }
@@ -40710,6 +43975,23 @@
         }
       }
     },
+    "轻" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輕"
+          }
+        }
+      }
+    },
     "轻快网格与成长标记，为每一次变化留下位置" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -40824,6 +44106,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "輕點任一扇面，可放大並調整取景。"
+          }
+        }
+      }
+    },
+    "轻点决定入画颜色" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap colors to include"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輕點決定入畫顏色"
           }
         }
       }
@@ -40959,6 +44257,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "輕點查看解鎖方式"
+          }
+        }
+      }
+    },
+    "轻点档案栏，写下此刻" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the archive bar to capture this moment"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輕點檔案欄，寫下此刻"
           }
         }
       }
@@ -41107,6 +44422,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "輸入標題"
+          }
+        }
+      }
+    },
+    "输入签名" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a signature"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輸入簽名"
+          }
+        }
+      }
+    },
+    "输入签名或导入自己的 PNG 签章，直接拖动放置并调整大小。自定义 PNG 与非系统字体需支持我们 PRO 解锁。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type a signature or import your own PNG, then drag it into place and resize it. Custom PNGs and non-system fonts require Support Us PRO."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輸入簽名或匯入自己的 PNG 簽章，直接拖動放置並調整大小。自訂 PNG 與非系統字體需支持我們 PRO 解鎖。"
           }
         }
       }
@@ -42746,6 +46095,23 @@
         }
       }
     },
+    "远方花体" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postcard Script"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遠方花體"
+          }
+        }
+      }
+    },
     "远方藏在街角" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -42844,6 +46210,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連接 App Store"
+          }
+        }
+      }
+    },
+    "适中" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "適中"
           }
         }
       }
@@ -43009,6 +46392,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選擇一張舊票"
+          }
+        }
+      }
+    },
+    "选择一张照片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a Photo"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇一張照片"
+          }
+        }
+      }
+    },
+    "选择一张照片，自动铺满六瓣扇面。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick one photo and it automatically fills all six fan leaves."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇一張照片，自動鋪滿六瓣扇面。"
           }
         }
       }
@@ -43877,6 +47294,40 @@
         }
       }
     },
+    "邮票可播放实况画面，导出时也能产出实况照片；邮集中也能轻点城市邮票回看那一刻。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stamps can play live footage and export as Live Photos; in your postal collection, tap a city stamp to relive the moment."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "郵票可播放原況畫面，匯出時也能產出原況照片；郵集中也能輕點城市郵票回看那一刻。"
+          }
+        }
+      }
+    },
+    "邮票支持实况照片" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Photos for Stamps"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "郵票支援原況照片"
+          }
+        }
+      }
+    },
     "邮票日期" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -44308,6 +47759,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "鐵路票"
+          }
+        }
+      }
+    },
+    "铅笔" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pencil"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鉛筆"
           }
         }
       }
@@ -44883,6 +48351,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "隱藏「時間未記錄」"
+          }
+        }
+      }
+    },
+    "隐藏底部题记" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide Bottom Inscription"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隱藏底部題記"
           }
         }
       }
@@ -46157,6 +49642,23 @@
         }
       }
     },
+    "飞白" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dry Gaps"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "飛白"
+          }
+        }
+      }
+    },
     "食物" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -46439,6 +49941,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "高清"
+          }
+        }
+      }
+    },
+    "高清入画渲染失败，请稍后重试。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High-resolution painting failed. Please try again later."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高清入畫算繪失敗，請稍後再試。"
           }
         }
       }
@@ -46936,6 +50455,23 @@
         }
       }
     },
+    "墨意" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ink"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "墨意"
+          }
+        }
+      }
+    },
     "墨色" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -46953,6 +50489,23 @@
         }
       }
     },
+    "墨骨" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ink Form"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "墨骨"
+          }
+        }
+      }
+    },
     "墨黛" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -46966,6 +50519,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "墨黛"
+          }
+        }
+      }
+    },
+    "默认使用自动裁切" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uses automatic cropping by default"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "預設使用自動裁切"
           }
         }
       }

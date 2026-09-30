@@ -2,15 +2,32 @@ import SwiftUI
 
 
 enum PostalFont: String, CaseIterable, Identifiable {
-    case original, wenkai, brush, retro, handwritten
+    case original, wenkai, brush, grassScript, retro, handwritten, postcardScript
     var id: String { rawValue }
     var title: String {
         switch self {
         case .original: "原生字体".appLocalized
         case .wenkai: "邮笺楷书".appLocalized
         case .brush: "山水墨书".appLocalized
+        case .grassScript: "尺素行草".appLocalized
         case .retro: "复古铅印".appLocalized
         case .handwritten: "行旅手记".appLocalized
+        case .postcardScript: "远方花体".appLocalized
+        }
+    }
+    var compactPickerTitle: String {
+        let language = (Bundle.main.preferredLocalizations.first
+            ?? Locale.preferredLanguages.first
+            ?? "zh-Hans").lowercased()
+        guard language.hasPrefix("en") else { return title }
+        return switch self {
+        case .original: "System"
+        case .wenkai: "Kaiti"
+        case .brush: "Ink"
+        case .grassScript: "Cursive"
+        case .retro: "Press"
+        case .handwritten: "Script"
+        case .postcardScript: "Postcard"
         }
     }
     var originalName: String {
@@ -18,8 +35,10 @@ enum PostalFont: String, CaseIterable, Identifiable {
         case .original: "iOS 系统字体"
         case .wenkai: "LXGW WenKai Lite · 霞鹜文楷 轻便版"
         case .brush: "Ma Shan Zheng · 马善政毛笔楷书"
+        case .grassScript: "Liu Jian Mao Cao · 刘建毛草"
         case .retro: "ZCOOL XiaoWei · 站酷小薇体"
         case .handwritten: "Long Cang · 龙藏体"
+        case .postcardScript: "Sacramento · Sacramento 英文手写体"
         }
     }
     var fileName: String? {
@@ -27,8 +46,10 @@ enum PostalFont: String, CaseIterable, Identifiable {
         case .original: nil
         case .wenkai: "LXGWWenKaiLite-Regular"
         case .brush: "MaShanZheng-Regular"
+        case .grassScript: "LiuJianMaoCao-Regular"
         case .retro: "ZCOOLXiaoWei-Regular"
         case .handwritten: "LongCang-Regular"
+        case .postcardScript: "Sacramento-Regular"
         }
     }
     var postScriptName: String? { fileName }
@@ -58,8 +79,14 @@ struct PostalFontPicker: View {
                             Text(verbatim: font.title)
                                 .font(roomy ? .body : .caption)
                                 .foregroundStyle(.secondary)
-                            Text("把时光寄给远方")
-                                .font(Font(font.uiFont(size: roomy ? 31 : 25)))
+                            Group {
+                                if font == .postcardScript {
+                                    Text(verbatim: "Wish You Were Here")
+                                } else {
+                                    Text("把时光寄给远方")
+                                }
+                            }
+                            .font(Font(font.uiFont(size: roomy ? 31 : 25)))
                         }
                         Spacer()
                         Image(systemName: selection == font ? "checkmark.circle.fill" : "circle")

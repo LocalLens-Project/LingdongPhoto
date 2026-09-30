@@ -260,7 +260,10 @@ enum ArtworkExporter {
         // use different dimensions. Keep the requested original resolution for
         // the still, while limiting H.264 motion frames to the same 2K/4K
         // envelope already proven reliable by the app's 2K export option.
-        let scale = min(1, 2_160 / stillWidth, 3_840 / stillHeight)
+        let isLandscape = stillWidth >= stillHeight
+        let maximumWidth: CGFloat = isLandscape ? 3_840 : 2_160
+        let maximumHeight: CGFloat = isLandscape ? 2_160 : 3_840
+        let scale = min(1, maximumWidth / stillWidth, maximumHeight / stillHeight)
         return CGSize(
             width: max(2, floor(stillWidth * scale)),
             height: max(2, floor(stillHeight * scale))

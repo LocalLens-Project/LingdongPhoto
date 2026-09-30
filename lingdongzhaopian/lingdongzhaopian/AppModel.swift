@@ -10,6 +10,7 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
     case privacyMosaic
     case travelTicket
     case sketch
+    case imagePainting
     case glassArchive
     case paletteCard
     case monthlyCalendar
@@ -21,11 +22,12 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
         case .motionCard: "灵动卡片".appLocalized
         case .colorPalette: "光色解读".appLocalized
         case .journal: "一键手帐".appLocalized
-        case .bubbleStamp: "气泡印章".appLocalized
+        case .bubbleStamp: "光影签章".appLocalized
         case .spectrumWallpaper: "色谱壁纸".appLocalized
         case .privacyMosaic: "隐私马赛克".appLocalized
         case .travelTicket: "影像票根".appLocalized
         case .sketch: "影像素描".appLocalized
+        case .imagePainting: "影像入画".appLocalized
         case .glassArchive: "琉璃档案".appLocalized
         case .paletteCard: "灵动色卡".appLocalized
         case .monthlyCalendar: "灵动月历".appLocalized
@@ -37,11 +39,12 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
         case .motionCard: "封存地理与时间的印记，重塑身临其境的沉浸式体验".appLocalized
         case .colorPalette: "看见照片里的色彩，也读懂光影为何动人".appLocalized
         case .journal: "选取 1～5 张照片，自动排版电子手帐".appLocalized
-        case .bubbleStamp: "将照片、文案、主色与真实拍摄参数组合成轻盈的气泡印章".appLocalized
+        case .bubbleStamp: "让气泡、字迹与私人印记，自由落在完整光影之上".appLocalized
         case .spectrumWallpaper: "拒绝千篇一律，每一次亮屏都是你的专属艺术创作".appLocalized
         case .privacyMosaic: "手动涂抹或智能识别人脸、车牌、二维码与敏感文字".appLocalized
         case .travelTicket: "让色彩、拍摄信息与可验证凭证共同封存一次旅程".appLocalized
         case .sketch: "把照片变成铅笔素描、炭笔速写或水彩绘画".appLocalized
+        case .imagePainting: "从照片取出琉璃颜料，以水色、墨意与纸性重绘记忆".appLocalized
         case .glassArchive: "液态玻璃档案栏，封存设备、参数与坐标的原始记录".appLocalized
         case .paletteCard: "从照片里提取主色，合成可分享的极简色卡".appLocalized
         case .monthlyCalendar: "照片化作月历壁纸，节气、主色与城市一同封存".appLocalized
@@ -66,6 +69,8 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
             "把一张照片变成可以被扫描、被验证的旅行凭证".appLocalized
         case .sketch:
             "在纸张质感上重绘影像\n铅笔、炭笔与水彩，三种笔意随手切换".appLocalized
+        case .imagePainting:
+            "照片记下所见，笔墨留下所感\n水色、墨意与一照两境，由琉璃颜料重绘".appLocalized
         case .glassArchive:
             "液态玻璃封存拍摄档案\n设备、参数与坐标，一眼可考".appLocalized
         case .paletteCard:
@@ -85,6 +90,7 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
         case .privacyMosaic: "eye.slash"
         case .travelTicket: "ticket"
         case .sketch: "pencil.and.ruler"
+        case .imagePainting: "paintbrush.pointed"
         case .glassArchive: "camera.aperture"
         case .paletteCard: "swatchpalette"
         case .monthlyCalendar: "calendar"
@@ -101,6 +107,7 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
         case .privacyMosaic: Color(red: 0.62, green: 0.84, blue: 1.00)
         case .travelTicket: Color(red: 0.98, green: 0.72, blue: 0.48)
         case .sketch: Color(red: 0.88, green: 0.84, blue: 0.74)
+        case .imagePainting: Color(red: 0.76, green: 0.82, blue: 0.92)
         case .glassArchive: Color(red: 0.72, green: 0.86, blue: 0.95)
         case .paletteCard: Color(red: 0.90, green: 0.76, blue: 0.55)
         case .monthlyCalendar: Color(red: 0.74, green: 0.88, blue: 0.80)
@@ -117,7 +124,7 @@ enum CreationMode: String, CaseIterable, Identifiable, Sendable {
             .original
         case .paletteCard, .monthlyCalendar:
             .original
-        case .motionCard, .colorPalette, .bubbleStamp, .privacyMosaic, .sketch:
+        case .motionCard, .colorPalette, .bubbleStamp, .privacyMosaic, .sketch, .imagePainting:
             .threeFour
         }
     }
@@ -128,6 +135,13 @@ enum GlassArchiveMark: String, CaseIterable {
     case camera
 
     case none
+}
+
+enum GlassArchivePinnedEdge: String, CaseIterable, Identifiable {
+    case leading
+    case trailing
+
+    var id: String { rawValue }
 }
 
 enum GlassArchiveMarkResolver {
@@ -543,7 +557,7 @@ struct ArtworkCopy: Equatable {
     var emojis = "✨  📷\n🌿  🤍"
 }
 
-struct RGBColor: Hashable {
+nonisolated struct RGBColor: Hashable, Sendable {
     let red: CGFloat
     let green: CGFloat
     let blue: CGFloat
@@ -611,7 +625,7 @@ struct RGBColor: Hashable {
         )
     }
 
-    static let fallback: [RGBColor] = [
+    nonisolated static let fallback: [RGBColor] = [
         RGBColor(red: 0.78, green: 0.91, blue: 0.48),
         RGBColor(red: 0.34, green: 0.53, blue: 0.31),
         RGBColor(red: 0.91, green: 0.95, blue: 0.64),
@@ -630,12 +644,12 @@ struct RGBColor: Hashable {
     ]
 }
 
-struct PaletteResult {
+nonisolated struct PaletteResult: Sendable {
     let colors: [RGBColor]
     let percentages: [Double]
 }
 
-private struct OKLab {
+nonisolated private struct OKLab {
     var lightness: Double
     var a: Double
     var b: Double
@@ -675,7 +689,7 @@ private struct OKLab {
     }
 }
 
-enum PaletteExtractor {
+nonisolated enum PaletteExtractor {
     private struct Point {
         var rgb: RGBColor
         var lab: OKLab

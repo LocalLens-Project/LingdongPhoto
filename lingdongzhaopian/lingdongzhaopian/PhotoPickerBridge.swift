@@ -73,8 +73,11 @@ struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
             let selections = results.map {
                 PhotoPickerSelection(itemProvider: $0.itemProvider)
             }
+            let onSelection = parent.onSelection
             parent.isPresented = false
-            parent.onSelection(selections)
+            DispatchQueue.main.async {
+                onSelection(selections)
+            }
         }
     }
 }

@@ -19,6 +19,11 @@ private enum CanvasDragRole {
     case textSize
 }
 
+private enum SignatureDragElement {
+    case signature
+    case dateTime
+}
+
 private enum PhotoSelectionOperation: Equatable {
     case replaceAll
     case append
@@ -38,6 +43,10 @@ private struct OverflowContentHeightKey: PreferenceKey {
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
     }
+}
+
+private struct SendableImageBatch: @unchecked Sendable {
+    let images: [UIImage]
 }
 
 private struct OverflowOnlyVerticalScroll<Content: View>: View {
@@ -87,7 +96,7 @@ struct ContentView: View {
     init() {
         let defaults = UserDefaults.standard
         let didShowOnboarding = defaults.bool(forKey: "didShowOnboardingExperience")
-        let didShowUpdate = defaults.bool(forKey: "didShowVersion301Update")
+        let didShowUpdate = defaults.bool(forKey: "didShowVersion302Update")
         let presentsOnboarding = !didShowOnboarding || !didShowUpdate
         _onboardingStartsAtUpdate = State(
             initialValue: didShowOnboarding && !didShowUpdate
@@ -124,6 +133,7 @@ struct ContentView: View {
     @AppStorage("showAppTitle") private var showAppTitle = true
     @AppStorage("showSupporterBadge") private var showSupporterBadge = false
     @AppStorage("showMissingCaptureTime") private var showMissingCaptureTime = true
+    @AppStorage("motionCardShowsCaptureTime") private var motionCardShowsCaptureTime = true
     @AppStorage("emptyCanvasTheme") private var emptyCanvasThemeRaw = EmptyCanvasTheme.sky.rawValue
     @AppStorage("artworkTemplateStyle") private var templateStyleRaw = ArtworkTemplateStyle.classic.rawValue
     @AppStorage("motionCardHeaderStyle") private var motionCardHeaderStyleRaw = MotionCardHeaderStyle.solid.rawValue
@@ -152,11 +162,25 @@ struct ContentView: View {
     @AppStorage("didShowLivePhotoPlaybackHintBuild1060") private var didShowLivePhotoPlaybackHintBuild1060 = false
     @AppStorage("didShowOnboardingExperience") private var didShowOnboardingExperience = false
     @AppStorage("didShowVersion301Update") private var didShowVersion301Update = false
+    @AppStorage("didShowVersion302Update") private var didShowVersion302Update = false
     @AppStorage("didShowCreationSeasonEvent301") private var didShowCreationSeasonEvent = false
     @AppStorage("didShowModeSelectionHint101") private var didShowModeSelectionHint101 = false
     @AppStorage("didShowTicketLandscapeHint") private var didShowTicketLandscapeHint = false
+    @AppStorage("didShowArchiveCalendarLandscapeHintBuild202625") private var didShowArchiveCalendarLandscapeHintBuild202625 = false
+    @AppStorage("didShowCustomSignatureLandscapeHintBuild202630") private var didShowCustomSignatureLandscapeHintBuild202630 = false
     @AppStorage("didAcknowledgePaletteSwapHint301") private var didAcknowledgePaletteSwapHint = false
     @AppStorage("didShowTicketNarrativePrompt") private var didShowTicketNarrativePrompt = false
+    @AppStorage("glassArchivePinnedColorIndexes") private var glassArchivePinnedColorIndexesRaw = ""
+    @AppStorage("glassArchivePinnedEdge") private var glassArchivePinnedEdgeRaw = GlassArchivePinnedEdge.leading.rawValue
+    @AppStorage("glassArchiveCustomTextEnabled") private var glassArchiveCustomTextEnabled = false
+    @AppStorage("glassArchiveCustomText") private var glassArchiveCustomText = ""
+    @AppStorage("glassArchiveFontRaw") private var glassArchiveFontRaw = PostalFont.original.rawValue
+    @AppStorage("signatureStampText") private var signatureStampText = "灵动照片".appLocalized
+    @AppStorage("signatureStampFontRaw") private var signatureStampFontRaw = PostalFont.original.rawValue
+    @AppStorage("signatureStampSourceRaw") private var signatureStampSourceRaw = SignatureStampSource.text.rawValue
+    @AppStorage("signatureStampShowsDate") private var signatureStampShowsDate = false
+    @AppStorage("signatureStampShowsTime") private var signatureStampShowsTime = false
+    @AppStorage("signatureStampUsesEnglishDateTime") private var signatureStampUsesEnglishDateTime = false
 
     @State private var mode: CreationMode = .motionCard
     @State private var ipadDestination: IPadWorkspaceEntry = .creation(.motionCard)
@@ -192,13 +216,13 @@ struct ContentView: View {
     }
     private var usesFloatingMenuLauncher: Bool { !usesIslandLauncher }
     @State private var introPageID = CreationMode.motionCard.rawValue
-    @State private var pickerSelections: [PhotoPickerSelection] = []
     @State private var isPickerPresented = false
     @State private var selectedPhotos: [SelectedPhoto] = []
     @State private var images: [UIImage] = []
     @State private var palette = RGBColor.fallback
     @State private var palettePercentages = [Double](repeating: 0, count: 6)
     @State private var colorInsightPage: ColorInsightPage = .palette
+    @State private var signatureStampPage: SignatureStampPage = .bubble
     @State private var lightAnalysis: PhotoLightAnalysis?
     @State private var activeLightToneRange: LightToneRange?
     @State private var lightAnalysisTask: Task<Void, Never>?
@@ -210,7 +234,19 @@ struct ContentView: View {
     @AppStorage("featurePaletteSide") private var featurePaletteSideRaw = FeaturePaletteSide.bottom.rawValue
     @AppStorage("featurePaletteBandRatio") private var featurePaletteBandRatio = 0.295
     @AppStorage("monthlyCalendarHidesLocation") private var monthlyCalendarHidesLocation = false
+    @AppStorage("monthlyCalendarLayoutStyle") private var monthlyCalendarLayoutStyleRaw = MonthlyCalendarLayoutStyle.photoSplit.rawValue
+    @AppStorage("monthlyCalendarPanelColorMode") private var monthlyCalendarPanelColorModeRaw = MonthlyCalendarPanelColorMode.fixed.rawValue
+    @AppStorage("monthlyCalendarCustomPanelRed") private var monthlyCalendarCustomPanelRed = 0.972
+    @AppStorage("monthlyCalendarCustomPanelGreen") private var monthlyCalendarCustomPanelGreen = 0.964
+    @AppStorage("monthlyCalendarCustomPanelBlue") private var monthlyCalendarCustomPanelBlue = 0.936
+    @AppStorage("monthlyCalendarUsesEnglishMonthTitle") private var monthlyCalendarUsesEnglishMonthTitle = false
+    @AppStorage("monthlyCalendarHidesFooter") private var monthlyCalendarHidesFooter = false
     @State private var monthlyCalendarSettingsPresented = false
+    @State private var isMonthlyCalendarCropEditing = false
+    @State private var monthlyCalendarPhotoScale: CGFloat = 1
+    @State private var storedMonthlyCalendarPhotoScale: CGFloat = 1
+    @State private var monthlyCalendarPhotoOffset: CGSize = .zero
+    @State private var storedMonthlyCalendarPhotoOffset: CGSize = .zero
     @State private var featureCalendarCity: String?
     @State private var featureCalendarLocationMessage: String?
     @State private var featureCityRequest = UUID()
@@ -218,6 +254,20 @@ struct ContentView: View {
     @State private var isResolvingFeatureCity = false
     private var featurePaletteSide: FeaturePaletteSide {
         FeaturePaletteSide(rawValue: featurePaletteSideRaw) ?? .bottom
+    }
+    private var monthlyCalendarLayoutStyle: MonthlyCalendarLayoutStyle {
+        MonthlyCalendarLayoutStyle(rawValue: monthlyCalendarLayoutStyleRaw) ?? .photoSplit
+    }
+    private var monthlyCalendarPanelColorMode: MonthlyCalendarPanelColorMode {
+        guard supporterUnlocked else { return .fixed }
+        return MonthlyCalendarPanelColorMode(rawValue: monthlyCalendarPanelColorModeRaw) ?? .fixed
+    }
+    private var monthlyCalendarCustomPanelColor: RGBColor {
+        RGBColor(
+            red: CGFloat(monthlyCalendarCustomPanelRed),
+            green: CGFloat(monthlyCalendarCustomPanelGreen),
+            blue: CGFloat(monthlyCalendarCustomPanelBlue)
+        )
     }
     private var isFeatureMode: Bool {
         mode == .paletteCard || mode == .monthlyCalendar
@@ -247,6 +297,8 @@ struct ContentView: View {
     @State private var toastMessage: String?
     @State private var poeticSourcePromptPresented = false
     @State private var poeticSourcePromptDismissTask: Task<Void, Never>?
+    @State private var sketchFontPromptPresented = false
+    @State private var sketchFontPromptDismissTask: Task<Void, Never>?
     @State private var errorTitle = "无法保存"
     @State private var saveErrorMessage = ""
     @State private var saveErrorPresented = false
@@ -284,11 +336,22 @@ struct ContentView: View {
     @State private var storedPaletteOffset: CGFloat = 0
     @State private var glassArchiveBarPosition: CGFloat = 1
     @State private var storedGlassArchiveBarPosition: CGFloat = 1
+    @State private var glassArchivePositionBeforeEditing: CGFloat?
     @State private var bubbleScale: CGFloat = 1
     @State private var storedBubbleScale: CGFloat = 1
     @State private var textScale: CGFloat = 1
+    @State private var signatureTextScale = 1.0
+    @State private var signatureImageScale = 1.0
+    @State private var signatureOffset: CGSize = .zero
+    @State private var storedSignatureOffset: CGSize = .zero
+    @State private var signatureDateTimeScale = 1.0
+    @State private var signatureDateTimeOffset = CGSize(width: 0.25, height: 0.40)
+    @State private var storedSignatureDateTimeOffset = CGSize(width: 0.25, height: 0.40)
+    @State private var signatureDragElement: SignatureDragElement?
     @State private var fontStyle: ArtworkFontStyle = .rounded
     @State private var artworkCopy = ArtworkCopy()
+    @State private var motionCardUsesCustomCaptureTime = false
+    @State private var motionCardDisplayedCaptureDate = Date.now
     @State private var copyVariant = 0
     @State private var copyWasEdited = false
     @State private var activeDragRole: CanvasDragRole?
@@ -297,6 +360,7 @@ struct ContentView: View {
 
     @State private var glassArchiveMarkChoiceRaw: String = ""
     @State private var glassArchiveSettingsPresented = false
+    @State private var glassArchiveEditing = false
     @State private var motionCardSettingsPresented = false
     @State private var bubbleStampSettingsPresented = false
     @State private var paletteCardSettingsPresented = false
@@ -322,12 +386,20 @@ struct ContentView: View {
     @State private var lastPrivacyGesturePoint: CGPoint?
     @State private var privacyPreviewTask: Task<Void, Never>?
 
-    @State private var sketchParameters = SketchParameters.defaultPencil
+    @State private var sketchParameters = SketchParameters.defaultBrush
     @State private var sketchImage: UIImage?
     @State private var isSketchRendering = false
+    @State private var isSketchCropEditing = false
     @State private var sketchRenderTask: Task<Void, Never>?
     @State private var sketchRenderRevision = 0
     @State private var renderedSketchParameters: SketchParameters?
+
+    @State private var classicSketchParameters = ClassicSketchParameters.defaultPencil
+    @State private var classicSketchImage: UIImage?
+    @State private var isClassicSketchRendering = false
+    @State private var classicSketchRenderTask: Task<Void, Never>?
+    @State private var classicSketchRenderRevision = 0
+    @State private var renderedClassicSketchParameters: ClassicSketchParameters?
 
     @State private var revealTask: Task<Void, Never>?
     @State private var toastTask: Task<Void, Never>?
@@ -351,8 +423,9 @@ struct ContentView: View {
     @State private var creationSeasonEventIgnoresHistory = false
     @State private var supportUsPresented = false
     @State private var pickerMode: CreationMode?
-    @State private var photoImportRequestID: UUID?
+    @State private var photoImportTask: Task<Void, Never>?
     @StateObject private var cameraWatermarkLibrary = CameraWatermarkLibrary()
+    @StateObject private var signatureStampLibrary = SignatureStampLibrary()
 
     private var onboardingPresented: Bool {
         launchExperienceStage == .onboarding
@@ -381,8 +454,16 @@ struct ContentView: View {
             && renderedSketchParameters == sketchParameters
     }
 
+    private var hasCurrentClassicSketchRender: Bool {
+        !isClassicSketchRendering
+            && classicSketchImage != nil
+            && renderedClassicSketchParameters == classicSketchParameters
+    }
+
     private var canSaveCurrentArtwork: Bool {
-        canSave && (mode != .sketch || hasCurrentSketchRender)
+        canSave
+            && (mode != .imagePainting || hasCurrentSketchRender)
+            && (mode != .sketch || hasCurrentClassicSketchRender)
     }
     private var controlsAreDimmed: Bool { saveState == .saving }
     private var paletteLayout: PaletteLayoutMode {
@@ -496,6 +577,13 @@ struct ContentView: View {
         return "寄语会显示在影像票根的公开信息中。要在导出前补充吗？".appLocalized
     }
     private var primaryMetadata: PhotoMetadata { selectedPhotos.first?.metadata ?? .empty }
+    private var artworkMetadata: PhotoMetadata {
+        var metadata = primaryMetadata
+        if mode == .motionCard, motionCardUsesCustomCaptureTime {
+            metadata.captureDate = motionCardDisplayedCaptureDate
+        }
+        return metadata
+    }
     private var activeCameraWatermark: UIImage? {
         guard useCustomCameraWatermarks else { return nil }
         return cameraWatermarkLibrary.image(for: primaryMetadata.captureDevice)
@@ -514,8 +602,48 @@ struct ContentView: View {
         )
     }
 
-    private var glassArchiveSettingsSheetHeight: CGFloat {
-        primaryMetadata.archiveTimeText == nil ? 250 : 190
+    private var glassArchiveCustomTextActive: Bool {
+        supporterUnlocked && glassArchiveCustomTextEnabled
+    }
+
+    private var glassArchivePaletteColors: [RGBColor] {
+        Array((palette.isEmpty ? RGBColor.fallback : palette).prefix(6))
+    }
+
+    private var glassArchivePinnedIndexes: [Int] {
+        glassArchivePinnedColorIndexesRaw
+            .split(separator: ",")
+            .compactMap { Int($0) }
+            .filter { (0..<6).contains($0) }
+            .sorted()
+    }
+
+    private var glassArchivePinnedColors: [RGBColor] {
+        guard glassArchiveCustomTextActive else { return [] }
+        let colors = glassArchivePaletteColors
+        return glassArchivePinnedIndexes.compactMap { colors.indices.contains($0) ? colors[$0] : nil }
+    }
+
+    private var glassArchivePinnedEdge: GlassArchivePinnedEdge {
+        GlassArchivePinnedEdge(rawValue: glassArchivePinnedEdgeRaw) ?? .leading
+    }
+
+    private var glassArchiveCharacterLimit: Int {
+        12 - glassArchivePinnedIndexes.count
+    }
+
+    private var glassArchiveCustomFont: PostalFont {
+        PostalFont(rawValue: glassArchiveFontRaw) ?? .original
+    }
+
+    private var signatureStampFont: PostalFont {
+        guard supporterUnlocked else { return .original }
+        return PostalFont(rawValue: signatureStampFontRaw) ?? .original
+    }
+
+    private var signatureStampSource: SignatureStampSource {
+        guard supporterUnlocked else { return .text }
+        return SignatureStampSource(rawValue: signatureStampSourceRaw) ?? .text
     }
 
     private func movePaletteCardSwatch(from source: Int, to destination: Int) {
@@ -563,6 +691,7 @@ struct ContentView: View {
         mode != .privacyMosaic
             && mode != .travelTicket
             && mode != .sketch
+            && mode != .imagePainting
             && selectedPhotos.contains(where: \.isLivePhoto)
     }
     private var canPresentLivePhotoHint: Bool {
@@ -587,11 +716,26 @@ struct ContentView: View {
             && !settingsPresented
             && !isPickerPresented
     }
+    private var isSourceImageLandscape: Bool {
+        guard let image = images.first else { return false }
+        return image.size.width > image.size.height
+    }
+    private var supportsLandscapeEditor: Bool {
+        mode == .travelTicket
+            || (mode == .monthlyCalendar && monthlyCalendarLayoutStyle == .photoSplit)
+            || (mode == .bubbleStamp && signatureStampPage == .signature && isSourceImageLandscape)
+            || ((mode == .glassArchive || mode == .monthlyCalendar) && isSourceImageLandscape)
+    }
+    private var hasShownLandscapeHint: Bool {
+        if mode == .travelTicket { return didShowTicketLandscapeHint }
+        if mode == .bubbleStamp { return didShowCustomSignatureLandscapeHintBuild202630 }
+        return didShowArchiveCalendarLandscapeHintBuild202625
+    }
     private var canPresentTicketLandscapeHint: Bool {
         !usesWideLayout && isEditorVisible
-            && mode == .travelTicket
+            && supportsLandscapeEditor
             && !isTicketLandscape
-            && !didShowTicketLandscapeHint
+            && !hasShownLandscapeHint
             && didShowModeSelectionHint101
             && !isModeSelectionHintPresented
             && modeSelectionHintTask == nil
@@ -758,7 +902,7 @@ struct ContentView: View {
                     ipadWorkspace(in: proxy.size)
                 } else if isEditorVisible {
                     Group {
-                        if mode == .travelTicket, isTicketLandscape {
+                        if supportsLandscapeEditor, isTicketLandscape {
                             if usesInAppTicketLandscape {
                                 legacyTicketLandscapeEditorView(in: proxy.size)
                             } else {
@@ -787,6 +931,25 @@ struct ContentView: View {
                             poeticSourcePromptDismissTask?.cancel()
                             withAnimation(.easeOut(duration: 0.18)) {
                                 poeticSourcePromptPresented = false
+                            }
+                            supportUsPresented = true
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.bottom, 30)
+                    }
+                    .transition(.scale(scale: 0.88).combined(with: .opacity))
+                    .zIndex(70)
+                }
+
+                if sketchFontPromptPresented && !supporterUnlocked {
+                    VStack {
+                        Spacer()
+                        SupporterProUnlockPrompt(
+                            message: "支持我们，即可为一照两境画笺选用邮票与明信片的内置字体。"
+                        ) {
+                            sketchFontPromptDismissTask?.cancel()
+                            withAnimation(.easeOut(duration: 0.18)) {
+                                sketchFontPromptPresented = false
                             }
                             supportUsPresented = true
                         }
@@ -830,19 +993,29 @@ struct ContentView: View {
 
                 if !usesWideLayout,
                    !isEditorVisible,
-                   usesFloatingMenuLauncher,
                    didChooseModeLauncherStyle,
                    !onboardingPresented,
                    !modeLauncherChoicePresented {
                     VStack {
-                        HStack {
+                        HStack(spacing: 8) {
                             Spacer()
+                            if usesFloatingMenuLauncher {
+                                LiquidCircleButton(
+                                    symbol: "square.grid.2x2",
+                                    isEnabled: !controlsAreDimmed,
+                                    action: openModeSelection
+                                )
+                                .accessibilityIdentifier("modeLauncher.floatingButton")
+                            }
                             LiquidCircleButton(
-                                symbol: "square.grid.2x2",
-                                isEnabled: !controlsAreDimmed,
-                                action: openModeSelection
-                            )
-                            .accessibilityIdentifier("modeLauncher.floatingButton")
+                                symbol: "gearshape",
+                                isEnabled: !controlsAreDimmed
+                            ) {
+                                dismissModeSelectionHint()
+                                dismissLivePhotoHint()
+                                settingsPresented = true
+                            }
+                            .accessibilityIdentifier("welcome.settings")
                         }
                         Spacer()
                     }
@@ -853,13 +1026,16 @@ struct ContentView: View {
 
                 if usesIslandLauncher,
                    didChooseModeLauncherStyle,
-                   proxy.size.height >= proxy.size.width,
+                   !isTicketLandscape,
                    !ticketPrintPhase.isPresented,
                    !onboardingPresented,
                    !modeLauncherChoicePresented {
                     IslandModeLauncher(
                         safeAreaTop: max(proxy.safeAreaInsets.top, 51),
                         selectedMode: mode,
+                        isLandscape: isTicketLandscape || proxy.size.width > proxy.size.height,
+                        rotatesExpandedContent: isTicketLandscape && usesInAppTicketLandscape,
+                        preservesPortraitSurface: isTicketLandscape && !usesInAppTicketLandscape,
                         isEnabled: !controlsAreDimmed,
                         onChoose: openModeLauncherDestination
                     )
@@ -910,16 +1086,21 @@ struct ContentView: View {
                     screenSize: proxy.size,
                     safeAreaTop: proxy.safeAreaInsets.top
                 )
-                resolvedIslandLauncherSupport = supportsIsland
+                if supportsIsland || resolvedIslandLauncherSupport == nil {
+                    resolvedIslandLauncherSupport = supportsIsland
+                }
                 if canPresentPaletteSwapHint {
                     presentPaletteSwapHintIfNeeded()
                 }
             }
             .onChange(of: proxy.size) { _, newSize in
-                resolvedIslandLauncherSupport = TicketIslandAvailability.isSupported(
+                let supportsIsland = TicketIslandAvailability.isSupported(
                     screenSize: newSize,
                     safeAreaTop: proxy.safeAreaInsets.top
                 )
+                if supportsIsland || resolvedIslandLauncherSupport == nil {
+                    resolvedIslandLauncherSupport = supportsIsland
+                }
             }
         }
 
@@ -936,13 +1117,7 @@ struct ContentView: View {
                 selectionLimit: pickerLimit,
                 colorScheme: systemColorScheme
             ) { selections in
-                if selections.isEmpty {
-                    pickerSelections = []
-                    pickerMode = nil
-                } else {
-                    pickerSelections = selections
-                    photoImportRequestID = UUID()
-                }
+                handlePickerSelections(selections)
             }
             .environment(\.colorScheme, systemColorScheme)
             .ignoresSafeArea()
@@ -978,7 +1153,7 @@ struct ContentView: View {
             stopLivePhotoPlayback()
             dismissLivePhotoHint()
             dismissTicketLandscapeHint()
-            if newMode != .travelTicket, isTicketLandscape {
+            if !supportsLandscapeEditor, isTicketLandscape {
                 setTicketLandscape(false)
             }
             if !usesWideLayout {
@@ -995,8 +1170,13 @@ struct ContentView: View {
             } else {
                 finishPrivacyPainting()
             }
-            if newMode == .sketch {
+            if newMode == .imagePainting {
                 scheduleSketchPreviewRefresh()
+            } else {
+                isSketchCropEditing = false
+            }
+            if newMode == .sketch {
+                scheduleClassicSketchPreviewRefresh()
             }
             if newMode == .colorPalette && !usesWideLayout {
 
@@ -1017,15 +1197,25 @@ struct ContentView: View {
         .onChange(of: colorInsightPage) { _, page in
             if page != .light { activeLightToneRange = nil }
         }
+        .onChange(of: signatureStampPage) { _, page in
+            if page == .bubble, isTicketLandscape {
+                setTicketLandscape(false)
+            }
+        }
         .onChange(of: supporterUnlocked) { _, unlocked in
             guard unlocked else { return }
             poeticSourcePromptDismissTask?.cancel()
+            sketchFontPromptDismissTask?.cancel()
             withAnimation(.easeOut(duration: 0.18)) {
                 poeticSourcePromptPresented = false
+                sketchFontPromptPresented = false
             }
         }
         .onChange(of: palette) { _, _ in
             paletteCardSwatchOrder = []
+            if mode == .imagePainting {
+                scheduleSketchPreviewRefresh()
+            }
         }
         .onChange(of: privacyMosaicStrength) { _, _ in
             schedulePrivacyPreviewRefresh()
@@ -1033,8 +1223,14 @@ struct ContentView: View {
         .onChange(of: sketchParameters) { _, _ in
             scheduleSketchPreviewRefresh()
         }
+        .onChange(of: classicSketchParameters) { _, _ in
+            scheduleClassicSketchPreviewRefresh()
+        }
         .onChange(of: selectedPhotos.map(\.id)) { _, _ in
             ipadDrafts.removeAll()
+            if isTicketLandscape && !supportsLandscapeEditor {
+                setTicketLandscape(false)
+            }
         }
         .onChange(of: paletteLayoutRaw) { _, _ in
             paletteOffset = 0
@@ -1065,10 +1261,10 @@ struct ContentView: View {
             .presentationCornerRadius(nil)
             .presentationBackground(.ultraThinMaterial)
         }
-        .sheet(isPresented: $modeSelectionPresented, onDismiss: presentQueuedPostalDestination) {
+        .sheet(isPresented: $modeSelectionPresented, onDismiss: completeModeSelectionDismissal) {
             CreationModeSelectionView(
                 selectedMode: mode,
-                onSelect: selectCreationMode,
+                onSelect: queueCreationModeSelection,
                 onOpenFanGallery: openFanGallery,
                 onOpenAlbum: openAlbum,
                 onOpenColorRelationship: openColorRelationship,
@@ -1087,22 +1283,70 @@ struct ContentView: View {
             .presentationBackground(.clear)
         }
         .sheet(isPresented: $monthlyCalendarSettingsPresented) {
-            MonthlyCalendarSettingsSheet(hidesLocation: $monthlyCalendarHidesLocation)
+            monthlyCalendarSettingsContent
                 .environment(\.colorScheme, systemColorScheme)
-                .presentationDetents([.height(190)])
+                .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(nil)
         }
         .sheet(isPresented: $glassArchiveSettingsPresented) {
-            GlassArchiveSettingsSheet(
-                showsMissingTimeToggle: primaryMetadata.archiveTimeText == nil,
-                hidesMissingTime: $glassArchiveHidesMissingTime,
-                showsLocation: $glassArchiveShowsLocation
-            )
+            glassArchiveSettingsContent
             .environment(\.colorScheme, systemColorScheme)
-            .presentationDetents([.height(glassArchiveSettingsSheetHeight)])
+            .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(nil)
+        }
+        .safeAreaInset(edge: .bottom) {
+            if glassArchiveEditing && glassArchiveCustomTextActive && mode == .glassArchive {
+                VStack(spacing: 10) {
+                    GlassArchiveTextField(
+                        text: $glassArchiveCustomText,
+                        characterLimit: glassArchiveCharacterLimit,
+                        isActive: glassArchiveEditing,
+                        onDismiss: { glassArchiveEditing = false }
+                    )
+                    .frame(height: 24)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+                    .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
+                    .padding(.horizontal, 18)
+
+                    HStack(spacing: 10) {
+                        Spacer()
+                        Text("\(glassArchiveCustomText.count)/\(glassArchiveCharacterLimit)")
+                            .font(.subheadline.weight(.semibold).monospacedDigit())
+                            .foregroundStyle(systemColorScheme == .dark ? Color.white : Color.black)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .liquidGlass(in: Capsule(), variant: .clear)
+                        Button("收起键盘".appLocalized) {
+                            glassArchiveEditing = false
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(systemColorScheme == .dark ? Color.white : Color.black)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
+                    }
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 8)
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .onChange(of: glassArchiveEditing) { _, editing in
+            if editing {
+                glassArchivePositionBeforeEditing = glassArchiveBarPosition
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                    glassArchiveBarPosition = 0
+                }
+            } else if let previous = glassArchivePositionBeforeEditing {
+                glassArchivePositionBeforeEditing = nil
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.86)) {
+                    glassArchiveBarPosition = previous
+                }
+                storedGlassArchiveBarPosition = previous
+            }
         }
         .sheet(isPresented: $paletteCardSettingsPresented) {
             PaletteCardSettingsSheet(
@@ -1127,23 +1371,59 @@ struct ContentView: View {
                 ),
                 ratio: $ratio,
                 showMoodCopy: $showMoodCopy,
-                showMissingCaptureTime: $showMissingCaptureTime
+                showMissingCaptureTime: $showMissingCaptureTime,
+                showsCaptureTime: $motionCardShowsCaptureTime,
+                usesCustomCaptureTime: $motionCardUsesCustomCaptureTime,
+                displayedCaptureDate: $motionCardDisplayedCaptureDate,
+                originalCaptureDate: primaryMetadata.captureDate
             )
             .environment(\.colorScheme, systemColorScheme)
             .featureSettingsSheetChrome()
         }
         .sheet(isPresented: $bubbleStampSettingsPresented) {
-            BubbleStampSettingsSheet(
-                templateStyle: Binding(
-                    get: { templateStyle },
-                    set: { templateStyleRaw = $0.rawValue }
-                ),
-                ratio: $ratio,
-                showDeviceInfo: $showDeviceInfo,
-                showBubbles: $showBubbles
-            )
-            .environment(\.colorScheme, systemColorScheme)
-            .featureSettingsSheetChrome()
+            if signatureStampPage == .bubble {
+                BubbleStampSettingsSheet(
+                    templateStyle: Binding(
+                        get: { templateStyle },
+                        set: { templateStyleRaw = $0.rawValue }
+                    ),
+                    ratio: $ratio,
+                    showDeviceInfo: $showDeviceInfo,
+                    showBubbles: $showBubbles
+                )
+                .environment(\.colorScheme, systemColorScheme)
+                .featureSettingsSheetChrome()
+            } else {
+                CustomSignatureSettingsSheet(
+                    signatureText: $signatureStampText,
+                    source: Binding(
+                        get: { signatureStampSource },
+                        set: { signatureStampSourceRaw = $0.rawValue }
+                    ),
+                    font: Binding(
+                        get: { signatureStampFont },
+                        set: { signatureStampFontRaw = $0.rawValue }
+                    ),
+                    textScale: $signatureTextScale,
+                    imageScale: $signatureImageScale,
+                    showsDate: $signatureStampShowsDate,
+                    showsTime: $signatureStampShowsTime,
+                    dateTimeScale: $signatureDateTimeScale,
+                    usesEnglishDateTime: $signatureStampUsesEnglishDateTime,
+                    isSupporter: supporterUnlocked,
+                    library: signatureStampLibrary,
+                    onOpenSupport: {
+                        bubbleStampSettingsPresented = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                            supportUsPresented = true
+                        }
+                    }
+                )
+                .environment(\.colorScheme, systemColorScheme)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(nil)
+            }
         }
         .fullScreenCover(isPresented: $ticketScannerPresented) {
             TicketQRScannerScreen(
@@ -1401,28 +1681,16 @@ struct ContentView: View {
             await Task.yield()
             configureLaunchExperience(supportsIsland: supportsIsland)
         }
-        .task(id: photoImportRequestID) {
-            guard let requestID = photoImportRequestID,
-                  !pickerSelections.isEmpty else { return }
-            let selections = pickerSelections
-            let selectedMode = pickerMode ?? mode
-            await Task.yield()
-            await loadSelectedPhotos(selections, requestedMode: selectedMode)
-            guard photoImportRequestID == requestID else { return }
-            pickerSelections = []
-            pickerMode = nil
-            photoImportRequestID = nil
-        }
         .task {
             if didShowLivePhotoPlaybackHintBuild1060 {
                 didShowLivePhotoPlaybackHint = true
             }
             PhotoAssetLoader.cleanupStaleTemporaryResources()
-            importSharedPhotoIfAvailable()
+            await importSharedPhotoIfAvailable()
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
-            importSharedPhotoIfAvailable()
+            Task { await importSharedPhotoIfAvailable() }
         }
         .onChange(of: canPresentModeSelectionHint) { _, canPresent in
             if canPresent {
@@ -1439,7 +1707,7 @@ struct ContentView: View {
         .onChange(of: canPresentTicketLandscapeHint) { _, canPresent in
             if canPresent {
                 presentTicketLandscapeHintIfNeeded()
-            } else if mode != .travelTicket || isTicketLandscape {
+            } else if !supportsLandscapeEditor || isTicketLandscape {
                 dismissTicketLandscapeHint()
             }
         }
@@ -1455,6 +1723,7 @@ struct ContentView: View {
             stopLivePhotoPlayback()
             lightAnalysisTask?.cancel()
             poeticSourcePromptDismissTask?.cancel()
+            sketchFontPromptDismissTask?.cancel()
             dismissTicketPrintExperience()
             dismissModeSelectionHint(animated: false)
             dismissLivePhotoHint(animated: false)
@@ -1498,7 +1767,9 @@ struct ContentView: View {
             .queryItems?
             .first(where: { $0.name == "mode" })?
             .value
-        importSharedPhotoIfAvailable(preferredModeRawValue: modeValue)
+        Task {
+            await importSharedPhotoIfAvailable(preferredModeRawValue: modeValue)
+        }
     }
 
     private func isCreationSeasonEventURL(_ url: URL) -> Bool {
@@ -1514,32 +1785,26 @@ struct ContentView: View {
     private func importSharedPhotoIfAvailable(
         preferredModeRawValue: String? = nil,
         reportMissing: Bool = false
-    ) {
-
+    ) async {
         guard !isImportingSharedPhoto else { return }
-        guard let sharedImport = SharedPhotoHandoff.receiveImport() else {
+        isImportingSharedPhoto = true
+        defer { isImportingSharedPhoto = false }
+        guard let sharedImport = await SharedPhotoHandoff.receiveImport() else {
             if reportMissing {
                 presentSaveError("共享照片已失效，请从系统照片中重新分享。", title: "无法导入共享照片")
             }
             return
         }
-        if let modeValue = preferredModeRawValue ?? sharedImport.modeRawValue,
-           let sharedMode = CreationMode(rawValue: modeValue) {
-            mode = sharedMode
-            ratio = sharedMode.defaultRatio
+        let sharedMode = (preferredModeRawValue ?? sharedImport.modeRawValue)
+            .flatMap(CreationMode.init(rawValue:))
+            ?? mode
+        let sharedSelections = sharedImport.items.map {
+            PhotoPickerSelection(sharedItem: $0)
         }
-        var sharedSelections: [PhotoPickerSelection] = []
-        for item in sharedImport.items {
-            sharedSelections.append(PhotoPickerSelection(sharedItem: item))
-        }
-        pickerSelections = sharedSelections
         if usesWideLayout { returnToIPadCreation() }
         photoSelectionOperation = .replaceAll
-        isImportingSharedPhoto = true
-        Task {
-            await loadSelectedPhotos()
-            isImportingSharedPhoto = false
-        }
+        await Task.yield()
+        await loadSelectedPhotos(sharedSelections, requestedMode: sharedMode)
     }
 
 
@@ -1751,7 +2016,10 @@ struct ContentView: View {
             case .glassArchive:
                 ipadFeatureButton("琉璃档案功能设定") { glassArchiveSettingsPresented = true }
             case .bubbleStamp:
-                ipadFeatureButton("气泡印章设定") { bubbleStampSettingsPresented = true }
+                SignatureStampSwitcher(selection: $signatureStampPage, reduceMotion: reduceMotion)
+                ipadFeatureButton(signatureStampPage == .bubble ? "气泡印章设定" : "自定义签章设定") {
+                    bubbleStampSettingsPresented = true
+                }
             case .privacyMosaic:
                 PrivacyMosaicControls(
                     brushMode: $privacyBrushMode, strength: $privacyMosaicStrength,
@@ -1762,7 +2030,21 @@ struct ContentView: View {
                     onTogglePainting: togglePrivacyPainting, onDetect: detectPrivacyContent, onUndo: undoPrivacyEdit
                 )
             case .sketch:
-                SketchEditorControls(parameters: $sketchParameters, isRendering: isSketchRendering,
+                ClassicSketchEditorControls(
+                    parameters: $classicSketchParameters,
+                    isRendering: isClassicSketchRendering,
+                    onStyleChange: { classicSketchParameters = $0.defaultParameters }
+                )
+            case .imagePainting:
+                SketchEditorControls(parameters: $sketchParameters,
+                    palette: palette, palettePercentages: palettePercentages,
+                    isRendering: isSketchRendering,
+                    isSupporter: supporterUnlocked,
+                    locationPlaceholder: primaryMetadata.placeName?.isEmpty == false
+                        ? primaryMetadata.displayTitle : "未记录地点".appLocalized,
+                    isCropEditing: $isSketchCropEditing,
+                    onLockedFontTap: presentSketchFontPrompt,
+                    onResetCrop: resetSketchCrop,
                     onStyleChange: { sketchParameters = $0.defaultParameters })
             case .journal:
                 JournalEditorControls(
@@ -1793,6 +2075,9 @@ struct ContentView: View {
                     isResolvingCity: isResolvingFeatureCity,
                     locationMessage: featureCalendarLocationMessage,
                     hidesCalendarLocation: monthlyCalendarHidesLocation,
+                    calendarLayoutStyle: monthlyCalendarLayoutStyle,
+                    calendarCropEditing: $isMonthlyCalendarCropEditing,
+                    onResetCalendarCrop: resetMonthlyCalendarCrop,
                     onCalendarSettings: { monthlyCalendarSettingsPresented = true },
                     onPaletteCardSettings: { paletteCardSettingsPresented = true }
                 )
@@ -1840,40 +2125,52 @@ struct ContentView: View {
 
 
     private var introView: some View {
-        TabView(selection: $introPageID) {
-            ForEach(CreationMode.allCases) { item in
-                modeIntro(item)
-                    .tag(item.rawValue)
+        GeometryReader { proxy in
+            TabView(selection: $introPageID) {
+                ForEach(CreationMode.allCases) { item in
+                    modeIntro(item)
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .tag(item.rawValue)
+                }
+
+                albumIntro
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .tag(Self.albumIntroID)
+
+                colorRelationshipIntro
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .tag(Self.colorRelationshipIntroID)
+
+                ticketScannerIntro
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .tag(Self.ticketScannerIntroID)
+
+                videoToLivePhotoIntro
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .tag(Self.videoToLivePhotoIntroID)
+
+                ticketDevelopingIntro
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .tag(Self.ticketDevelopingIntroID)
+
+                ticketCollectionIntro
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .tag(Self.ticketCollectionIntroID)
+
+                postalIntro(.stamp)
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .tag(Self.stampIntroID)
+
+                postalIntro(.postcard)
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .tag(Self.postcardIntroID)
+
+                postalIntro(.collection)
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .tag(Self.postalCollectionIntroID)
             }
-
-            albumIntro
-                .tag(Self.albumIntroID)
-
-            colorRelationshipIntro
-                .tag(Self.colorRelationshipIntroID)
-
-            ticketScannerIntro
-                .tag(Self.ticketScannerIntroID)
-
-            videoToLivePhotoIntro
-                .tag(Self.videoToLivePhotoIntroID)
-
-            ticketDevelopingIntro
-                .tag(Self.ticketDevelopingIntroID)
-
-            ticketCollectionIntro
-                .tag(Self.ticketCollectionIntroID)
-
-            postalIntro(.stamp)
-                .tag(Self.stampIntroID)
-
-            postalIntro(.postcard)
-                .tag(Self.postcardIntroID)
-
-            postalIntro(.collection)
-                .tag(Self.postalCollectionIntroID)
+            .tabViewStyle(.page(indexDisplayMode: .never))
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
         .ignoresSafeArea(edges: .bottom)
         .onChange(of: introPageID) { _, pageID in
             guard let selectedMode = CreationMode(rawValue: pageID),
@@ -2178,6 +2475,9 @@ struct ContentView: View {
                 ? (size.height < 760 ? 470 : 430)
                 : 205
             canvasWidth = min(availableWidth, max(248, size.height - editorReserve) * ratioValue)
+        } else if mode == .bubbleStamp {
+            let editorReserve: CGFloat = size.height < 760 ? 270 : 230
+            canvasWidth = min(availableWidth, max(250, size.height - editorReserve) * ratioValue)
         } else {
 
             canvasWidth = min(availableWidth, max(320, size.height - 130) * ratioValue)
@@ -2235,7 +2535,7 @@ struct ContentView: View {
                     .zIndex(50)
                 }
 
-                if mode == .travelTicket {
+                if supportsLandscapeEditor {
                     LiquidCircleButton(
                         symbol: "rectangle.landscape.rotate",
                         isEnabled: !controlsAreDimmed,
@@ -2246,6 +2546,7 @@ struct ContentView: View {
                             TicketLandscapeHint(
                                 tint: livePhotoHintTint,
                                 foreground: livePhotoHintForeground,
+                                featureName: mode.title,
                                 action: enterTicketLandscape
                             )
                             .offset(y: 49)
@@ -2261,7 +2562,7 @@ struct ContentView: View {
                         }
                     }
                     .zIndex(49)
-                    .accessibilityLabel("翻转为横屏票根预览")
+                    .accessibilityLabel("翻转为横屏\(mode.title)预览")
                 }
 
                 LiquidCircleButton(
@@ -2312,6 +2613,13 @@ struct ContentView: View {
                 .padding(.top, 10)
                 .zIndex(25)
                 .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            if mode == .bubbleStamp {
+                SignatureStampSwitcher(selection: $signatureStampPage, reduceMotion: reduceMotion)
+                    .frame(width: canvasWidth)
+                    .padding(.top, 10)
+                    .zIndex(25)
             }
 
             if showsLivePlaybackControl && mode != .colorPalette {
@@ -2435,7 +2743,10 @@ struct ContentView: View {
                 Button {
                     bubbleStampSettingsPresented = true
                 } label: {
-                    Label("气泡印章设定", systemImage: "slider.horizontal.3")
+                    Label(
+                        signatureStampPage == .bubble ? "气泡印章设定" : "自定义签章设定",
+                        systemImage: "slider.horizontal.3"
+                    )
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .frame(maxWidth: .infinity)
                         .frame(height: 42)
@@ -2445,7 +2756,9 @@ struct ContentView: View {
                 .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
                 .frame(width: canvasWidth)
                 .padding(.top, 12)
-                .accessibilityHint("调整气泡印章的作品模板、图片比例与信息显示")
+                .accessibilityHint(signatureStampPage == .bubble
+                    ? "调整气泡印章的作品模板、图片比例与信息显示"
+                    : "调整签章文字、字体与 PNG 图片")
             }
 
             if mode == .privacyMosaic {
@@ -2468,11 +2781,11 @@ struct ContentView: View {
 
             if mode == .sketch {
                 ScrollView(.vertical) {
-                    SketchEditorControls(
-                        parameters: $sketchParameters,
-                        isRendering: isSketchRendering,
+                    ClassicSketchEditorControls(
+                        parameters: $classicSketchParameters,
+                        isRendering: isClassicSketchRendering,
                         onStyleChange: { style in
-                            sketchParameters = style.defaultParameters
+                            classicSketchParameters = style.defaultParameters
                         }
                     )
                     .padding(.horizontal, 18)
@@ -2482,6 +2795,27 @@ struct ContentView: View {
                 .frame(height: size.height < 760 ? 190 : 230)
                 .scrollIndicators(.visible)
                 .scrollBounceBehavior(.basedOnSize)
+            }
+
+            if mode == .imagePainting {
+                SketchEditorControls(
+                    parameters: $sketchParameters,
+                    palette: palette,
+                    palettePercentages: palettePercentages,
+                    isRendering: isSketchRendering,
+                    isSupporter: supporterUnlocked,
+                    locationPlaceholder: primaryMetadata.placeName?.isEmpty == false
+                        ? primaryMetadata.displayTitle : "未记录地点".appLocalized,
+                    isCropEditing: $isSketchCropEditing,
+                    onLockedFontTap: presentSketchFontPrompt,
+                    onResetCrop: resetSketchCrop,
+                    onStyleChange: { style in
+                        sketchParameters = style.defaultParameters
+                    }
+                )
+                .padding(.horizontal, 18)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
             }
 
             if mode == .journal {
@@ -2513,6 +2847,9 @@ struct ContentView: View {
                     isResolvingCity: isResolvingFeatureCity,
                     locationMessage: featureCalendarLocationMessage,
                     hidesCalendarLocation: monthlyCalendarHidesLocation,
+                    calendarLayoutStyle: monthlyCalendarLayoutStyle,
+                    calendarCropEditing: $isMonthlyCalendarCropEditing,
+                    onResetCalendarCrop: resetMonthlyCalendarCrop,
                     onCalendarSettings: { monthlyCalendarSettingsPresented = true },
                     onPaletteCardSettings: { paletteCardSettingsPresented = true }
                 )
@@ -2563,6 +2900,19 @@ struct ContentView: View {
             return AnyView(
                 content
                     .frame(width: size.width, height: size.height, alignment: .top)
+            )
+        }
+        if mode == .imagePainting || mode == .sketch {
+            return AnyView(
+                ScrollView(.vertical, showsIndicators: false) {
+                    content
+                        .frame(maxWidth: .infinity)
+                        .safeAreaPadding(.bottom, 12)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollDismissesKeyboard(.interactively)
+                .scrollDisabled(mode == .imagePainting && isSketchCropEditing)
+                .frame(width: size.width, height: size.height, alignment: .top)
             )
         }
         return AnyView(content)
@@ -2680,6 +3030,85 @@ struct ContentView: View {
         )
     }
 
+    private var monthlyCalendarSettingsContent: some View {
+        MonthlyCalendarSettingsSheet(
+            hidesLocation: $monthlyCalendarHidesLocation,
+            layoutStyle: Binding(
+                get: { monthlyCalendarLayoutStyle },
+                set: {
+                    monthlyCalendarLayoutStyleRaw = $0.rawValue
+                    if $0 != .photoSplit {
+                        isMonthlyCalendarCropEditing = false
+                    }
+                }
+            ),
+            panelColorMode: Binding(
+                get: {
+                    MonthlyCalendarPanelColorMode(rawValue: monthlyCalendarPanelColorModeRaw) ?? .fixed
+                },
+                set: { monthlyCalendarPanelColorModeRaw = $0.rawValue }
+            ),
+            customPanelColor: Binding(
+                get: { monthlyCalendarCustomPanelColor.color },
+                set: { newColor in
+                    let rgb = RGBColor(UIColor(newColor))
+                    monthlyCalendarCustomPanelRed = Double(rgb.red)
+                    monthlyCalendarCustomPanelGreen = Double(rgb.green)
+                    monthlyCalendarCustomPanelBlue = Double(rgb.blue)
+                }
+            ),
+            usesEnglishMonthTitle: $monthlyCalendarUsesEnglishMonthTitle,
+            hidesFooter: $monthlyCalendarHidesFooter,
+            isSupporter: supporterUnlocked,
+            onRequestSupport: {
+                monthlyCalendarSettingsPresented = false
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(180))
+                    supportUsPresented = true
+                }
+            }
+        )
+    }
+
+    private var glassArchiveSettingsContent: some View {
+        GlassArchiveSettingsSheet(
+            showsMissingTimeToggle: primaryMetadata.archiveTimeText == nil,
+            hidesMissingTime: $glassArchiveHidesMissingTime,
+            showsLocation: $glassArchiveShowsLocation,
+            isSupporter: supporterUnlocked,
+            pinnedColorIndexes: Binding(
+                get: { Set(glassArchivePinnedIndexes) },
+                set: { newValue in
+                    glassArchivePinnedColorIndexesRaw = newValue.sorted().map(String.init).joined(separator: ",")
+                    if glassArchiveCustomText.count > glassArchiveCharacterLimit {
+                        glassArchiveCustomText = String(glassArchiveCustomText.prefix(glassArchiveCharacterLimit))
+                    }
+                }
+            ),
+            pinnedEdge: Binding(
+                get: { glassArchivePinnedEdge },
+                set: { glassArchivePinnedEdgeRaw = $0.rawValue }
+            ),
+            paletteColors: glassArchivePaletteColors,
+            customTextEnabled: Binding(
+                get: { glassArchiveCustomTextEnabled },
+                set: { glassArchiveCustomTextEnabled = $0 }
+            ),
+            customText: glassArchiveCustomText,
+            customFont: Binding(
+                get: { glassArchiveCustomFont },
+                set: { glassArchiveFontRaw = $0.rawValue }
+            ),
+            infoOverridden: glassArchiveCustomTextActive,
+            onOpenSupport: {
+                glassArchiveSettingsPresented = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    supportUsPresented = true
+                }
+            }
+        )
+    }
+
     private func ticketLandscapeEditorView(in size: CGSize) -> AnyView {
         let ratioValue = editorRatio(in: size)
         let controlsWidth = min(270, max(220, size.width * 0.27))
@@ -2702,7 +3131,7 @@ struct ContentView: View {
                 .accessibilityLabel("返回竖屏预览")
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("影像票根")
+                    Text(mode.title)
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                     Text("手动横屏预览")
                         .font(.caption2.weight(.medium))
@@ -2710,12 +3139,6 @@ struct ContentView: View {
                 }
 
                 Spacer(minLength: 8)
-
-                LiquidCircleButton(
-                    symbol: "square.grid.2x2",
-                    isEnabled: !controlsAreDimmed,
-                    action: openModeSelection
-                )
 
                 LiquidCircleButton(
                     symbol: "plus",
@@ -2746,6 +3169,33 @@ struct ContentView: View {
                         alignment: .center
                     )
 
+                landscapeModeControls
+                    .frame(width: controlsWidth)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .safeAreaPadding(.horizontal)
+        )
+    }
+
+    @ViewBuilder
+    private var landscapeModeControls: some View {
+        VStack(spacing: 12) {
+            if showsLivePlaybackControl {
+                HStack {
+                    LivePhotoPlaybackButton(
+                        isAvailable: !liveSourceVideoURLs.isEmpty,
+                        isPlaying: isLivePhotoPlaying,
+                        action: playLivePhotoOnce
+                    )
+                    Spacer(minLength: 0)
+                }
+            }
+
+            switch mode {
+            case .travelTicket:
                 TicketEditorControls(
                     layout: Binding(
                         get: { ticketLayout },
@@ -2762,14 +3212,56 @@ struct ContentView: View {
                     isLandscape: true,
                     onOpenStudio: openTicketStudio
                 )
-                .frame(width: controlsWidth)
+            case .glassArchive:
+                Button {
+                    glassArchiveSettingsPresented = true
+                } label: {
+                    Label("琉璃档案功能设定", systemImage: "slider.horizontal.3")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                }
+                .buttonStyle(LiquidPressButtonStyle())
+                .foregroundStyle(.primary.opacity(0.82))
+                .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
+            case .monthlyCalendar:
+                FeatureModeControls(
+                    mode: mode,
+                    paletteSide: Binding(
+                        get: { featurePaletteSide },
+                        set: { featurePaletteSideRaw = $0.rawValue }
+                    ),
+                    paletteBandRatio: $featurePaletteBandRatio,
+                    calendarCity: featureCalendarCity,
+                    isResolvingCity: isResolvingFeatureCity,
+                    locationMessage: featureCalendarLocationMessage,
+                    hidesCalendarLocation: monthlyCalendarHidesLocation,
+                    calendarLayoutStyle: monthlyCalendarLayoutStyle,
+                    calendarCropEditing: $isMonthlyCalendarCropEditing,
+                    onResetCalendarCrop: resetMonthlyCalendarCrop,
+                    onCalendarSettings: { monthlyCalendarSettingsPresented = true },
+                    onPaletteCardSettings: { paletteCardSettingsPresented = true }
+                )
+            case .bubbleStamp:
+                SignatureStampSwitcher(selection: $signatureStampPage, reduceMotion: reduceMotion)
+                Button {
+                    bubbleStampSettingsPresented = true
+                } label: {
+                    Label(
+                        signatureStampPage == .bubble ? "气泡印章设定" : "自定义签章设定",
+                        systemImage: "slider.horizontal.3"
+                    )
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                }
+                .buttonStyle(LiquidPressButtonStyle())
+                .foregroundStyle(.primary.opacity(0.82))
+                .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
+            default:
+                EmptyView()
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .safeAreaPadding(.horizontal)
-        )
     }
 
     private func artworkPreview(width: CGFloat, height: CGFloat) -> AnyView {
@@ -2787,8 +3279,9 @@ struct ContentView: View {
             gentleBackground: gentleBackground,
             imageScale: imageScale,
             imageOffset: imageOffset,
-            metadata: primaryMetadata,
+            metadata: artworkMetadata,
             showMissingCaptureTime: showMissingCaptureTime,
+            showsCaptureTime: motionCardShowsCaptureTime,
             copy: artworkCopy,
             fontStyle: fontStyle,
             templateStyle: templateStyle,
@@ -2816,7 +3309,10 @@ struct ContentView: View {
             ticketLayout: ticketLayout,
             ticketAppClipBaseURL: TicketEnvelope.configuredBaseURLString,
             ticketDeviceSealEnabled: ticketDeviceSealEnabled,
-            sketchImage: mode == .sketch ? sketchImage : nil,
+            sketchImage: mode == .imagePainting ? sketchImage : nil,
+            sketchParameters: sketchParameters,
+            classicSketchImage: mode == .sketch ? classicSketchImage : nil,
+            classicSketchParameters: classicSketchParameters,
             showsColorPaletteOverlay: colorInsightPage == .palette,
             lightToneOverlay: mode == .colorPalette && colorInsightPage == .light
                 ? lightAnalysis?.overlay(for: activeLightToneRange)
@@ -2825,6 +3321,10 @@ struct ContentView: View {
             glassArchiveHidesMissingTime: glassArchiveHidesMissingTime,
             glassArchiveShowsLocation: glassArchiveShowsLocation,
             glassArchiveBarPosition: glassArchiveBarPosition,
+            glassArchivePinnedColors: glassArchivePinnedColors,
+            glassArchivePinnedEdge: glassArchivePinnedEdge,
+            glassArchiveCustomText: glassArchiveCustomTextActive ? glassArchiveCustomText : nil,
+            glassArchiveCustomFont: glassArchiveCustomFont,
             featurePaletteSide: featurePaletteSide,
             featurePaletteBandRatio: featurePaletteBandRatio,
             featurePaletteSwatchOrder: paletteCardSwatchOrder,
@@ -2836,6 +3336,26 @@ struct ContentView: View {
             },
             featureCalendarCity: featureCalendarCity,
             featureCalendarShowsLocation: !monthlyCalendarHidesLocation,
+            featureCalendarLayoutStyle: monthlyCalendarLayoutStyle,
+            featureCalendarPanelColorMode: monthlyCalendarPanelColorMode,
+            featureCalendarCustomPanelColor: monthlyCalendarCustomPanelColor,
+            featureCalendarUsesEnglishMonthTitle: monthlyCalendarUsesEnglishMonthTitle,
+            featureCalendarShowsFooter: !monthlyCalendarHidesFooter,
+            featureCalendarPhotoScale: monthlyCalendarPhotoScale,
+            featureCalendarPhotoOffset: monthlyCalendarPhotoOffset,
+            signatureStampPage: signatureStampPage,
+            signatureStampText: signatureStampText,
+            signatureStampFont: signatureStampFont,
+            signatureStampImage: signatureStampLibrary.image,
+            signatureStampSource: signatureStampSource,
+            signatureStampTextScale: CGFloat(signatureTextScale),
+            signatureStampImageScale: CGFloat(signatureImageScale),
+            signatureStampOffset: signatureOffset,
+            signatureStampShowsDate: signatureStampShowsDate,
+            signatureStampShowsTime: signatureStampShowsTime,
+            signatureStampUsesEnglishDateTime: signatureStampUsesEnglishDateTime,
+            signatureStampDateTimeScale: CGFloat(signatureDateTimeScale),
+            signatureStampDateTimeOffset: signatureDateTimeOffset,
             onEditCopy: {
                 guard mode == .motionCard else { return }
                 editCopyPresented = true
@@ -2862,7 +3382,7 @@ struct ContentView: View {
                     format: "隐私马赛克预览，单指：%@".appLocalized,
                     privacyBrushMode.rawValue.appLocalized
                 )
-                : (mode == .sketch || isFeatureMode
+                : (mode == .sketch || mode == .imagePainting || isFeatureMode
                     ? "\(mode.title)预览，按照片实际比例预览"
                     : (mode == .colorPalette
                         ? (colorInsightPage == .light
@@ -2884,6 +3404,39 @@ struct ContentView: View {
         )
     }
 
+    private func clampedSignatureOffset(_ offset: CGSize) -> CGSize {
+        CGSize(
+            width: min(max(offset.width, -0.48), 0.48),
+            height: min(max(offset.height, -0.48), 0.48)
+        )
+    }
+
+    private func signatureDragTarget(at point: CGPoint, canvasSize: CGSize) -> SignatureDragElement {
+        let hasSignature: Bool
+        if signatureStampSource == .image {
+            hasSignature = signatureStampLibrary.image != nil
+        } else {
+            hasSignature = !signatureStampText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        let hasDateTime = (signatureStampShowsDate || signatureStampShowsTime)
+            && primaryMetadata.captureDate != nil
+        if hasDateTime && !hasSignature { return .dateTime }
+        if hasSignature && !hasDateTime { return .signature }
+        guard hasSignature && hasDateTime else { return .signature }
+
+        let signatureCenter = CGPoint(
+            x: canvasSize.width * (0.5 + signatureOffset.width),
+            y: canvasSize.height * (0.5 + signatureOffset.height)
+        )
+        let dateTimeCenter = CGPoint(
+            x: canvasSize.width * (0.5 + signatureDateTimeOffset.width),
+            y: canvasSize.height * (0.5 + signatureDateTimeOffset.height)
+        )
+        let signatureDistance = hypot(point.x - signatureCenter.x, point.y - signatureCenter.y)
+        let dateTimeDistance = hypot(point.x - dateTimeCenter.x, point.y - dateTimeCenter.y)
+        return dateTimeDistance < signatureDistance ? .dateTime : .signature
+    }
+
     private func activeCanvasGesture(canvasSize: CGSize) -> AnyGesture<Void> {
         if mode == .privacyMosaic && isPrivacyPainting {
             return AnyGesture(privacyPaintGesture(canvasSize: canvasSize).map { _ in () })
@@ -2893,8 +3446,17 @@ struct ContentView: View {
             return AnyGesture(compositionGesture(canvasSize: canvasSize).map { _ in () })
         }
 
-        if mode == .sketch {
+        if mode == .imagePainting {
+            if isSketchCropEditing {
+                return AnyGesture(compositionGesture(canvasSize: canvasSize).map { _ in () })
+            }
+            return AnyGesture(DragGesture(minimumDistance: 100_000).map { _ in () })
+        }
 
+        if mode == .monthlyCalendar {
+            if monthlyCalendarLayoutStyle == .photoSplit && isMonthlyCalendarCropEditing {
+                return AnyGesture(monthlyCalendarCropGesture(canvasSize: canvasSize).map { _ in () })
+            }
             return AnyGesture(DragGesture(minimumDistance: 100_000).map { _ in () })
         }
 
@@ -2904,6 +3466,46 @@ struct ContentView: View {
                 return AnyGesture(DragGesture(minimumDistance: 100_000).map { _ in () })
             }
             return AnyGesture(colorPaletteGesture(canvasSize: canvasSize).map { _ in () })
+        }
+
+        if mode == .bubbleStamp && signatureStampPage == .signature {
+            let gesture = DragGesture(minimumDistance: 4)
+                .onChanged { value in
+                    if signatureDragElement == nil {
+                        signatureDragElement = signatureDragTarget(
+                            at: value.startLocation,
+                            canvasSize: canvasSize
+                        )
+                    }
+                    let translation = CGSize(
+                        width: value.translation.width / max(canvasSize.width, 1),
+                        height: value.translation.height / max(canvasSize.height, 1)
+                    )
+                    if signatureDragElement == .dateTime {
+                        signatureDateTimeOffset = clampedSignatureOffset(
+                            CGSize(
+                                width: storedSignatureDateTimeOffset.width + translation.width,
+                                height: storedSignatureDateTimeOffset.height + translation.height
+                            )
+                        )
+                    } else {
+                        signatureOffset = clampedSignatureOffset(
+                            CGSize(
+                                width: storedSignatureOffset.width + translation.width,
+                                height: storedSignatureOffset.height + translation.height
+                            )
+                        )
+                    }
+                }
+                .onEnded { _ in
+                    if signatureDragElement == .dateTime {
+                        storedSignatureDateTimeOffset = signatureDateTimeOffset
+                    } else {
+                        storedSignatureOffset = signatureOffset
+                    }
+                    signatureDragElement = nil
+                }
+            return AnyGesture(gesture.map { _ in () })
         }
 
         if mode == .glassArchive {
@@ -2948,8 +3550,22 @@ struct ContentView: View {
                         cycleGlassArchiveMark()
                     }
                 }
+            let glassArchiveEditTapGesture = SpatialTapGesture(count: 1)
+                .onEnded { tap in
+                    guard glassArchiveCustomTextActive else { return }
+                    if GlassArchiveBarGeometry.hitFrame(
+                        in: canvasSize,
+                        position: glassArchiveBarPosition
+                    )
+                        .contains(tap.location) {
+                        glassArchiveEditing = true
+                    }
+                }
             return AnyGesture(
-                SimultaneousGesture(glassArchiveDragGesture, glassArchiveTapGesture)
+                SimultaneousGesture(
+                    glassArchiveDragGesture,
+                    glassArchiveTapGesture.exclusively(before: glassArchiveEditTapGesture)
+                )
                     .map { _ in () }
             )
         }
@@ -2971,6 +3587,71 @@ struct ContentView: View {
                 canvasTapGesture
             )
             .map { _ in () }
+        )
+    }
+
+    private func monthlyCalendarCropGesture(canvasSize: CGSize) -> some Gesture {
+        let photoWidth = canvasSize.width * 0.535
+        return SimultaneousGesture(
+            DragGesture(minimumDistance: 8)
+                .onChanged { value in
+                    guard value.startLocation.x <= photoWidth else { return }
+                    let proposed = CGSize(
+                        width: storedMonthlyCalendarPhotoOffset.width
+                            + value.translation.width / max(photoWidth, 1),
+                        height: storedMonthlyCalendarPhotoOffset.height
+                            + value.translation.height / max(canvasSize.height, 1)
+                    )
+                    monthlyCalendarPhotoOffset = clampedMonthlyCalendarPhotoOffset(
+                        proposed,
+                        canvasSize: canvasSize,
+                        scale: monthlyCalendarPhotoScale
+                    )
+                }
+                .onEnded { value in
+                    guard value.startLocation.x <= photoWidth else { return }
+                    storedMonthlyCalendarPhotoOffset = monthlyCalendarPhotoOffset
+                },
+            MagnifyGesture()
+                .onChanged { value in
+                    monthlyCalendarPhotoScale = min(
+                        max(storedMonthlyCalendarPhotoScale * value.magnification, 1),
+                        4
+                    )
+                    monthlyCalendarPhotoOffset = clampedMonthlyCalendarPhotoOffset(
+                        monthlyCalendarPhotoOffset,
+                        canvasSize: canvasSize,
+                        scale: monthlyCalendarPhotoScale
+                    )
+                }
+                .onEnded { _ in
+                    storedMonthlyCalendarPhotoScale = monthlyCalendarPhotoScale
+                    storedMonthlyCalendarPhotoOffset = monthlyCalendarPhotoOffset
+                }
+        )
+    }
+
+    private func clampedMonthlyCalendarPhotoOffset(
+        _ offset: CGSize,
+        canvasSize: CGSize,
+        scale: CGFloat
+    ) -> CGSize {
+        guard let image = images.first,
+              image.size.width > 0,
+              image.size.height > 0 else { return .zero }
+        let frameSize = CGSize(width: canvasSize.width * 0.535, height: canvasSize.height)
+        let sourceAspect = image.size.width / image.size.height
+        let frameAspect = frameSize.width / max(frameSize.height, 1)
+        let filledSize = sourceAspect > frameAspect
+            ? CGSize(width: frameSize.height * sourceAspect, height: frameSize.height)
+            : CGSize(width: frameSize.width, height: frameSize.width / sourceAspect)
+        let horizontalLimit = max(0, (filledSize.width * scale - frameSize.width) / 2)
+            / max(frameSize.width, 1)
+        let verticalLimit = max(0, (filledSize.height * scale - frameSize.height) / 2)
+            / max(frameSize.height, 1)
+        return CGSize(
+            width: min(max(offset.width, -horizontalLimit), horizontalLimit),
+            height: min(max(offset.height, -verticalLimit), verticalLimit)
         )
     }
 
@@ -3169,9 +3850,17 @@ struct ContentView: View {
                                 width: storedOffset.width + value.translation.width,
                                 height: storedOffset.height + value.translation.height
                             )
-                            imageOffset = mode == .privacyMosaic
-                                ? clampedPrivacyOffset(proposedOffset, canvasSize: canvasSize, scale: imageScale)
-                                : proposedOffset
+                            if mode == .privacyMosaic {
+                                imageOffset = clampedPrivacyOffset(
+                                    proposedOffset, canvasSize: canvasSize, scale: imageScale
+                                )
+                            } else if mode == .imagePainting {
+                                imageOffset = clampedSketchOffset(
+                                    proposedOffset, canvasSize: canvasSize, scale: imageScale
+                                )
+                            } else {
+                                imageOffset = proposedOffset
+                            }
                         }
                     case .palette:
                         paletteOffset = PalettePanelGeometry.clampedOffset(
@@ -3234,6 +3923,8 @@ struct ContentView: View {
                         imageScale = min(max(storedScale * value.magnification, 1), 4)
                         if mode == .privacyMosaic {
                             imageOffset = clampedPrivacyOffset(imageOffset, canvasSize: canvasSize, scale: imageScale)
+                        } else if mode == .imagePainting {
+                            imageOffset = clampedSketchOffset(imageOffset, canvasSize: canvasSize, scale: imageScale)
                         }
                     }
                 }
@@ -3244,7 +3935,9 @@ struct ContentView: View {
                         storedJournalTransform = journalTransforms[index]
                     } else {
                         storedScale = imageScale
-                        if mode == .privacyMosaic { storedOffset = imageOffset }
+                        if mode == .privacyMosaic || mode == .imagePainting {
+                            storedOffset = imageOffset
+                        }
                     }
                 }
         )
@@ -3253,6 +3946,30 @@ struct ContentView: View {
     private func clampedPrivacyOffset(_ offset: CGSize, canvasSize: CGSize, scale: CGFloat) -> CGSize {
         let horizontalLimit = max(0, canvasSize.width * (scale - 1) / 2)
         let verticalLimit = max(0, canvasSize.height * (scale - 1) / 2)
+        return CGSize(
+            width: min(max(offset.width, -horizontalLimit), horizontalLimit),
+            height: min(max(offset.height, -verticalLimit), verticalLimit)
+        )
+    }
+
+    private func clampedSketchOffset(_ offset: CGSize, canvasSize: CGSize, scale: CGFloat) -> CGSize {
+        guard let image = images.first, image.size.width > 0, image.size.height > 0 else { return .zero }
+        let sourceAspect = image.size.width / image.size.height
+        let frameSize: CGSize
+        if sketchParameters.presentation == .artwork {
+            frameSize = CGSize(width: canvasSize.width * 0.92, height: canvasSize.height * 0.92)
+        } else {
+            let usesVerticalCanvas = sourceAspect < 0.82 && sketchParameters.brush == .vertical
+            frameSize = usesVerticalCanvas
+                ? CGSize(width: canvasSize.width * 0.64, height: canvasSize.height * 0.59)
+                : CGSize(width: canvasSize.width * 0.89, height: canvasSize.height * 0.51)
+        }
+        let frameAspect = frameSize.width / max(frameSize.height, 1)
+        let filledSize = sourceAspect > frameAspect
+            ? CGSize(width: frameSize.height * sourceAspect, height: frameSize.height)
+            : CGSize(width: frameSize.width, height: frameSize.width / sourceAspect)
+        let horizontalLimit = max(0, (filledSize.width * scale - frameSize.width) / 2)
+        let verticalLimit = max(0, (filledSize.height * scale - frameSize.height) / 2)
         return CGSize(
             width: min(max(offset.width, -horizontalLimit), horizontalLimit),
             height: min(max(offset.height, -verticalLimit), verticalLimit)
@@ -3551,18 +4268,50 @@ struct ContentView: View {
             return
         }
         let parameters = sketchParameters
+        let pigments = palette
         isSketchRendering = true
         sketchRenderTask = Task {
             try? await Task.sleep(for: .milliseconds(110))
             guard !Task.isCancelled, revision == sketchRenderRevision else { return }
             let rendered = await Task.detached(priority: .userInitiated) {
-                SketchFilterEngine.render(snapshot, parameters: parameters)
+                SketchFilterEngine.render(
+                    snapshot,
+                    parameters: parameters,
+                    palette: pigments
+                )
             }.value
             guard !Task.isCancelled, revision == sketchRenderRevision else { return }
             sketchImage = rendered
             renderedSketchParameters = rendered == nil ? nil : parameters
             isSketchRendering = false
             sketchRenderTask = nil
+        }
+    }
+
+    private func scheduleClassicSketchPreviewRefresh() {
+        classicSketchRenderTask?.cancel()
+        classicSketchRenderRevision += 1
+        let revision = classicSketchRenderRevision
+        renderedClassicSketchParameters = nil
+        guard let snapshot = images.first else {
+            classicSketchImage = nil
+            isClassicSketchRendering = false
+            classicSketchRenderTask = nil
+            return
+        }
+        let parameters = classicSketchParameters
+        isClassicSketchRendering = true
+        classicSketchRenderTask = Task {
+            try? await Task.sleep(for: .milliseconds(110))
+            guard !Task.isCancelled, revision == classicSketchRenderRevision else { return }
+            let rendered = await Task.detached(priority: .userInitiated) {
+                ClassicSketchFilterEngine.render(snapshot, parameters: parameters)
+            }.value
+            guard !Task.isCancelled, revision == classicSketchRenderRevision else { return }
+            classicSketchImage = rendered
+            renderedClassicSketchParameters = rendered == nil ? nil : parameters
+            isClassicSketchRendering = false
+            classicSketchRenderTask = nil
         }
     }
 
@@ -3588,8 +4337,23 @@ struct ContentView: View {
             photoSelectionOperation = .replaceAll
         }
         pickerMode = selectedMode ?? mode
-        pickerSelections = []
         isPickerPresented = true
+    }
+
+    private func handlePickerSelections(_ selections: [PhotoPickerSelection]) {
+        let selectedMode = pickerMode ?? mode
+        pickerMode = nil
+        guard !selections.isEmpty else { return }
+        let operation = photoSelectionOperation
+        photoImportTask = Task { @MainActor in
+            await Task.yield()
+            await loadSelectedPhotos(
+                selections,
+                requestedMode: selectedMode,
+                requestedOperation: operation
+            )
+            photoImportTask = nil
+        }
     }
 
     private func removeLastJournalPhoto() {
@@ -3645,7 +4409,7 @@ struct ContentView: View {
 
     private func refreshCombinedPalette() {
         guard !images.isEmpty else { return }
-        let result = combinedPaletteResult(from: images)
+        let result = Self.combinedPaletteResult(from: images)
         withAnimation(.easeInOut(duration: 0.24)) {
             palette = result.colors
             palettePercentages = result.percentages
@@ -3655,7 +4419,7 @@ struct ContentView: View {
         }
     }
 
-    private func combinedPaletteResult(from sourceImages: [UIImage]) -> PaletteResult {
+    nonisolated private static func combinedPaletteResult(from sourceImages: [UIImage]) -> PaletteResult {
         guard let first = sourceImages.first else {
             return PaletteResult(colors: RGBColor.fallback, percentages: [Double](repeating: 100.0 / 6.0, count: 6))
         }
@@ -3699,11 +4463,12 @@ struct ContentView: View {
     }
 
     private func loadSelectedPhotos(
-        _ requestedSelections: [PhotoPickerSelection]? = nil,
-        requestedMode: CreationMode? = nil
+        _ requestedSelections: [PhotoPickerSelection],
+        requestedMode: CreationMode? = nil,
+        requestedOperation: PhotoSelectionOperation? = nil
     ) async {
         guard !isLoading else { return }
-        let selections = requestedSelections ?? pickerSelections
+        let selections = requestedSelections
         guard !selections.isEmpty else { return }
         if let requestedMode, mode != requestedMode {
             mode = requestedMode
@@ -3712,7 +4477,7 @@ struct ContentView: View {
         stopLivePhotoPlayback()
         dismissLivePhotoHint()
 
-        let operation = photoSelectionOperation
+        let operation = requestedOperation ?? photoSelectionOperation
         let incremental = mode == .journal && operation != .replaceAll && !selectedPhotos.isEmpty
         withAnimation(.easeOut(duration: 0.18)) {
             if !incremental { isEditorVisible = false }
@@ -3793,19 +4558,32 @@ struct ContentView: View {
             }
         }
         importStatus = "正在分析整张照片的感知色彩…".appLocalized
-        let paletteResult = combinedPaletteResult(from: combined.map(\.image))
+        let paletteInput = SendableImageBatch(images: combined.map(\.image))
+        let paletteResult = await Task.detached(priority: .userInitiated) {
+            Self.combinedPaletteResult(from: paletteInput.images)
+        }.value
         selectedPhotos = combined
         images = combined.map(\.image)
+        if isTicketLandscape && !supportsLandscapeEditor {
+            setTicketLandscape(false)
+        }
         prepareLivePhotoPlayback()
         scheduleLightAnalysis(for: combined.first?.image)
         if operation == .replaceAll {
             glassArchiveMarkChoiceRaw = ""
             glassArchiveHidesMissingTime = false
             glassArchiveShowsLocation = true
+            glassArchiveEditing = false
+            motionCardUsesCustomCaptureTime = false
+            motionCardDisplayedCaptureDate = combined.first?.metadata.captureDate ?? .now
             resetPrivacyEdits(for: images.first)
-            if mode == .sketch {
+            if mode == .imagePainting {
                 sketchImage = nil
                 scheduleSketchPreviewRefresh()
+            }
+            if mode == .sketch {
+                classicSketchImage = nil
+                scheduleClassicSketchPreviewRefresh()
             }
         }
         let semantic = PhotoSemantic.combined(combined.map(\.semantic))
@@ -3908,6 +4686,9 @@ struct ContentView: View {
     }
 
     private func editorRatio(in screenSize: CGSize) -> CGFloat {
+        if mode == .monthlyCalendar && monthlyCalendarLayoutStyle == .photoSplit {
+            return 3.0 / 2.0
+        }
         if isFeatureMode {
             return FeatureArtworkLayout.aspectRatio(mode: mode, imageSize: images.first?.size,
                                                      side: featurePaletteSide, bandRatio: featurePaletteBandRatio)
@@ -3925,10 +4706,19 @@ struct ContentView: View {
 
             return min(max(image.size.width / image.size.height, 0.25), 6.00)
         }
+        if mode == .bubbleStamp,
+           signatureStampPage == .signature,
+           let image = images.first,
+           image.size.height > 0 {
+            return min(max(image.size.width / image.size.height, 0.35), 2.40)
+        }
         if mode == .privacyMosaic, let image = images.first, image.size.height > 0 {
             return min(max(image.size.width / image.size.height, 0.35), 2.40)
         }
-        if mode == .sketch, let image = images.first, image.size.height > 0 {
+        if mode == .imagePainting, sketchParameters.presentation == .studySheet {
+            return 3.0 / 4.0
+        }
+        if mode == .imagePainting, let image = images.first, image.size.height > 0 {
             return min(max(image.size.width / image.size.height, 0.35), 2.40)
         }
         if mode == .glassArchive, let image = images.first, image.size.height > 0 {
@@ -3967,14 +4757,8 @@ struct ContentView: View {
             finishModeChange()
             return
         }
-        withAnimation(.snappy) {
-            mode = selectedMode
-        }
-        modeChangeTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(180))
-            guard !Task.isCancelled, mode == selectedMode else { return }
-            finishModeChange()
-        }
+        withAnimation(.snappy) { mode = selectedMode }
+        finishModeChange()
     }
 
     private func openTicketScanner() {
@@ -4017,6 +4801,21 @@ struct ContentView: View {
         guard let destination = queuedPostalDestination else { return }
         queuedPostalDestination = nil
         postalDestination = destination
+    }
+
+    private func queueCreationModeSelection(_ selectedMode: CreationMode) {
+        modeSelectionPresented = false
+        modeChangeTask?.cancel()
+        modeChangeTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(120))
+            guard !Task.isCancelled else { return }
+            selectCreationMode(selectedMode)
+            modeChangeTask = nil
+        }
+    }
+
+    private func completeModeSelectionDismissal() {
+        presentQueuedPostalDestination()
     }
 
     private func finishPostalPresentation() {
@@ -4183,8 +4982,11 @@ struct ContentView: View {
         if mode == .privacyMosaic {
             refreshPrivacyPreview()
         }
-        if mode == .sketch {
+        if mode == .imagePainting {
             scheduleSketchPreviewRefresh()
+        }
+        if mode == .sketch {
+            scheduleClassicSketchPreviewRefresh()
         }
         startRevealSequence()
         presentLivePhotoHintIfNeeded()
@@ -4192,6 +4994,8 @@ struct ContentView: View {
             showToast("隐私遮挡后仅支持静态导出，避免动态帧泄露隐私", duration: 3.6)
         } else if mode == .travelTicket, selectedPhotos.contains(where: \.isLivePhoto) {
             showToast("影像票根使用实况照片的关键帧生成静态凭证", duration: 3.0)
+        } else if mode == .imagePainting, selectedPhotos.contains(where: \.isLivePhoto) {
+            showToast("影像入画使用实况照片的关键帧生成静态画作", duration: 3.0)
         } else if mode == .sketch, selectedPhotos.contains(where: \.isLivePhoto) {
             showToast("素描基于实况照片的关键帧生成静态作品", duration: 3.0)
         }
@@ -4234,11 +5038,21 @@ struct ContentView: View {
             storedGlassArchiveBarPosition = 1
             bubbleScale = 1
             storedBubbleScale = 1
+            signatureOffset = .zero
+            storedSignatureOffset = .zero
+            signatureDateTimeOffset = CGSize(width: 0.25, height: 0.40)
+            storedSignatureDateTimeOffset = CGSize(width: 0.25, height: 0.40)
+            signatureDragElement = nil
             textScale = 1
             fontStyle = .rounded
             journalTransforms = Array(repeating: JournalPhotoTransform(), count: images.count)
             storedJournalTransform = JournalPhotoTransform()
             selectedJournalIndex = mode == .journal && !images.isEmpty ? 0 : nil
+            isMonthlyCalendarCropEditing = false
+            monthlyCalendarPhotoScale = 1
+            storedMonthlyCalendarPhotoScale = 1
+            monthlyCalendarPhotoOffset = .zero
+            storedMonthlyCalendarPhotoOffset = .zero
             activeDragRole = nil
         }
         if animated {
@@ -4248,9 +5062,32 @@ struct ContentView: View {
         }
     }
 
+    private func resetSketchCrop() {
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
+            imageScale = 1
+            storedScale = 1
+            imageOffset = .zero
+            storedOffset = .zero
+            activeDragRole = nil
+        }
+    }
+
+    private func resetMonthlyCalendarCrop() {
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
+            monthlyCalendarPhotoScale = 1
+            storedMonthlyCalendarPhotoScale = 1
+            monthlyCalendarPhotoOffset = .zero
+            storedMonthlyCalendarPhotoOffset = .zero
+        }
+    }
+
     private func saveArtwork() {
         guard canSave, saveState == .idle else { return }
-        guard mode != .sketch || hasCurrentSketchRender else {
+        guard mode != .imagePainting || hasCurrentSketchRender else {
+            showToast("正在生成当前入画效果，请稍候…", duration: 2.2)
+            return
+        }
+        guard mode != .sketch || hasCurrentClassicSketchRender else {
             showToast("正在生成当前素描效果，请稍候…", duration: 2.2)
             return
         }
@@ -4382,7 +5219,12 @@ struct ContentView: View {
         presentsTicketPrinter: Bool = false
     ) {
         guard canSave, saveState == .idle else { return }
-        guard mode != .sketch || hasCurrentSketchRender else {
+        guard mode != .imagePainting || hasCurrentSketchRender else {
+            exportCenterPresented = false
+            showToast("正在生成当前入画效果，请稍候…", duration: 2.2)
+            return
+        }
+        guard mode != .sketch || hasCurrentClassicSketchRender else {
             exportCenterPresented = false
             showToast("正在生成当前素描效果，请稍候…", duration: 2.2)
             return
@@ -4417,32 +5259,62 @@ struct ContentView: View {
             let sourceWidth = images.first?.cgImage.map { CGFloat($0.width) } ?? 1080
             let pixelWidth = resolution.pixelWidth(sourceWidth: sourceWidth)
             let exportSketchImage: UIImage?
+            if mode == .imagePainting {
+                guard let sourceImage = images.first else {
+                    saveState = .idle
+                    presentSaveError("未找到可用于高清入画的原图。")
+                    return
+                }
+                let parameters = sketchParameters
+                let pigments = palette
+                let targetLongEdge = sketchExportLongEdge(
+                    for: sourceImage,
+                    pixelWidth: pixelWidth
+                )
+                showToast("正在重绘高清纸上颜料…", duration: 60)
+                exportSketchImage = await Task.detached(priority: .userInitiated) {
+                    SketchFilterEngine.renderForExport(
+                        sourceImage,
+                        parameters: parameters,
+                        palette: pigments,
+                        targetLongEdge: targetLongEdge
+                    )
+                }.value
+                guard exportSketchImage != nil else {
+                    saveState = .idle
+                    presentSaveError("高清入画渲染失败，请稍后重试。")
+                    return
+                }
+            } else {
+                exportSketchImage = nil
+            }
+            let exportClassicSketchImage: UIImage?
             if mode == .sketch {
                 guard let sourceImage = images.first else {
                     saveState = .idle
                     presentSaveError("未找到可用于高清素描的原图。")
                     return
                 }
-                let parameters = sketchParameters
+                let parameters = classicSketchParameters
                 let targetLongEdge = sketchExportLongEdge(
                     for: sourceImage,
                     pixelWidth: pixelWidth
                 )
                 showToast("正在进行高清分块推理…", duration: 60)
-                exportSketchImage = await Task.detached(priority: .userInitiated) {
-                    SketchFilterEngine.renderForExport(
+                exportClassicSketchImage = await Task.detached(priority: .userInitiated) {
+                    ClassicSketchFilterEngine.renderForExport(
                         sourceImage,
                         parameters: parameters,
                         targetLongEdge: targetLongEdge
                     )
                 }.value
-                guard exportSketchImage != nil else {
+                guard exportClassicSketchImage != nil else {
                     saveState = .idle
                     presentSaveError("高清素描渲染失败，请稍后重试。")
                     return
                 }
             } else {
-                exportSketchImage = nil
+                exportClassicSketchImage = nil
             }
             let ticketCodeImageOverride = await ios17TicketCodeImageForArtwork()
             if mode == .travelTicket,
@@ -4459,6 +5331,7 @@ struct ContentView: View {
             guard let renderedImage = renderArtwork(
                 pixelWidth: pixelWidth,
                 sketchImageOverride: exportSketchImage,
+                classicSketchImageOverride: exportClassicSketchImage,
                 ticketCodeImageOverride: ticketCodeImageOverride,
                 includesPoeticDetails: includesPoeticDetailsAtExport
             ) else {
@@ -4509,6 +5382,7 @@ struct ContentView: View {
                                 replacingImages: frames,
                                 pixelWidth: videoPixelWidth,
                                 sketchImageOverride: exportSketchImage,
+                                classicSketchImageOverride: exportClassicSketchImage,
                                 ticketCodeImageOverride: ticketCodeImageOverride,
                                 includesPoeticDetails: includesPoeticDetailsAtExport
                             )
@@ -4750,7 +5624,7 @@ struct ContentView: View {
         if !didShowOnboardingExperience {
             onboardingStartsAtUpdate = false
             launchExperienceStage = .onboarding
-        } else if !didShowVersion301Update {
+        } else if !didShowVersion302Update {
             onboardingStartsAtUpdate = true
             launchExperienceStage = .onboarding
         } else if supportsIsland && !didChooseModeLauncherStyle {
@@ -4768,6 +5642,7 @@ struct ContentView: View {
     private func completeOnboardingExperience() {
         didShowOnboardingExperience = true
         didShowVersion301Update = true
+        didShowVersion302Update = true
         onboardingStartsAtUpdate = false
 
         if supportsIslandLauncher && !didChooseModeLauncherStyle {
@@ -4834,7 +5709,7 @@ struct ContentView: View {
     private func presentCreationSeasonEventIfReady() {
         guard creationSeasonEventPending,
               didShowOnboardingExperience,
-              didShowVersion301Update,
+              didShowVersion302Update,
               didChooseModeLauncherStyle,
               launchExperienceStage == .none,
               creationSeasonEventIgnoresHistory || !didShowCreationSeasonEvent else { return }
@@ -4874,8 +5749,14 @@ struct ContentView: View {
     }
 
     private func enterTicketLandscape() {
-        guard mode == .travelTicket else { return }
-        didShowTicketLandscapeHint = true
+        guard supportsLandscapeEditor else { return }
+        if mode == .travelTicket {
+            didShowTicketLandscapeHint = true
+        } else if mode == .bubbleStamp {
+            didShowCustomSignatureLandscapeHintBuild202630 = true
+        } else {
+            didShowArchiveCalendarLandscapeHintBuild202625 = true
+        }
         dismissTicketLandscapeHint()
         InterfaceOrientationController.shared.request(
             usesInAppTicketLandscape ? .portrait : .landscapeRight
@@ -4986,13 +5867,19 @@ struct ContentView: View {
                 return
             }
 
-            didShowTicketLandscapeHint = true
+            if mode == .travelTicket {
+                didShowTicketLandscapeHint = true
+            } else if mode == .bubbleStamp {
+                didShowCustomSignatureLandscapeHintBuild202630 = true
+            } else {
+                didShowArchiveCalendarLandscapeHintBuild202625 = true
+            }
             withAnimation(guidanceHintAnimation) {
                 isTicketLandscapeHintPresented = true
             }
             UIAccessibility.post(
                 notification: .announcement,
-                argument: "点击翻转，横屏预览票根效果更佳"
+                argument: "点击翻转，横屏预览\(mode.title)效果更佳"
             )
 
             do {
@@ -5264,12 +6151,16 @@ struct ContentView: View {
         replacingImages replacements: [Int: UIImage] = [:],
         pixelWidth: CGFloat = 1080,
         sketchImageOverride: UIImage? = nil,
+        classicSketchImageOverride: UIImage? = nil,
         ticketCodeImageOverride: UIImage? = nil,
         includesPoeticDetails: Bool = false
     ) -> UIImage? {
-        guard mode != .sketch
+        guard mode != .imagePainting
                 || sketchImageOverride != nil
                 || hasCurrentSketchRender else { return nil }
+        guard mode != .sketch
+                || classicSketchImageOverride != nil
+                || hasCurrentClassicSketchRender else { return nil }
         let renderWidth: CGFloat = 360
         let renderScale = min(max(pixelWidth / renderWidth, 1), 16.67)
         var renderImages = images
@@ -5277,7 +6168,9 @@ struct ContentView: View {
             renderImages[index] = frame
         }
         let outputRatio: CGFloat
-        if isFeatureMode {
+        if mode == .monthlyCalendar && monthlyCalendarLayoutStyle == .photoSplit {
+            outputRatio = 3.0 / 2.0
+        } else if isFeatureMode {
             outputRatio = FeatureArtworkLayout.aspectRatio(mode: mode, imageSize: renderImages.first?.size,
                                                            side: featurePaletteSide, bandRatio: featurePaletteBandRatio)
         } else if mode == .spectrumWallpaper {
@@ -5286,7 +6179,10 @@ struct ContentView: View {
                   let image = renderImages.first,
                   image.size.height > 0 {
             outputRatio = min(max(image.size.width / image.size.height, 0.35), 2.40)
-        } else if mode == .sketch,
+        } else if mode == .imagePainting,
+                  sketchParameters.presentation == .studySheet {
+            outputRatio = 3.0 / 4.0
+        } else if mode == .imagePainting,
                   let image = renderImages.first,
                   image.size.height > 0 {
             outputRatio = min(max(image.size.width / image.size.height, 0.35), 2.40)
@@ -5295,6 +6191,11 @@ struct ContentView: View {
                   image.size.height > 0 {
             outputRatio = min(max(image.size.width / image.size.height, 0.25), 6.00)
         } else if mode == .glassArchive,
+                  let image = renderImages.first,
+                  image.size.height > 0 {
+            outputRatio = min(max(image.size.width / image.size.height, 0.35), 2.40)
+        } else if mode == .bubbleStamp,
+                  signatureStampPage == .signature,
                   let image = renderImages.first,
                   image.size.height > 0 {
             outputRatio = min(max(image.size.width / image.size.height, 0.35), 2.40)
@@ -5329,8 +6230,9 @@ struct ContentView: View {
                 gentleBackground: gentleBackground,
                 imageScale: imageScale,
                 imageOffset: imageOffset,
-                metadata: primaryMetadata,
+                metadata: artworkMetadata,
                 showMissingCaptureTime: showMissingCaptureTime,
+                showsCaptureTime: motionCardShowsCaptureTime,
                 copy: artworkCopy,
                 fontStyle: fontStyle,
                 templateStyle: templateStyle,
@@ -5360,18 +6262,47 @@ struct ContentView: View {
                 ticketAppClipBaseURL: TicketEnvelope.configuredBaseURLString,
                 ticketDeviceSealEnabled: ticketDeviceSealEnabled,
                 ticketCodeImageOverride: ticketCodeImageOverride,
-                sketchImage: mode == .sketch
+                sketchImage: mode == .imagePainting
                     ? (sketchImageOverride ?? sketchImage)
                     : nil,
+                sketchParameters: sketchParameters,
+                classicSketchImage: mode == .sketch
+                    ? (classicSketchImageOverride ?? classicSketchImage)
+                    : nil,
+                classicSketchParameters: classicSketchParameters,
                 glassArchiveMark: activeGlassArchiveMark,
                 glassArchiveHidesMissingTime: glassArchiveHidesMissingTime,
                 glassArchiveShowsLocation: glassArchiveShowsLocation,
                 glassArchiveBarPosition: glassArchiveBarPosition,
+                glassArchivePinnedColors: glassArchivePinnedColors,
+                glassArchivePinnedEdge: glassArchivePinnedEdge,
+                glassArchiveCustomText: glassArchiveCustomTextActive ? glassArchiveCustomText : nil,
+                glassArchiveCustomFont: glassArchiveCustomFont,
                 featurePaletteSide: featurePaletteSide,
                 featurePaletteBandRatio: featurePaletteBandRatio,
                 featurePaletteSwatchOrder: paletteCardSwatchOrder,
                 featureCalendarCity: featureCalendarCity,
-                featureCalendarShowsLocation: !monthlyCalendarHidesLocation
+                featureCalendarShowsLocation: !monthlyCalendarHidesLocation,
+                featureCalendarLayoutStyle: monthlyCalendarLayoutStyle,
+                featureCalendarPanelColorMode: monthlyCalendarPanelColorMode,
+                featureCalendarCustomPanelColor: monthlyCalendarCustomPanelColor,
+                featureCalendarUsesEnglishMonthTitle: monthlyCalendarUsesEnglishMonthTitle,
+                featureCalendarShowsFooter: !monthlyCalendarHidesFooter,
+                featureCalendarPhotoScale: monthlyCalendarPhotoScale,
+                featureCalendarPhotoOffset: monthlyCalendarPhotoOffset,
+                signatureStampPage: signatureStampPage,
+                signatureStampText: signatureStampText,
+                signatureStampFont: signatureStampFont,
+                signatureStampImage: signatureStampLibrary.image,
+                signatureStampSource: signatureStampSource,
+                signatureStampTextScale: CGFloat(signatureTextScale),
+                signatureStampImageScale: CGFloat(signatureImageScale),
+                signatureStampOffset: signatureOffset,
+                signatureStampShowsDate: signatureStampShowsDate,
+                signatureStampShowsTime: signatureStampShowsTime,
+                signatureStampUsesEnglishDateTime: signatureStampUsesEnglishDateTime,
+                signatureStampDateTimeScale: CGFloat(signatureDateTimeScale),
+                signatureStampDateTimeOffset: signatureDateTimeOffset
             )
             .frame(width: renderWidth, height: canvasRenderHeight)
         let renderer = ImageRenderer(
@@ -5466,7 +6397,7 @@ struct ContentView: View {
         let sourceLongEdge = max(sourceWidth, sourceHeight)
         let outputHeight = pixelWidth * sourceHeight / sourceWidth
         let requestedLongEdge = max(pixelWidth, outputHeight)
-        return min(sourceLongEdge, min(max(requestedLongEdge, 1024), 1536))
+        return min(sourceLongEdge, min(max(requestedLongEdge, 1280), 4096))
     }
 
     private func showToast(_ message: String, duration: Double) {
@@ -5493,6 +6424,24 @@ struct ContentView: View {
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.22)) {
                 poeticSourcePromptPresented = false
+            }
+        }
+    }
+
+    private func presentSketchFontPrompt() {
+        guard !supporterUnlocked else { return }
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        poeticSourcePromptDismissTask?.cancel()
+        sketchFontPromptDismissTask?.cancel()
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+            poeticSourcePromptPresented = false
+            sketchFontPromptPresented = true
+        }
+        sketchFontPromptDismissTask = Task {
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.22)) {
+                sketchFontPromptPresented = false
             }
         }
     }
@@ -5656,23 +6605,238 @@ struct ContentView: View {
     }
 }
 
+private struct GlassArchiveTextField: UIViewRepresentable {
+    @Binding var text: String
+    let characterLimit: Int
+    let isActive: Bool
+    let onDismiss: () -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIView(context: Context) -> UITextField {
+        let field = UITextField()
+        field.delegate = context.coordinator
+        field.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.editingChanged(_:)),
+            for: .editingChanged
+        )
+        field.font = .systemFont(ofSize: 15, weight: .semibold)
+        field.textAlignment = .center
+        field.returnKeyType = .done
+        field.attributedPlaceholder = NSAttributedString(
+            string: "写下此刻".appLocalized,
+            attributes: [.foregroundColor: UIColor.secondaryLabel]
+        )
+        return field
+    }
+
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        if uiView.markedTextRange == nil, uiView.text != text {
+            uiView.text = text
+        }
+        if isActive, !uiView.isFirstResponder {
+            uiView.becomeFirstResponder()
+        } else if !isActive, uiView.isFirstResponder {
+            uiView.resignFirstResponder()
+        }
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        private let parent: GlassArchiveTextField
+
+        init(_ parent: GlassArchiveTextField) {
+            self.parent = parent
+        }
+
+        func textField(
+            _ textField: UITextField,
+            shouldChangeCharactersIn range: NSRange,
+            replacementString string: String
+        ) -> Bool {
+            guard textField.markedTextRange == nil else { return true }
+            let current = textField.text ?? ""
+            guard let range = Range(range, in: current) else { return false }
+            return current.replacingCharacters(in: range, with: string).count <= parent.characterLimit
+        }
+
+        @objc func editingChanged(_ textField: UITextField) {
+            guard textField.markedTextRange == nil else { return }
+            let committed = String((textField.text ?? "").prefix(parent.characterLimit))
+            if textField.text != committed { textField.text = committed }
+            parent.text = committed
+        }
+
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            parent.onDismiss()
+            return false
+        }
+    }
+}
+
 private struct GlassArchiveSettingsSheet: View {
     let showsMissingTimeToggle: Bool
     @Binding var hidesMissingTime: Bool
     @Binding var showsLocation: Bool
+    let isSupporter: Bool
+    @Binding var pinnedColorIndexes: Set<Int>
+    @Binding var pinnedEdge: GlassArchivePinnedEdge
+    let paletteColors: [RGBColor]
+    @Binding var customTextEnabled: Bool
+    let customText: String
+    @Binding var customFont: PostalFont
+    let infoOverridden: Bool
+    let onOpenSupport: () -> Void
+
+    @State private var proPromptMessage: String?
+    @State private var proPromptDismissTask: Task<Void, Never>?
+    @State private var customInfoAlertPresented = false
+    @State private var pendingCustomEnable = false
+
+    private let customTextPrompt = "支持我们，即可在档案栏固定一至六色琉璃色、自定义档案文字并选用邮票与明信片的内置字体。"
 
     var body: some View {
         Form {
+            Section {
+                if isSupporter {
+                    Toggle("自定义档案文字", isOn: Binding(
+                        get: { customTextEnabled },
+                        set: { newValue in
+                            if newValue && !customTextEnabled {
+                                pendingCustomEnable = true
+                                customInfoAlertPresented = true
+                            } else if !newValue {
+                                customTextEnabled = false
+                            }
+                        }
+                    ))
+                } else {
+                    lockedRow(title: "自定义档案文字", prompt: customTextPrompt)
+                }
+            }
+
+            if isSupporter && customTextEnabled {
+                Section {
+                    HStack(spacing: 0) {
+                        ForEach(Array(paletteColors.enumerated()), id: \.offset) { index, color in
+                            Button {
+                                if pinnedColorIndexes.contains(index) {
+                                    pinnedColorIndexes.remove(index)
+                                } else {
+                                    pinnedColorIndexes.insert(index)
+                                }
+                            } label: {
+                                VStack(spacing: 8) {
+                                    Circle()
+                                        .fill(color.color)
+                                        .frame(width: 28, height: 28)
+                                        .overlay(Circle().stroke(.primary.opacity(0.18), lineWidth: 0.6))
+                                    Image(systemName: pinnedColorIndexes.contains(index) ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 15))
+                                        .foregroundStyle(pinnedColorIndexes.contains(index) ? Color.accentColor : Color.secondary.opacity(0.45))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    HStack {
+                        Text("显示位置")
+                        Spacer()
+                        Picker("显示位置", selection: $pinnedEdge) {
+                            Text("开头").tag(GlassArchivePinnedEdge.leading)
+                            Text("末尾").tag(GlassArchivePinnedEdge.trailing)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .frame(width: 150)
+                    }
+                } header: {
+                    Text("固定琉璃色")
+                }
+
+                Section("档案字体") {
+                    PostalFontSelectionGrid(selection: $customFont)
+                }
+            }
+
             if showsMissingTimeToggle {
                 Section {
                     Toggle("隐藏“时间未记录”", isOn: $hidesMissingTime)
+                        .disabled(infoOverridden)
+                } footer: {
+                    if infoOverridden {
+                        Text("自定义档案文字开启时，时间与位置信息将自动隐藏。")
+                    }
                 }
             }
             Section {
                 Toggle("显示位置信息", isOn: $showsLocation)
+                    .disabled(infoOverridden)
+            } footer: {
+                if infoOverridden {
+                    Text("自定义档案文字开启时，时间与位置信息将自动隐藏。")
+                }
             }
         }
         .formStyle(.grouped)
+        .overlay(alignment: .bottom) {
+            if let proPromptMessage {
+                SupporterProUnlockPrompt(message: proPromptMessage) {
+                    proPromptDismissTask?.cancel()
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        self.proPromptMessage = nil
+                    }
+                    onOpenSupport()
+                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, 24)
+                .transition(.scale(scale: 0.88).combined(with: .opacity))
+            }
+        }
+        .onDisappear {
+            proPromptDismissTask?.cancel()
+        }
+        .alert("自定义档案文字", isPresented: $customInfoAlertPresented) {
+            Button("开启") {
+                if pendingCustomEnable {
+                    customTextEnabled = true
+                    pendingCustomEnable = false
+                }
+            }
+            Button("取消", role: .cancel) {
+                pendingCustomEnable = false
+            }
+        } message: {
+            Text("开启后档案栏原有内容将清空。轻点预览中的透明档案栏即可唤起键盘书写，至多 12 字；关闭后可恢复原有内容。")
+        }
+    }
+
+    private func lockedRow(title: String, prompt: String) -> some View {
+        HStack {
+            Text(LocalizedStringKey(title))
+                .foregroundStyle(.primary)
+            Spacer()
+            SupporterLockedSwitch(isOn: false, isLocked: true)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            proPromptDismissTask?.cancel()
+            withAnimation(.easeOut(duration: 0.18)) {
+                proPromptMessage = prompt
+            }
+            proPromptDismissTask = Task {
+                try? await Task.sleep(for: .seconds(6))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: 0.22)) {
+                    proPromptMessage = nil
+                }
+            }
+        }
+        .accessibilityLabel("\(title)，支持者专属功能")
     }
 }
 
@@ -5682,6 +6846,10 @@ private struct MotionCardSettingsSheet: View {
     @Binding var ratio: ArtworkRatio
     @Binding var showMoodCopy: Bool
     @Binding var showMissingCaptureTime: Bool
+    @Binding var showsCaptureTime: Bool
+    @Binding var usesCustomCaptureTime: Bool
+    @Binding var displayedCaptureDate: Date
+    let originalCaptureDate: Date?
 
     private var isImmersiveTemplate: Bool { templateStyle == .immersive }
 
@@ -5727,9 +6895,32 @@ private struct MotionCardSettingsSheet: View {
                 }
 
                 Section {
-                    Toggle("显示缺失拍摄时间提示", isOn: $showMissingCaptureTime)
+                    Toggle("显示拍摄时间", isOn: $showsCaptureTime)
+
+                    if showsCaptureTime {
+                        DatePicker(
+                            "显示时间",
+                            selection: Binding(
+                                get: { displayedCaptureDate },
+                                set: {
+                                    displayedCaptureDate = $0
+                                    usesCustomCaptureTime = true
+                                }
+                            ),
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+
+                        if usesCustomCaptureTime {
+                            Button("恢复照片拍摄时间") {
+                                displayedCaptureDate = originalCaptureDate ?? .now
+                                usesCustomCaptureTime = false
+                            }
+                        } else if originalCaptureDate == nil {
+                            Toggle("显示缺失拍摄时间提示", isOn: $showMissingCaptureTime)
+                        }
+                    }
                 } footer: {
-                    Text("关闭后，照片没有日期信息时不显示“拍摄时间未记录”。")
+                    Text("使用系统日期与时间面板修改卡片中显示的时间，不会更改原照片信息。")
                 }
             }
             .formStyle(.grouped)

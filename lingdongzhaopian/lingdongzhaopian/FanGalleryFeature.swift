@@ -9,12 +9,14 @@ import UIKit
 private enum FanGalleryMode: String, CaseIterable, Identifiable {
     case automatic
     case manual
+    case single
 
     var id: String { rawValue }
     var title: String {
         switch self {
         case .automatic: "自动寻色".appLocalized
         case .manual: "自由编排".appLocalized
+        case .single: "单张成扇".appLocalized
         }
     }
 }
@@ -58,6 +60,7 @@ private final class FanGalleryModel: ObservableObject {
     @Published var phase: Phase = .idle
     @Published var resultTitle = "点击“开始寻找”后，才会请求相册权限并开始取样。".appLocalized
     @Published var countdown = 10
+    @Published var singleImage: UIImage?
 
     private var candidates: [UIImage] = []
     private var finalImages: [UIImage] = []
@@ -163,6 +166,36 @@ private final class FanGalleryModel: ObservableObject {
         }
     }
 
+    func loadSingleSelection(_ item: PhotosPickerItem) {
+        cancelTasksOnly()
+        clearSlots()
+        phase = .readingSelection
+        resultTitle = "正在读取所选照片…".appLocalized
+        runTask = Task { [weak self] in
+            guard let self else { return }
+            guard let image = await FanPhotoLibrary.loadPickerItem(item) else {
+                guard !Task.isCancelled else { return }
+                phase = .failed("无法读取所选照片，请确认原片已下载后重试。".appLocalized)
+                return
+            }
+            guard !Task.isCancelled else { return }
+            singleImage = image
+            for index in 0..<6 {
+                slots[index] = FanPhoto(image: image)
+            }
+            phase = .finished
+            resultTitle = "双指缩放预览，细看扇面上的连续画面。".appLocalized
+        }
+    }
+
+    func prepareForSingle() {
+        cancelTasksOnly()
+        finalImages = []
+        clearSlots()
+        phase = .idle
+        resultTitle = "选择一张照片，自动铺满六瓣扇面。".appLocalized
+    }
+
     func prepareForAutomatic() {
         cancelTasksOnly()
         finalImages = []
@@ -195,6 +228,7 @@ private final class FanGalleryModel: ObservableObject {
         cancelTasksOnly()
         candidates = []
         finalImages = []
+        singleImage = nil
     }
 
     private func cancelTasksOnly() {
@@ -206,6 +240,7 @@ private final class FanGalleryModel: ObservableObject {
 
     private func clearSlots() {
         slots = Array(repeating: nil, count: 6)
+        singleImage = nil
     }
 
     private func runShuffleSequence() async {
@@ -260,6 +295,9 @@ struct FanGalleryFeatureView: View {
     @State private var mode = FanGalleryMode.automatic
     @State private var focusedIndex: Int?
     @State private var manualSelections: [PhotosPickerItem] = []
+    @State private var singleSelection: PhotosPickerItem?
+    @State private var previewScale: CGFloat = 1
+    @State private var storedPreviewScale: CGFloat = 1
     @State private var isExporting = false
     @State private var exportNotice: String?
 
@@ -276,6 +314,7 @@ struct FanGalleryFeatureView: View {
 
                     FanStage(
                         slots: model.slots,
+                        singleImage: model.singleImage,
                         onSelect: { index in
                             guard mode == .manual, model.slots[index] != nil else { return }
                             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
@@ -285,9 +324,10 @@ struct FanGalleryFeatureView: View {
                         }
                     )
                     .blur(radius: focusedIndex == nil ? 0 : 12)
-                    .scaleEffect(focusedIndex == nil ? 1 : 0.96)
+                    .scaleEffect((focusedIndex == nil ? 1 : 0.96) * previewScale)
                     .allowsHitTesting(focusedIndex == nil)
                     .frame(maxHeight: 520)
+                    .gesture(singlePreviewZoomGesture)
 
                     Spacer(minLength: 10)
                     bottomControls
@@ -319,16 +359,36 @@ struct FanGalleryFeatureView: View {
                 guard mode == .manual else { return }
                 model.loadManualSelections(items)
             }
+            .onChange(of: singleSelection) { _, item in
+                guard let item, mode == .single else { return }
+                model.loadSingleSelection(item)
+                singleSelection = nil
+            }
             .onChange(of: mode) { _, newMode in
                 focusedIndex = nil
                 manualSelections = []
-                if newMode == .automatic {
-                    model.prepareForAutomatic()
-                } else {
-                    model.prepareForManual()
+                singleSelection = nil
+                previewScale = 1
+                storedPreviewScale = 1
+                switch newMode {
+                case .automatic: model.prepareForAutomatic()
+                case .manual: model.prepareForManual()
+                case .single: model.prepareForSingle()
                 }
             }
         }
+    }
+
+    private var singlePreviewZoomGesture: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                guard mode == .single, model.singleImage != nil else { return }
+                previewScale = min(max(storedPreviewScale * value, 1), 3.2)
+            }
+            .onEnded { _ in
+                guard mode == .single else { return }
+                storedPreviewScale = previewScale
+            }
     }
 
     private var fanBackground: some View {
@@ -421,6 +481,15 @@ struct FanGalleryFeatureView: View {
                         .frame(maxWidth: .infinity, minHeight: 48)
                 }
                 .disabled(model.isBusy)
+            } else if mode == .single {
+                PhotosPicker(
+                    selection: $singleSelection,
+                    matching: .images
+                ) {
+                    Label("选择一张照片".appLocalized, systemImage: "photo")
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                }
+                .disabled(model.isBusy)
             } else {
                 PhotosPicker(
                     selection: $manualSelections,
@@ -463,7 +532,7 @@ struct FanGalleryFeatureView: View {
         isExporting = true
         exportNotice = "正在制作高清折扇…".appLocalized
 
-        let renderer = ImageRenderer(content: FanExportArtwork(slots: model.slots))
+        let renderer = ImageRenderer(content: FanExportArtwork(slots: model.slots, singleImage: model.singleImage))
         renderer.scale = 1
         renderer.proposedSize = ProposedViewSize(width: 2400, height: 1800)
         renderer.isOpaque = false
@@ -527,12 +596,14 @@ private struct FanWarmBackground: View {
 
 private struct FanExportArtwork: View {
     let slots: [FanPhoto?]
+    var singleImage: UIImage? = nil
 
     var body: some View {
         ZStack {
             Color.clear
             FanStage(
                 slots: slots,
+                singleImage: singleImage,
                 onSelect: { _ in }
             )
             .frame(width: 2180, height: 1540)
@@ -543,6 +614,7 @@ private struct FanExportArtwork: View {
 
 private struct FanStage: View {
     let slots: [FanPhoto?]
+    var singleImage: UIImage? = nil
     let onSelect: (Int) -> Void
 
     private let artworkRatio: CGFloat = 1178 / 912
@@ -560,7 +632,8 @@ private struct FanStage: View {
                 ForEach(0..<6, id: \.self) { index in
                     ReferenceFanLeaf(
                         slot: slots.indices.contains(index) ? slots[index] : nil,
-                        index: index
+                        index: index,
+                        singleImage: singleImage
                     )
                     .frame(width: artSize.width, height: artSize.height)
                     .zIndex(Double(index))
@@ -591,6 +664,7 @@ private struct FanStage: View {
 private struct ReferenceFanLeaf: View {
     let slot: FanPhoto?
     let index: Int
+    var singleImage: UIImage? = nil
 
     var body: some View {
         GeometryReader { proxy in
@@ -599,7 +673,10 @@ private struct ReferenceFanLeaf: View {
             ZStack {
                 photoShape.fill(Color(white: 0.12))
 
-                if let slot {
+                if let singleImage {
+                    FanSliceImage(image: singleImage)
+                        .mask(photoShape)
+                } else if let slot {
                     FanCroppedImage(image: slot.image, crop: slot.crop)
                         .id(slot.revision)
                         .transition(.opacity.combined(with: .scale(scale: 1.025)))
@@ -622,6 +699,20 @@ private struct ReferenceFanLeaf: View {
             .frame(width: proxy.size.width, height: proxy.size.height)
             .contentShape(photoShape)
             .drawingGroup()
+        }
+    }
+}
+
+private struct FanSliceImage: View {
+    let image: UIImage
+
+    var body: some View {
+        GeometryReader { proxy in
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipped()
         }
     }
 }

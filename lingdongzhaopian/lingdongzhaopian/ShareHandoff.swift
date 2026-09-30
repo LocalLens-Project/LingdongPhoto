@@ -6,23 +6,25 @@ import Foundation
 enum SharedPhotoHandoff {
     static let urlScheme = "lingdongphoto"
 
-    struct Item {
+    struct Item: Sendable {
         let imageData: Data
         let pairedVideoURL: URL?
         let isLivePhoto: Bool
         let assetLocalIdentifier: String?
     }
 
-    struct Import {
+    struct Import: Sendable {
         let items: [Item]
         let modeRawValue: String?
     }
 
-    static func receiveImport() -> Import? {
-        receiveSharedContainerImport()
+    static func receiveImport() async -> Import? {
+        await Task.detached(priority: .userInitiated) {
+            receiveSharedContainerImport()
+        }.value
     }
 
-    private static func receiveSharedContainerImport() -> Import? {
+    nonisolated private static func receiveSharedContainerImport() -> Import? {
         guard let appGroupIdentifier = Bundle.main.object(
             forInfoDictionaryKey: "LingdongAppGroupIdentifier"
         ) as? String,
@@ -67,7 +69,7 @@ enum SharedPhotoHandoff {
         return Import(items: items, modeRawValue: manifest.modeRawValue)
     }
 
-    private static func copyPairedVideoToTemporaryDirectory(from sourceURL: URL) -> URL? {
+    nonisolated private static func copyPairedVideoToTemporaryDirectory(from sourceURL: URL) -> URL? {
         guard FileManager.default.fileExists(atPath: sourceURL.path) else { return nil }
         let fileExtension = sourceURL.pathExtension.isEmpty ? "mov" : sourceURL.pathExtension
         let destinationURL = FileManager.default.temporaryDirectory
@@ -85,13 +87,13 @@ enum SharedPhotoHandoff {
         }
     }
 
-    private static func fileSize(at url: URL) -> Int64 {
+    nonisolated private static func fileSize(at url: URL) -> Int64 {
         let values = try? url.resourceValues(forKeys: [.fileSizeKey])
         return Int64(values?.fileSize ?? 0)
     }
 
-    private struct Manifest: Codable {
-        struct Asset: Codable {
+    nonisolated private struct Manifest: Codable, Sendable {
+        struct Asset: Codable, Sendable {
             let imageFilename: String
             let pairedVideoFilename: String?
             let isLivePhoto: Bool

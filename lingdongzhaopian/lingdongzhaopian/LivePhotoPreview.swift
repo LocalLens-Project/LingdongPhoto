@@ -37,7 +37,7 @@ enum LivePhotoPreview {
 
     private struct FrameResult: @unchecked Sendable {
         let index: Int
-        let image: UIImage?
+        let imageData: Data?
     }
 
     private enum FrameLoadingError: Error {
@@ -48,7 +48,7 @@ enum LivePhotoPreview {
         fileprivate let signature: [Int: String]
         fileprivate let primaryVideoURL: URL
         fileprivate let frameInterval: Double
-        fileprivate let frames: [[Int: UIImage]]
+        fileprivate let frames: [[Int: Data]]
 
         func matches(_ sourceVideoURLs: [Int: URL]) -> Bool {
             signature == LivePhotoPreview.signature(for: sourceVideoURLs)
@@ -65,7 +65,6 @@ enum LivePhotoPreview {
             throw LivePhotoPreviewError.missingVideo
         }
 
-        let maximumDimension: CGFloat = sortedURLs.count > 2 ? 360 : 480
         var sources: [Source] = []
         for (index, url) in sortedURLs {
             let asset = AVURLAsset(url: url)
@@ -76,7 +75,6 @@ enum LivePhotoPreview {
                   let videoTrack else { continue }
             let generator = AVAssetImageGenerator(asset: asset)
             generator.appliesPreferredTrackTransform = true
-            generator.maximumSize = CGSize(width: maximumDimension, height: maximumDimension)
             generator.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 30)
             generator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 30)
             sources.append(
@@ -104,8 +102,8 @@ enum LivePhotoPreview {
         let frameRate = min(max(Double(primary.nominalFrameRate), 12), maximumFrameRate)
         let frameInterval = 1.0 / frameRate
         let frameCount = max(1, Int(ceil(primary.duration.seconds * frameRate)))
-        var currentFrames: [Int: UIImage] = [:]
-        var preparedFrames: [[Int: UIImage]] = []
+        var currentFrames: [Int: Data] = [:]
+        var preparedFrames: [[Int: Data]] = []
 
         for frameIndex in 0...frameCount {
             try Task.checkCancellation()
@@ -118,9 +116,12 @@ enum LivePhotoPreview {
                             from: source,
                             at: min(source.duration.seconds * normalizedProgress, lastReadableSecond),
                             attempts: frameIndex == 0 ? 3 : 1,
-                            timeout: frameIndex == 0 ? .seconds(2) : .milliseconds(600)
+                            timeout: frameIndex == 0 ? .seconds(3) : .seconds(1)
                         )
-                        return FrameResult(index: source.index, image: image)
+                        return FrameResult(
+                            index: source.index,
+                            imageData: image?.jpegData(compressionQuality: 1)
+                        )
                     }
                 }
 
@@ -132,8 +133,8 @@ enum LivePhotoPreview {
             }
 
             for result in results {
-                if let image = result.image {
-                    currentFrames[result.index] = image
+                if let imageData = result.imageData {
+                    currentFrames[result.index] = imageData
                 }
             }
             if currentFrames[primary.index] != nil {
@@ -167,9 +168,15 @@ enum LivePhotoPreview {
             audioPlayer.pause()
         }
 
-        for frames in prepared.frames {
+        for encodedFrames in prepared.frames {
             try Task.checkCancellation()
             let frameStartedAt = ContinuousClock.now
+            let frames = encodedFrames.reduce(into: [Int: UIImage]()) { result, entry in
+                if let image = UIImage(data: entry.value) {
+                    result[entry.key] = image
+                }
+            }
+            guard !frames.isEmpty else { continue }
             onFrame(frames)
 
             let frameDuration = frameStartedAt.duration(to: .now)

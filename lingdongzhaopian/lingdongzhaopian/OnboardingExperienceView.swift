@@ -81,8 +81,15 @@ struct OnboardingExperienceView: View {
         var proNote: Bool = false
         var templateProNote: String? = nil
         var showsNewBadge: Bool = false
+        var showsProBadge: Bool = false
+        var textOnly: Bool = false
+        var centersHeader: Bool = false
+        var captionShowsProBadge: Bool = false
+        var appendedProCaptionPrefix: String? = nil
+        var appendedProCaptionSuffix: String? = nil
 
         var imageHeightFactor: CGFloat? = nil
+        var artworkCaptionSpacing: CGFloat? = nil
         var usesAppearanceVariant: Bool = false
     }
 
@@ -187,7 +194,6 @@ struct OnboardingExperienceView: View {
             imageName: "solarcolors",
             caption: "照片会按原始拍摄时间归入对应节气，提取代表色并点亮节气年；收齐后可回看属于你的一年二十四颜色。",
             proNote: true,
-            showsNewBadge: true,
             imageHeightFactor: 0.78
         ),
         OnboardingPage(
@@ -195,7 +201,6 @@ struct OnboardingExperienceView: View {
             subtitle: "照片留下画面，背面留下没有拍下的话。",
             imageName: "photobacks",
             caption: "从“画面里”“画面外”“写给以后”三个方向写下照片背面的回声，设定再次查看的时间，之后还可以继续补一句“后来”。",
-            showsNewBadge: true,
             imageHeightFactor: 0.78
         ),
         OnboardingPage(
@@ -204,6 +209,38 @@ struct OnboardingExperienceView: View {
             imageName: "ipadexperience",
             caption: "为 iPad 重新组织界面层级与操作区域，充分利用横屏与大屏空间；在 iPhone 上仍保持熟悉而紧凑的体验。",
             imageHeightFactor: 0.78
+        ),
+        OnboardingPage(
+            title: "影像入画",
+            subtitle: "照片记下所见，笔墨留下所感。",
+            imageName: "imagepainting",
+            caption: "用多层水彩洗染画心把原照片自然融入纸面；可选横扫、上扬、下掠、竖落、弧扫与枯笔，还可拖动、缩放调整取景并自定义画笺标题。",
+            showsNewBadge: true,
+            appendedProCaptionPrefix: "自定义画笺字体为“支持我们 ",
+            appendedProCaptionSuffix: "”用户专属，可选用邮票与明信片的内置字体。",
+            imageHeightFactor: 0.78
+        ),
+        OnboardingPage(
+            title: "PRO 专属\n琉璃档案，由你书写",
+            subtitle: "支持我们后，即可把琉璃六色与专属文字写进档案。",
+            imageName: "archivecustom",
+            caption: "”用户专属\n· 档案栏开头或末尾固定一至六色\n· 专属文字搭配邮票与明信片字体",
+            showsNewBadge: true,
+            showsProBadge: true,
+            centersHeader: true,
+            captionShowsProBadge: true,
+            imageHeightFactor: 0.78
+        ),
+        OnboardingPage(
+            title: "灵动月历·摄影排版",
+            subtitle: "一个月，一张照片，把日子留在画面旁边。",
+            imageName: "monthlycalendarphoto",
+            caption: "照片与单月月历并排呈现，圈出拍摄当天。",
+            showsNewBadge: true,
+            appendedProCaptionPrefix: "支持我们 ",
+            appendedProCaptionSuffix: " 后，可让底板自动取自照片颜色，或自由选择颜色，文字深浅会自动适配。",
+            imageHeightFactor: 0.66,
+            artworkCaptionSpacing: 4
         ),
     ]
 
@@ -235,7 +272,7 @@ struct OnboardingExperienceView: View {
 
     private var pages: [OnboardingPage] { Self.pages }
     private var totalPages: Int {
-        Self.pages.count + 3
+        Self.pages.count + 5
             + (supportsIslandLauncher && !usesWideLayout ? 1 : 0)
             + (requiresIOS26Notice ? 1 : 0)
     }
@@ -246,13 +283,16 @@ struct OnboardingExperienceView: View {
         return Self.pages.count - Self.versionUpdateFeatureCount + featureOffset
     }
     private var displayedPageNumber: Int {
-        guard startsAtUpdatePage else { return pageIndex + 1 }
-        return isLastPage
-            ? Self.versionUpdateFeatureCount + 1
-            : pageIndex - versionUpdateStartPage + 1
+        guard startsAtUpdatePage else {
+            return pageIndex >= totalPages - 1 ? pageIndex : pageIndex + 1
+        }
+        if isLastPage { return Self.versionUpdateFeatureCount + 3 }
+        if pageIndex == totalPages - 2 { return Self.versionUpdateFeatureCount + 2 }
+        if pageIndex == totalPages - 3 { return Self.versionUpdateFeatureCount + 1 }
+        return pageIndex - versionUpdateStartPage + 1
     }
     private var displayedTotalPages: Int {
-        startsAtUpdatePage ? Self.versionUpdateFeatureCount + 1 : totalPages
+        startsAtUpdatePage ? Self.versionUpdateFeatureCount + 3 : totalPages - 1
     }
 
     private var requiresIOS26Notice: Bool {
@@ -297,10 +337,23 @@ struct OnboardingExperienceView: View {
                             .id("mode-island")
                             .transition(textTransition)
                             .padding(.horizontal, 26)
-                    } else if pageIndex == totalPages - 2 {
+                    } else if pageIndex == totalPages - 4 {
 
                         morePage
                             .id("more")
+                            .transition(textTransition)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if pageIndex == totalPages - 3 {
+
+                        signatureStampOnboardingPage
+                            .id("signature-stamp")
+                            .transition(textTransition)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .padding(.horizontal, 26)
+                    } else if startsAtUpdatePage, pageIndex == totalPages - 2 {
+
+                        refreshedAppIconPage
+                            .id("refreshed-app-icon")
                             .transition(textTransition)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else if pageIndex == totalPages - 1 {
@@ -311,7 +364,7 @@ struct OnboardingExperienceView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
                         let page = pages[pageIndex - (supportsIslandLauncher ? 2 : 1) - (requiresIOS26Notice ? 1 : 0)]
-                        if !LocalizedVisualPolicy.showsOnboardingFeatureImage(
+                        if page.textOnly || !LocalizedVisualPolicy.showsOnboardingFeatureImage(
                             languageCode: onboardingLanguageCode,
                             imageName: page.imageName
                         ) {
@@ -373,8 +426,12 @@ struct OnboardingExperienceView: View {
                 .padding(.top, 16)
 
                 Group {
-                    if pageIndex == totalPages - 2 {
+                    if pageIndex == totalPages - 4 {
                         morePage
+                    } else if pageIndex == totalPages - 3 {
+                        signatureStampOnboardingPage
+                    } else if startsAtUpdatePage, pageIndex == totalPages - 2 {
+                        refreshedAppIconPage
                     } else if isLastPage {
                         updatePage
                     } else {
@@ -432,6 +489,10 @@ struct OnboardingExperienceView: View {
                         .foregroundStyle(.white)
                     if page.showsNewBadge {
                         NewBadge()
+                            .fixedSize()
+                    }
+                    if page.showsProBadge {
+                        ProBadge(compact: true)
                             .fixedSize()
                     }
                 }
@@ -498,12 +559,14 @@ struct OnboardingExperienceView: View {
             headerView(for: page)
                 .id("header-\(index)")
                 .transition(textTransition)
+                .offset(y: page.imageName == "monthlycalendarphoto" ? 144 : 0)
 
             let imageName = onboardingImageName(for: page)
             let screenshot = onboardingUIImage(named: imageName)
             OnboardingArtworkCaptionLayout(
                 imageAspect: screenshot.map { $0.size.width / $0.size.height } ?? 0.72,
-                imageHeightFactor: page.imageHeightFactor ?? 1
+                imageHeightFactor: page.imageHeightFactor ?? 1,
+                spacing: page.artworkCaptionSpacing ?? 14
             ) {
                 screenshotView(
                     image: screenshot,
@@ -793,6 +856,122 @@ struct OnboardingExperienceView: View {
     }
 
 
+    private var refreshedAppIconPage: some View {
+        VStack(spacing: 16) {
+            Spacer()
+
+            FloatingApplicationIcon()
+                .padding(.bottom, 18)
+
+            Text("应用图标焕然一新")
+                .font(.system(size: usesWideLayout ? 36 : 28, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+
+            Text("以照片与色彩，重新描绘灵动照片。")
+                .font(.system(size: usesWideLayout ? 19 : 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.78))
+
+            Text("全新的应用图标以照片与色彩为灵感，让熟悉的创作入口以更清晰、明快的模样回到主屏幕。")
+                .font(.system(size: usesWideLayout ? 17 : 14.5, weight: .regular, design: .rounded))
+                .foregroundStyle(.white.opacity(0.58))
+                .lineSpacing(5)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: usesWideLayout ? 560 : 330)
+
+            Spacer()
+        }
+        .padding(.horizontal, 30)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("onboarding.refreshedAppIcon")
+    }
+
+    private var signatureStampOnboardingPage: some View {
+        let page = OnboardingPage(
+            title: "光影签章",
+            subtitle: "让名字、字迹与图章留在完整影像上。",
+            imageName: "signaturestamp",
+            caption: "输入签名或导入自己的 PNG 签章，直接拖动放置并调整大小。自定义 PNG 与非系统字体需支持我们 PRO 解锁。",
+            showsNewBadge: true
+        )
+        return Group {
+            if !LocalizedVisualPolicy.showsOnboardingFeatureImage(
+                languageCode: onboardingLanguageCode,
+                imageName: page.imageName
+            ) {
+                textOnlyFeaturePage(page)
+            } else {
+                VStack(spacing: 0) {
+                    headerView(for: page)
+                    let screenshot = onboardingUIImage(named: page.imageName)
+                    OnboardingArtworkCaptionLayout(
+                        imageAspect: screenshot.map { $0.size.width / $0.size.height } ?? 0.72,
+                        imageHeightFactor: 1,
+                        spacing: 14
+                    ) {
+                        screenshotView(
+                            image: screenshot,
+                            placeholderName: "signaturestamp_zh-Hans.png"
+                        )
+                        .accessibilityLabel("功能截图")
+                        .accessibilityIdentifier("onboarding.screenshot.signaturestamp")
+                        captionView(for: page)
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+
+    private struct FloatingApplicationIcon: View {
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @State private var floating = false
+
+        var body: some View {
+            ZStack {
+                Ellipse()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color(red: 0.30, green: 0.72, blue: 1.00).opacity(0.32),
+                                Color(red: 0.28, green: 0.88, blue: 0.58).opacity(0.12),
+                                .clear,
+                            ],
+                            center: .center,
+                            startRadius: 4,
+                            endRadius: 112
+                        )
+                    )
+                    .frame(width: 230, height: 190)
+                    .blur(radius: 20)
+                    .scaleEffect(floating ? 1.08 : 0.92)
+
+                Image("LingdongAppIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 142, height: 142)
+                    .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 32, style: .continuous)
+                            .stroke(.white.opacity(0.34), lineWidth: 1)
+                    }
+                    .shadow(color: .black.opacity(0.38), radius: 22, y: 14)
+                    .shadow(color: Color(red: 0.30, green: 0.72, blue: 1.00).opacity(0.20), radius: 24)
+                    .offset(y: reduceMotion ? 0 : (floating ? -9 : 9))
+                    .rotationEffect(.degrees(reduceMotion ? 0 : (floating ? 1.2 : -1.2)))
+            }
+            .frame(width: 240, height: 220)
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
+                    floating = true
+                }
+            }
+        }
+    }
+
+
     private func textOnlyFeaturePage(_ page: OnboardingPage) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer()
@@ -826,23 +1005,49 @@ struct OnboardingExperienceView: View {
     }
 
     private func headerView(for page: OnboardingPage) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(LocalizedStringKey(page.title))
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                if page.showsNewBadge {
-                    NewBadge()
-                        .fixedSize()
+        VStack(alignment: page.centersHeader ? .center : .leading, spacing: 14) {
+            if page.centersHeader {
+                VStack(spacing: 10) {
+                    HStack(spacing: 8) {
+                        if page.showsNewBadge {
+                            NewBadge()
+                                .fixedSize()
+                        }
+                        if page.showsProBadge {
+                            ProBadge(compact: true)
+                                .fixedSize()
+                        }
+                    }
+                    Text(LocalizedStringKey(page.title))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity)
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(LocalizedStringKey(page.title))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                    if page.showsNewBadge {
+                        NewBadge()
+                            .fixedSize()
+                    }
+                    if page.showsProBadge {
+                        ProBadge(compact: true)
+                            .fixedSize()
+                    }
                 }
             }
             Text(LocalizedStringKey(page.subtitle))
                 .font(.system(size: 15, weight: .medium, design: .rounded))
                 .foregroundStyle(.white.opacity(0.62))
+                .multilineTextAlignment(page.centersHeader ? .center : .leading)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, page.imageName == "ipadexperience" ? 8 : 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: page.centersHeader ? .center : .leading)
     }
 
     @ViewBuilder
@@ -902,8 +1107,8 @@ struct OnboardingExperienceView: View {
                     )
                     updateItem(
                         symbol: "camera",
-                        title: "气泡印章",
-                        detail: "在照片角落加上机型、光圈快门与拍摄时间的气泡水印，风格随心挑选。"
+                        title: "光影签章",
+                        detail: "气泡记录拍摄信息，字迹与自定义 PNG 签章则可在完整画面上自由落款。"
                     )
                     updateItem(
                         symbol: "book.closed",
@@ -921,9 +1126,9 @@ struct OnboardingExperienceView: View {
                         detail: "自动或手动打上马赛克，安心分享照片。"
                     )
                     updateItem(
-                        symbol: "pencil.and.outline",
-                        title: "影像素描",
-                        detail: "把照片勾勒成线条素描。"
+                        symbol: "paintbrush.pointed",
+                        title: "影像入画",
+                        detail: "把原照片融入多层水彩洗染画心，可选不同笔势、自定义画笺标题，也可排成兼有原片、画意与琉璃颜料的一照两境；PRO 用户还可自由选用邮笺字体。"
                     )
                 }
             }
@@ -941,57 +1146,53 @@ struct OnboardingExperienceView: View {
                     Text("本次更新")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("灵动照片 3.0.1（Build 202632）")
+                    Text("灵动照片 3.0.2（Build 202635）")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white.opacity(0.48))
                 }
 
                 VStack(alignment: .leading, spacing: 16) {
                     updateItem(
-                        symbol: "leaf",
-                        title: "新增“节气寻色”功能",
-                        detail: "按照片原始拍摄时间收录二十四节气颜色，点亮属于你的一年，并在节气照片中回看传统色与诗意。",
-                        showsPoeticColorProNote: true
+                        symbol: "paintbrush.pointed.fill",
+                        title: "影像入画·一照两境",
+                        detail: "用纯代码叠加多层水彩洗染，将原照片融入横扫、上扬、下掠、竖落、弧扫或枯笔画心；可调整笔锋、晕染与飞白，也可拖动、缩放调整取景并修改画笺标题。"
                     )
                     updateItem(
-                        symbol: "rectangle.and.pencil.and.ellipsis",
-                        title: "新增“照片背面”功能",
-                        detail: "把没有拍下的话写在照片背面，在“画面里”“画面外”“写给以后”之间选择，并约定下一次再看的时间。"
-                    )
-                    updateItem(
-                        symbol: "apple.logo",
-                        title: "已适配 iOS 27 与 iPadOS 27",
-                        detail: "已完成对 iOS 27 与 iPadOS 27 的系统级适配，在新系统与可调整窗口中保持自然布局与交互。"
-                    )
-                    updateItem(
-                        symbol: "iphone.gen3",
-                        title: "已初步适配 iPhone 18 Pro 系列",
-                        detail: "已针对 iPhone 18 Pro 与 iPhone 18 Pro Max 完成首轮界面适配，并将继续结合正式系统表现优化。"
-                    )
-                    updateItem(
-                        symbol: "ipad.landscape",
-                        title: "所有功能全面适配 iPad",
-                        detail: "针对 iPad 的大屏与横屏重新设计整体布局，让每一种创作方式都拥有更大的预览、更舒展的操作区域与自然的交互。"
-                    )
-                    updateItem(
-                        symbol: "hand.draw",
-                        title: "调整邮票新增“手动选取”",
-                        detail: "在调整邮票的构图界面中，可以直接拖动照片改变位置，并用双指捏合放大或缩小。"
-                    )
-                    updateItem(
-                        symbol: "rectangle.grid.2x2",
-                        title: "琉璃色盘排版模式更名",
-                        detail: "排版模式现更名为“单排”与“双排”，在功能设定中可以更直观地选择。"
+                        symbol: "textformat",
+                        title: "一照两境自定义字体",
+                        detail: "支持我们后，可从邮票与明信片内置字体中自由选择，让画笺的标题、地点、日期与题识共用同一种字韵。",
+                        showsProBadge: true
                     )
                     updateItem(
                         symbol: "archivebox",
-                        title: "“琉璃档案”档案栏支持自由滑动",
-                        detail: "现在可以自由滑动档案栏，调整它在照片中的位置；导出时会保留预览中的当前排版。"
+                        title: "琉璃档案，由你书写",
+                        detail: "支持我们后，档案栏开头或末尾可固定显示琉璃色盘中的一至六色，亦可写下专属文字，并选用邮票与明信片的内置字体。",
+                        showsProBadge: true
                     )
                     updateItem(
-                        symbol: "wrench.and.screwdriver",
-                        title: "界面与体验优化",
-                        detail: "修复界面显示问题与部分 Bug，提升整体使用体验。"
+                        symbol: "livephoto",
+                        title: "邮票支持实况照片",
+                        detail: "邮票可播放实况画面，导出时也能产出实况照片；邮集中也能轻点城市邮票回看那一刻。"
+                    )
+                    updateItem(
+                        symbol: "fan.fill",
+                        title: "流光折扇单张成扇",
+                        detail: "流光折扇新增单张成扇：一张照片自动铺满整个扇面，成扇后双指捏合缩放，细看扇面上的连续画面。"
+                    )
+                    updateItem(
+                        symbol: "rectangle.landscape.rotate",
+                        title: "琉璃档案与灵动月历横屏查看",
+                        detail: "iOS 端使用横向照片时，可将琉璃档案与灵动月历翻转为横屏查看，预览更宽阔，所有操作集中在右侧。"
+                    )
+                    updateItem(
+                        symbol: "calendar.badge.plus",
+                        title: "灵动月历·摄影排版",
+                        detail: "新增照片与单月月历并排的摄影排版，圈出拍摄当天；PRO 用户还可自动取色或自定义底板颜色。"
+                    )
+                    updateItem(
+                        symbol: "checkmark.seal",
+                        title: "体验优化",
+                        detail: "修复了部分错误和界面显示问题，并提升了整体使用流畅性。"
                     )
                 }
             }
@@ -1007,8 +1208,7 @@ struct OnboardingExperienceView: View {
         symbol: String,
         title: String,
         detail: String,
-        showsProBadge: Bool = false,
-        showsPoeticColorProNote: Bool = false
+        showsProBadge: Bool = false
     ) -> some View {
         HStack(alignment: .top, spacing: 13) {
             Image(systemName: symbol)
@@ -1030,10 +1230,6 @@ struct OnboardingExperienceView: View {
                     .foregroundStyle(.white.opacity(0.6))
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
-                if showsPoeticColorProNote {
-                    poeticColorProNote
-                        .padding(.top, 3)
-                }
             }
         }
         .accessibilityElement(children: .combine)
@@ -1143,6 +1339,19 @@ struct OnboardingExperienceView: View {
                 + Text("。若为实况照片，建议授予完全访问权限，否则可能无法精确匹配到实况照片的配套视频。选择一种操作模式，点击")
                 + Text("“在灵动照片中继续”。").fontWeight(.semibold)
         }
+        if page.captionShowsProBadge {
+            return Text("琉璃档案自定义功能为“支持我们 ")
+                + Text(Image(uiImage: Self.proBadgeImage(scale: displayScale))).baselineOffset(-3.5)
+                + Text(LocalizedStringKey(page.caption))
+        }
+        if let prefix = page.appendedProCaptionPrefix,
+           let suffix = page.appendedProCaptionSuffix {
+            return Text(LocalizedStringKey(page.caption))
+                + Text("\n\n")
+                + Text(LocalizedStringKey(prefix))
+                + Text(Image(uiImage: Self.proBadgeImage(scale: displayScale))).baselineOffset(-3.5)
+                + Text(LocalizedStringKey(suffix))
+        }
         return Text(LocalizedStringKey(page.caption))
     }
 
@@ -1166,7 +1375,19 @@ struct OnboardingExperienceView: View {
             HStack(spacing: 14) {
                 if pageIndex > 0 && (!startsAtUpdatePage || pageIndex > versionUpdateStartPage) {
                     Button {
-                        navigate(to: startsAtUpdatePage && isLastPage ? totalPages - 3 : pageIndex - 1)
+                        let destination: Int
+                        if startsAtUpdatePage, isLastPage {
+                            destination = totalPages - 2
+                        } else if startsAtUpdatePage, pageIndex == totalPages - 2 {
+                            destination = totalPages - 3
+                        } else if startsAtUpdatePage, pageIndex == totalPages - 3 {
+                            destination = totalPages - 5
+                        } else if !startsAtUpdatePage, isLastPage {
+                            destination = totalPages - 3
+                        } else {
+                            destination = pageIndex - 1
+                        }
+                        navigate(to: destination)
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .semibold))
@@ -1225,7 +1446,11 @@ struct OnboardingExperienceView: View {
             onFinish()
             return
         }
-        if startsAtUpdatePage, pageIndex == totalPages - 3 {
+        if startsAtUpdatePage, pageIndex == totalPages - 5 {
+            navigate(to: totalPages - 3)
+            return
+        }
+        if !startsAtUpdatePage, pageIndex == totalPages - 3 {
             navigate(to: totalPages - 1)
             return
         }
@@ -1246,7 +1471,7 @@ struct OnboardingExperienceView: View {
 struct OnboardingArtworkCaptionLayout: Layout {
     var imageAspect: CGFloat
     var imageHeightFactor: CGFloat
-    let spacing: CGFloat = 14
+    var spacing: CGFloat
 
     func imageSize(in available: CGSize, captionHeight: CGFloat) -> CGSize {
         let aspect = max(0.01, imageAspect)

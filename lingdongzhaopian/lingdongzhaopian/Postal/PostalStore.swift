@@ -66,6 +66,7 @@ struct PostalStamp: Codable, Identifiable, Equatable {
 
     var originalCity: PostalCity? = nil
     var fileName: String { id.uuidString + ".png" }
+    var liveVideoFileName: String { id.uuidString + ".mov" }
 }
 
 struct PostalCitySlot: Codable, Identifiable, Equatable {
@@ -123,6 +124,10 @@ final class PostalStore {
         return candidates.first
     }
     func fileURL(_ stamp: PostalStamp) -> URL { root.appendingPathComponent(stamp.fileName) }
+    func liveVideoURL(for stamp: PostalStamp) -> URL? {
+        let url = root.appendingPathComponent(stamp.liveVideoFileName)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
     func image(_ stamp: PostalStamp, fullSize: Bool = false) -> UIImage? {
         if fullSize { return UIImage(contentsOfFile: fileURL(stamp).path) }
         let key = stamp.id.uuidString as NSString
@@ -140,7 +145,8 @@ final class PostalStore {
 
     @discardableResult
     func add(image: UIImage, format: StampFormat, metadata: PhotoMetadata, city: PostalCity?,
-             tint: PostalTint, targetCity: PostalCity? = nil, addedAt: Date = .now) throws -> PostalStamp {
+             tint: PostalTint, targetCity: PostalCity? = nil, addedAt: Date = .now,
+             liveVideoURL: URL? = nil) throws -> PostalStamp {
         let validLocation = metadata.latitude.map { $0.isFinite && (-90...90).contains($0) } == true
             && metadata.longitude.map { $0.isFinite && (-180...180).contains($0) } == true
         if city != nil && !validLocation { throw PostalError.missingLocation }
@@ -159,6 +165,11 @@ final class PostalStore {
                                 originalCity: originalCity == city ? nil : originalCity)
         try ensureWritable()
         try data.write(to: fileURL(stamp), options: .atomic)
+        let storedLiveURL = root.appendingPathComponent(stamp.liveVideoFileName)
+        var hasLiveVideo = false
+        if let liveVideoURL {
+            hasLiveVideo = (try? FileManager.default.copyItem(at: liveVideoURL, to: storedLiveURL)) != nil
+        }
         var next = snapshot
         next.stamps.append(stamp)
         if let city {
@@ -170,7 +181,11 @@ final class PostalStore {
         }
         if let collectionTarget { next.cityRepresentatives[collectionTarget.id] = stamp.id }
         do { try commit(next) }
-        catch { try? FileManager.default.removeItem(at: fileURL(stamp)); throw error }
+        catch {
+            try? FileManager.default.removeItem(at: fileURL(stamp))
+            if hasLiveVideo { try? FileManager.default.removeItem(at: storedLiveURL) }
+            throw error
+        }
         return stamp
     }
 
@@ -192,6 +207,7 @@ final class PostalStore {
         thumbnails.removeObject(forKey: stamp.id.uuidString as NSString)
 
         try? FileManager.default.removeItem(at: fileURL(stamp))
+        try? FileManager.default.removeItem(at: root.appendingPathComponent(stamp.liveVideoFileName))
     }
 
     func importTicketCities(_ tickets: [TicketStub]) throws {
