@@ -186,7 +186,7 @@ struct SettingsView: View {
                 supportAndContactSection
 
                 VStack(spacing: 10) {
-                    Text("版本 3.0.2 (Build 202635)")
+                    Text("版本 3.0.3 (Build 202614)")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
 
@@ -685,7 +685,7 @@ struct SettingsView: View {
                 sectionDivider
                 tipRow(symbol: "keyboard", text: "点击文字即可直接编辑")
                 sectionDivider
-                tipRow(symbol: "textformat", text: "切换字体：在文字上方空白处左右滑动")
+                tipRow(symbol: "textformat", text: "自定义字体：在“灵动卡片设定”中选择")
                 sectionDivider
                 tipRow(symbol: "textformat.size", text: "调节大小：在文字下方空白处左右滑动")
                 sectionDivider
@@ -703,7 +703,7 @@ struct SettingsView: View {
                 sectionDivider
                 tipRow(symbol: "keyboard", text: "点击标题即可编辑（拍摄参数不可编辑）")
                 sectionDivider
-                tipRow(symbol: "textformat", text: "切换字体：在文字上方空白处左右滑动")
+                tipRow(symbol: "textformat", text: "自定义字体：在“气泡印章设定”中选择")
                 sectionDivider
                 tipRow(symbol: "textformat.size", text: "调节大小：在文字下方空白处左右滑动")
                 sectionDivider
@@ -757,6 +757,8 @@ struct SettingsView: View {
         settingsSection("一键手帐选项") {
             VStack(spacing: 0) {
                 tipRow(symbol: "info.circle", text: "使用顶部加号继续添加，选中缩略图后可替换、重排或删除；点击 Emoji 或文案可直接编辑")
+                sectionDivider
+                tipRow(symbol: "textformat", text: "自定义字体：在“一键手帐设定”中选择")
                 sectionDivider
                 ratioRow
                 sectionDivider

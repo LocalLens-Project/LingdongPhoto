@@ -146,7 +146,10 @@ struct StampStudio: View {
     @State private var preview: UIImage?
     @State private var savedStamp: PostalStamp?
     @State private var busy = false
+    @State private var busyMessage = "正在保存…".appLocalized
+    @State private var liveExportProgress: Double?
     @State private var notice: String?
+    @State private var noticeDismissTask: Task<Void, Never>?
     @State private var library = false
     @State private var postcard = false
     @State private var adjustments = false
@@ -224,11 +227,30 @@ struct StampStudio: View {
                 PostalFlowAction(title: "用这枚邮票制作明信片", symbol: "envelope", enabled: canSave) {
                     Task {
                         guard canSave else { return }
+                        busyMessage = "正在保存…".appLocalized
                         busy = true; defer { busy = false }
                         if await collect() != nil { postcard = true }
                     }
                 }.accessibilityIdentifier("postal.usePostcard")
-                if busy { ProgressView("正在保存…").font(.caption) }
+                if busy {
+                    if let liveExportProgress {
+                        VStack(spacing: 6) {
+                            ProgressView(value: liveExportProgress)
+                            Text("\(busyMessage) \(Int((liveExportProgress * 100).rounded()))%")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        ProgressView(busyMessage)
+                            .font(.caption)
+                    }
+                } else if let notice {
+                    Label(notice, systemImage: "checkmark.circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
         }
         .modifier(PostalPhotoImport(model: model, picker: $picker, camera: $camera))
@@ -250,9 +272,9 @@ struct StampStudio: View {
             if lettering.date.isEmpty { lettering.date = model.source?.metadata.captureDate.map(PostalDate.short) ?? "" }
             updatePreview() }
         .onChange(of: model.source?.city) { _, _ in savedStamp = nil }
-        .alert("邮票", isPresented: Binding(get: { notice != nil || model.error != nil }, set: { if !$0 { notice = nil; model.error = nil } })) {
+        .alert("邮票", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
             Button("好", role: .cancel) {}
-        } message: { Text(notice ?? model.error ?? "") }
+        } message: { Text(model.error ?? "") }
         .sheet(isPresented: $library) { PostalStampLibrary(store: store) }
         .fullScreenCover(isPresented: $postcard) { PostcardStudio(source: model.source, stamp: savedStamp, store: store) }
 
@@ -260,6 +282,7 @@ struct StampStudio: View {
             PostalArtworkPreview(item: item).ignoresSafeArea()
         }
         .interactiveDismissDisabled(busy || model.isLoading)
+        .onDisappear { noticeDismissTask?.cancel() }
     }
     private var adjustmentPage: some View {
         PostalEditingPage(title: "调整邮票", preview: preview, tint: model.tint,
@@ -398,6 +421,7 @@ struct StampStudio: View {
     }
     private func save(toPhotos: Bool) async {
         guard canSave else { return }
+        busyMessage = "正在保存…".appLocalized
         busy = true; defer { busy = false }
         guard let stamp = await collect() else { return }
         do {
@@ -407,22 +431,27 @@ struct StampStudio: View {
             }
             if let onSaved { onSaved(stamp); dismiss() }
             else if toPhotos {
-                notice = "已保存 PNG 到相册，并保留在我的邮票中。".appLocalized
+                showNotice("已保存 PNG 到相册，并保留在我的邮票中。".appLocalized)
             } else if let city = stamp.city {
-                notice = String(format: "已收藏，%@已点亮。".appLocalized, city.name)
+                showNotice(String(format: "已收藏，%@已点亮。".appLocalized, city.name))
             } else {
-                notice = "已收藏为普通邮票，可在明信片中使用。".appLocalized
+                showNotice("已收藏为普通邮票，可在明信片中使用。".appLocalized)
             }
         } catch { model.error = error.localizedDescription }
     }
     private func saveLivePhoto() async {
         guard canSave, let source = model.source, let liveURL = source.liveVideoURL else { return }
-        busy = true; defer { busy = false }
+        busyMessage = "正在生成实况照片…".appLocalized
+        liveExportProgress = 0
+        busy = true
+        defer {
+            busy = false
+            liveExportProgress = nil
+        }
         let format = format, transform = transform, lettering = lettering
         do {
             let rendered = try StampRenderer.render(photo: source.image, format: format,
                                                     transform: transform, lettering: lettering)
-            notice = "正在生成实况照片…".appLocalized
             let result = try await ArtworkExporter.saveLivePhoto(
                 renderedStill: rendered,
                 sourceVideoURLs: [0: liveURL],
@@ -433,17 +462,33 @@ struct StampStudio: View {
                     return try? StampRenderer.render(photo: frame, format: format,
                                                      transform: transform, lettering: lettering)
                 },
-                progress: { _ in }
+                progress: { progress in
+                    liveExportProgress = progress
+                }
             )
             switch result {
             case .livePhoto:
-                notice = "已保存实况照片到相册。".appLocalized
+                showNotice("已保存实况照片到相册。".appLocalized)
             case .livePhotoWithoutAudio:
-                notice = "实况照片已保存，本次不含声音。".appLocalized
+                showNotice("实况照片已保存，本次不含声音。".appLocalized)
             case .stillImageFallback:
-                notice = "系统未接受实况动态资源，已先为你保存静态邮票。".appLocalized
+                showNotice("系统未接受实况动态资源，已先为你保存静态邮票。".appLocalized)
             }
         } catch { model.error = error.localizedDescription }
+    }
+
+    private func showNotice(_ message: String) {
+        noticeDismissTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) {
+            notice = message
+        }
+        noticeDismissTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                notice = nil
+            }
+        }
     }
 }
 

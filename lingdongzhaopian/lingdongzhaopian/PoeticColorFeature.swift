@@ -504,6 +504,8 @@ struct SupportUsView: View {
             supportFeatureDivider
             supportFeature("signature", "光影签章自定义", "解锁全部签章字体，并可导入自己的 PNG 签章留在完整影像上。")
             supportFeatureDivider
+            supportFeature("textformat.alt", "三项创作字体", "为灵动卡片、气泡印章与一键手帐选用全部内置字体。")
+            supportFeatureDivider
             supportFeature(
                 "checkmark.seal",
                 "支持者标志",
@@ -675,9 +677,9 @@ struct SupportUsView: View {
 
     private var supportSubtitle: String {
         if supporterUnlocked {
-            return "你已可以使用节气诗名、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、专属应用图标及支持者标志。".appLocalized
+            return "你已可以使用节气诗名、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、三项创作字体、专属应用图标及支持者标志。".appLocalized
         }
-        return "一次解锁节气词库、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、专属应用图标及支持者标志。".appLocalized
+        return "一次解锁节气词库、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、三项创作字体、专属应用图标及支持者标志。".appLocalized
     }
 
     private var firstBatchBannerText: String? {

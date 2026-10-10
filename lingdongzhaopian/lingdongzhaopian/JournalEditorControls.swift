@@ -12,6 +12,7 @@ struct JournalEditorControls: View {
     let onDelete: (Int) -> Void
     let onMove: (Int, Int) -> Void
     let onReset: (Int) -> Void
+    let onOpenSettings: () -> Void
 
     var body: some View {
         VStack(spacing: 9) {
@@ -29,6 +30,16 @@ struct JournalEditorControls: View {
                 .pickerStyle(.menu)
                 .tint(.primary)
             }
+
+            Button(action: onOpenSettings) {
+                Label("一键手帐设定", systemImage: "slider.horizontal.3")
+                    .font(.caption.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 38)
+            }
+            .buttonStyle(LiquidPressButtonStyle())
+            .foregroundStyle(.primary.opacity(0.82))
+            .liquidGlass(in: Capsule(), interactive: true, variant: .clear)
 
             HStack(spacing: 10) {
                 ScrollView(.horizontal, showsIndicators: false) {

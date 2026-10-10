@@ -115,8 +115,8 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 ### Personalization and supporter content
 
 - Empty-screen Themes set a preferred primary color for every feature home screen before a photo is selected.
-- Motion Card, Photo Signatures, and Glass Archive settings are available directly inside their respective tools.
-- A one-time Support Us purchase unlocks poetic solar-term color names, collector Photo Ticket designs, all stamp and postcard templates, Glass Archive customization, Photo Painting fonts, Photo Calendar panels, Photo Signatures customization, exclusive app icons, and a supporter badge.
+- Motion Card, Bubble Stamp, Instant Journal, Photo Signatures, and Glass Archive settings are available directly inside their respective tools.
+- A one-time Support Us purchase unlocks poetic solar-term color names, collector Photo Ticket designs, all stamp and postcard templates, Glass Archive customization, fonts for Motion Card, Bubble Stamp, Instant Journal, and Photo Painting, Photo Calendar panels, Photo Signatures customization, exclusive app icons, and a supporter badge.
 - Eligible early users of version 1.0.0 receive the same entitlement at no charge.
 - When the entitlement is already active, the Support page explicitly says that no purchase is required and offers “Already Unlocked · Continue.” An account without an entitlement sees the localized price, and tapping the button starts the StoreKit purchase flow.
 
@@ -129,7 +129,8 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 - Use a solid-color or sampled gradient header.
 - Change the displayed time with the system date picker or hide it.
 - Motion Card Settings and Partial color selection remain available in Classic, Airy, and Immersive templates; drag and resize the sampling region or restore full-image sampling.
-- All three templates support direct text editing, dragging, pinching, font changes, and type-size adjustments.
+- All three templates support direct text editing, dragging, pinching, and type-size adjustments.
+- Choose typography in Motion Card Settings. The system font is free, while supporters can use every built-in font.
 
 ### Glass Palette and Light Analysis
 
@@ -154,6 +155,7 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 - Use Auto Collage, Magazine Hero, or Vertical Filmstrip layouts.
 - Select, replace, delete, reorder, reposition, and scale each photo independently.
 - Generate copy and Emoji from on-device image analysis, regenerate alternatives, or edit them manually.
+- Choose a copy font in Instant Journal Settings. The system font is free, while supporters can use every built-in font.
 
 ### Photo Signatures
 
@@ -162,6 +164,7 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 - Map internal camera product codes to readable names across major phone, camera, drone, and action-camera brands.
 - Import local PNG camera marks for supported brands. Multicolor icons keep their colors; monochrome icons adapt to the artwork.
 - Adjust image composition, typography, bubble scale, device information, and decorations.
+- Choose a text font in Bubble Stamp Settings. The system font is free, while supporters can use every built-in font.
 - Custom Signature adds a text signature, date and time, or a PNG signature to the full photo, with free positioning and scaling.
 - The system font is free; supporters can unlock every signature font and custom PNG signatures.
 
@@ -260,8 +263,9 @@ Literary names are selected from 76 references by nearest distance in OKLab.
 - Buttons support press scaling, spring response, and haptics.
 - Reduce Motion skips nonessential animation.
 - The system Photos picker only provides items the user actively selects.
+- On iOS 27 and later, importing begins after the system picker closes, with explicit recovery messages when reading fails or times out.
 - EXIF, TIFF, and GPS fields are read from the original data when available.
-- Paired Live Photo video can be imported, previewed, composited frame by frame, and written with a matching asset identifier.
+- Paired Live Photo video can be imported, previewed, composited frame by frame, and written with a matching asset identifier. If audio encoding is incompatible, export automatically retries as a silent Live Photo and reports the saved result.
 - After import, Live Photo motion frames are decoded and cached in the background before the user presses the Live control, so the first preview uses prepared playback content.
 - Motion frames and key photos are normalized to standard dynamic range to avoid HDR brightness mismatches.
 - Missing camera information stays empty; the app never invents a fixed model, aperture, or ISO value.

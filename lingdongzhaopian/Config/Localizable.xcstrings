@@ -1,6 +1,176 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "Live Photo 音频格式不可用。" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Live Photo audio format is unavailable."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原況照片音訊格式無法使用。"
+          }
+        }
+      }
+    },
+    "当前设备不支持所需的音频编码格式。" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device does not support the required audio encoding format."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前裝置不支援所需的音訊編碼格式。"
+          }
+        }
+      }
+    },
+    "当前设备不支持读取或写入这段音频。" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device cannot read or write this audio track."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前裝置無法讀取或寫入這段音訊。"
+          }
+        }
+      }
+    },
+    "Live Photo 音频读取器无法启动。" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Live Photo audio reader could not start."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原況照片音訊讀取器無法啟動。"
+          }
+        }
+      }
+    },
+    "Live Photo 音频写入器状态异常。" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Live Photo audio writer is in an invalid state."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原況照片音訊寫入器狀態異常。"
+          }
+        }
+      }
+    },
+    "Live Photo 音频读取器状态异常。" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Live Photo audio reader is in an invalid state."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原況照片音訊讀取器狀態異常。"
+          }
+        }
+      }
+    },
+    "Live Photo 音频写入超时。" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Writing the Live Photo audio timed out."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "寫入原況照片音訊逾時。"
+          }
+        }
+      }
+    },
+    "Live Photo 音频读取超时。" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading the Live Photo audio timed out."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讀取原況照片音訊逾時。"
+          }
+        }
+      }
+    },
+    "无法读取音频时间信息。" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The audio timing information could not be read."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法讀取音訊時間資訊。"
+          }
+        }
+      }
+    },
+    "无法对齐音频时间信息。" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The audio timing information could not be aligned."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法對齊音訊時間資訊。"
+          }
+        }
+      }
+    },
     "" : {
 
     },
@@ -1135,6 +1305,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ · 近色成境"
+          }
+        }
+      }
+    },
+    "%@ %lld%%" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$lld%%"
           }
         }
       }
@@ -2464,6 +2644,23 @@
         }
       }
     },
+    "Live Photo 音频生成失败：%@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Photo audio generation failed: %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Photo 音訊產生失敗：%@"
+          }
+        }
+      }
+    },
     "Live Photo 音频读取失败。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3223,6 +3420,23 @@
         }
       }
     },
+    "一次解锁节气词库、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、三项创作字体、专属应用图标及支持者标志。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock solar-term color names, collectible ticket faces, every stamp and postcard template, Glass Archive customization, exclusive Lingdong Calendar panels, Photo Signatures customization, fonts for three creation tools, exclusive app icons, and the supporter badge with one purchase."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一次解鎖節氣詞庫、典藏票面、全部郵票與明信片範本、琉璃檔案自訂、靈動月曆專屬底板、光影簽章自訂、三項創作字體、專屬應用程式圖示及支持者標誌。"
+          }
+        }
+      }
+    },
     "一次解锁节气词库、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、专属应用图标及支持者标志。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3458,6 +3672,22 @@
         }
       }
     },
+    "一键手帐设定" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instant Journal Settings"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一鍵手帳設定"
+          }
+        }
+      }
+    },
     "一键手帐选项" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3606,6 +3836,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "三百八十四種傳統色名與出處，取自中國古籍與歷代詩詞。"
+          }
+        }
+      }
+    },
+    "三项创作，自由选字" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Three Creations, Your Choice of Type"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "三項創作，自由選字"
+          }
+        }
+      }
+    },
+    "三项创作字体" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonts for Three Creations"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "三項創作字體"
           }
         }
       }
@@ -5026,6 +5289,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "為了讓圖示浮水印保持清晰美觀，請從「檔案」App 選擇 PNG 格式圖片。"
+          }
+        }
+      }
+    },
+    "为灵动卡片、气泡印章与一键手帐选用全部内置字体。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use every built-in font in Motion Card, Bubble Stamp, and Instant Journal."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "為靈動卡片、氣泡印章與一鍵手帳選用全部內建字體。"
           }
         }
       }
@@ -7107,6 +7386,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你已可使用節氣詩名、典藏票面、全部郵票與明信片範本、琉璃檔案自訂、靈動月曆專屬底板、專屬應用程式圖示及支持者標誌。"
+          }
+        }
+      }
+    },
+    "你已可以使用节气诗名、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、三项创作字体、专属应用图标及支持者标志。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can now use solar-term poetry names, collectible ticket faces, every stamp and postcard template, Glass Archive customization, exclusive Lingdong Calendar panels, Photo Signatures customization, fonts for three creation tools, exclusive app icons, and the supporter badge."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你已可以使用節氣詩名、典藏票面、全部郵票與明信片範本、琉璃檔案自訂、靈動月曆專屬底板、光影簽章自訂、三項創作字體、專屬應用程式圖示及支持者標誌。"
           }
         }
       }
@@ -22700,6 +22996,74 @@
         }
       }
     },
+    "支持我们 PRO 后，可为灵动卡片、气泡印章与一键手帐选用应用内置字体。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With Support Us PRO, you can use the app’s built-in fonts in Motion Card, Bubble Stamp, and Instant Journal."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們 PRO 後，可為靈動卡片、氣泡印章與一鍵手帳選用應用程式內建字體。"
+          }
+        }
+      }
+    },
+    "支持我们 PRO，即可使用全部一键手帐字体。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support Us PRO to use all Instant Journal fonts."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們 PRO，即可使用全部一鍵手帳字體。"
+          }
+        }
+      }
+    },
+    "支持我们 PRO，即可使用全部气泡印章字体。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support Us PRO to use all Bubble Stamp fonts."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們 PRO，即可使用全部氣泡印章字體。"
+          }
+        }
+      }
+    },
+    "支持我们 PRO，即可使用全部灵动卡片字体。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support Us PRO unlocks every Motion Card font."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支持我們 PRO，即可使用全部靈動卡片字體。"
+          }
+        }
+      }
+    },
     "支持我们 PRO，即可使用全部签章字体。" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32952,6 +33316,22 @@
         }
       }
     },
+    "灵动照片 3.0.3（Build 202614）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lingdong Photo 3.0.3 (Build 202614)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "靈動照片 3.0.3（Build 202614）"
+          }
+        }
+      }
+    },
     "灵动照片-(Int(Date.now.timeIntervalSince1970))" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -34233,6 +34613,23 @@
         }
       }
     },
+    "照片选择，更加可靠" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More Reliable Photo Selection"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片選擇，更加可靠"
+          }
+        }
+      }
+    },
     "熟悉的人就在身旁" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -34348,6 +34745,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "版本 3.0.2 (Build 202635)"
+          }
+        }
+      }
+    },
+    "版本 3.0.3 (Build 202614)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version 3.0.3 (Build 202614)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版本 3.0.3 (Build 202614)"
           }
         }
       }
@@ -40103,6 +40516,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自訂字體"
+          }
+        }
+      }
+    },
+    "自定义字体：在“一键手帐设定”中选择" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom fonts: Choose in “Instant Journal Settings”"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂字體：在「一鍵手帳設定」中選擇"
+          }
+        }
+      }
+    },
+    "自定义字体：在“气泡印章设定”中选择" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom fonts: Choose in “Bubble Stamp Settings”"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂字體：在「氣泡印章設定」中選擇"
+          }
+        }
+      }
+    },
+    "自定义字体：在“灵动卡片设定”中选择" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom fonts: choose one in Motion Card Settings"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂字體：在「靈動卡片設定」中選擇"
           }
         }
       }
@@ -47725,6 +48189,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "金桂"
+          }
+        }
+      }
+    },
+    "针对 iOS 27.0 及以后系统，修复了点击“+”选择照片后偶尔无响应的问题。" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On iOS 27.0 and later, fixed an issue where selecting a photo after tapping “+” could occasionally have no response."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "針對 iOS 27.0 及後續系統，修正了點一下「+」選擇照片後偶爾沒有回應的問題。"
           }
         }
       }

@@ -20,6 +20,9 @@ struct ArtworkCanvas: View {
     var showsCaptureTime = true
     var copy: ArtworkCopy = ArtworkCopy()
     var fontStyle: ArtworkFontStyle = .rounded
+    var motionCardFont: PostalFont = .original
+    var bubbleStampFont: PostalFont = .original
+    var journalFont: PostalFont = .original
     var templateStyle: ArtworkTemplateStyle = .classic
     var motionCardHeaderStyle: MotionCardHeaderStyle = .solid
     var motionCardHeaderPalette: [RGBColor]?
@@ -773,7 +776,7 @@ struct ArtworkCanvas: View {
                     )
                     VStack(spacing: 4) {
                         Text(LocalizedStringKey(copy.title))
-                            .font(fontStyle.font(size: max(10, size.width * 0.040) * textScale, weight: .semibold))
+                            .font(motionCardTextFont(size: max(10, size.width * 0.040) * textScale, weight: .semibold))
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
                         if showsCaptureTime && (metadata.captureDate != nil || showMissingCaptureTime) {
@@ -805,7 +808,7 @@ struct ArtworkCanvas: View {
 
                 VStack(spacing: 3) {
                     Text(LocalizedStringKey(copy.title))
-                        .font(fontStyle.font(size: max(8, size.width * 0.026) * textScale, weight: .semibold))
+                        .font(motionCardTextFont(size: max(8, size.width * 0.026) * textScale, weight: .semibold))
                         .lineLimit(2)
                         .multilineTextAlignment(.center)
                     if showsCaptureTime && (metadata.captureDate != nil || showMissingCaptureTime) {
@@ -829,6 +832,24 @@ struct ArtworkCanvas: View {
             )
         }
         )
+    }
+
+    private func motionCardTextFont(size: CGFloat, weight: Font.Weight) -> Font {
+        guard motionCardFont != .original else {
+            return .system(size: size, weight: weight, design: .rounded)
+        }
+        return Font(motionCardFont.uiFont(size: size)).weight(weight)
+    }
+
+    private func creationTextFont(
+        _ font: PostalFont,
+        size: CGFloat,
+        weight: Font.Weight = .regular
+    ) -> Font {
+        guard font != .original else {
+            return fontStyle.font(size: size, weight: weight)
+        }
+        return Font(font.uiFont(size: size)).weight(weight)
     }
 
     private func colorPalette(size: CGSize) -> some View {
@@ -1029,7 +1050,10 @@ struct ArtworkCanvas: View {
                 .position(x: size.width * 0.50, y: size.height * 0.50)
 
             Text(LocalizedStringKey(copy.journalCaption))
-                .font(fontStyle.font(size: max(6, size.width * 0.018) * textScale))
+                .font(creationTextFont(
+                    journalFont,
+                    size: max(6, size.width * 0.018) * textScale
+                ))
                 .italic()
                 .foregroundStyle(captionColor)
                 .position(x: size.width * 0.50, y: size.height * 0.765)
@@ -1069,10 +1093,17 @@ struct ArtworkCanvas: View {
 
                         VStack(alignment: .leading, spacing: 3) {
                             Text(LocalizedStringKey(copy.title))
-                                .font(fontStyle.font(size: max(9, size.width * 0.030) * textScale, weight: .bold))
+                                .font(creationTextFont(
+                                    bubbleStampFont,
+                                    size: max(9, size.width * 0.030) * textScale,
+                                    weight: .bold
+                                ))
                                 .lineLimit(2)
                             Text(LocalizedStringKey(copy.subtitle))
-                                .font(fontStyle.font(size: max(6, size.width * 0.017) * textScale))
+                                .font(creationTextFont(
+                                    bubbleStampFont,
+                                    size: max(6, size.width * 0.017) * textScale
+                                ))
                                 .fontWeight(.semibold)
                                 .opacity(0.78)
                             if showDeviceInfo, let deviceLine = metadata.deviceLine {
@@ -1149,10 +1180,17 @@ struct ArtworkCanvas: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(LocalizedStringKey(copy.title))
-                            .font(fontStyle.font(size: max(8, size.width * 0.027) * textScale, weight: .bold))
+                            .font(creationTextFont(
+                                bubbleStampFont,
+                                size: max(8, size.width * 0.027) * textScale,
+                                weight: .bold
+                            ))
                             .lineLimit(2)
                         Text(LocalizedStringKey(copy.subtitle))
-                            .font(fontStyle.font(size: max(5, size.width * 0.016) * textScale))
+                            .font(creationTextFont(
+                                bubbleStampFont,
+                                size: max(5, size.width * 0.016) * textScale
+                            ))
                             .fontWeight(.semibold)
                             .opacity(0.70)
 

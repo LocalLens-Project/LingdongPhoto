@@ -14,6 +14,7 @@ enum ArtworkExportError: LocalizedError {
     case permissionDenied
     case encodingFailed
     case missingVideo
+    case audioWriterFailed(String)
     case videoWriterFailed(String)
     case photoLibraryFailed
     case transparencyValidationFailed
@@ -26,6 +27,8 @@ enum ArtworkExportError: LocalizedError {
             "作品编码失败，请稍后重试。".appLocalized
         case .missingVideo:
             "所选 Live Photo 的动态片段不可用，请确认原片已从 iCloud 下载。".appLocalized
+        case .audioWriterFailed(let reason):
+            String(format: "Live Photo 音频生成失败：%@".appLocalized, reason)
         case .videoWriterFailed(let reason):
             String(format: "Live Photo 生成失败：%@".appLocalized, reason)
         case .photoLibraryFailed:
@@ -40,36 +43,6 @@ enum ArtworkPhotoLibrarySaveResult {
     case livePhoto
     case livePhotoWithoutAudio
     case stillImageFallback
-}
-
-private nonisolated final class LiveAudioWriterContext: @unchecked Sendable {
-    let reader: AVAssetReader
-    let output: AVAssetReaderTrackOutput
-    let input: AVAssetWriterInput
-    let writer: AVAssetWriter
-    private var completed = false
-
-    init(
-        reader: AVAssetReader,
-        output: AVAssetReaderTrackOutput,
-        input: AVAssetWriterInput,
-        writer: AVAssetWriter
-    ) {
-        self.reader = reader
-        self.output = output
-        self.input = input
-        self.writer = writer
-    }
-
-    func finish(
-        _ result: Result<Void, Error>,
-        continuation: CheckedContinuation<Void, Error>
-    ) {
-        guard !completed else { return }
-        completed = true
-        input.markAsFinished()
-        continuation.resume(with: result)
-    }
 }
 
 enum ArtworkExporter {
@@ -143,6 +116,7 @@ enum ArtworkExporter {
         guard let primarySource = sourceVideoURLs.sorted(by: { $0.key < $1.key }).first else {
             throw ArtworkExportError.missingVideo
         }
+        try await preparePhotoLibraryAccess()
         let identifier = UUID().uuidString
         let stillData = try await Task.detached(priority: .userInitiated) {
             try imageData(
@@ -158,6 +132,9 @@ enum ArtworkExporter {
             .appendingPathComponent("lingdong-export-\(identifier)")
             .appendingPathExtension("mov")
         let videoOutputSize = try livePhotoVideoOutputSize(for: renderedStill)
+        guard let settledImage = renderedStill.cgImage else {
+            throw ArtworkExportError.encodingFailed
+        }
 
         defer { try? FileManager.default.removeItem(at: pairedURL) }
         do {
@@ -167,6 +144,7 @@ enum ArtworkExporter {
                     sourceVideoURLs: sourceVideoURLs,
                     destinationURL: pairedURL,
                     outputSize: videoOutputSize,
+                    settledImage: settledImage,
                     assetIdentifier: identifier,
                     includesAudio: true,
                     renderFrame: { frames in
@@ -184,7 +162,7 @@ enum ArtworkExporter {
             )
             return .livePhoto
         } catch {
-            guard isInvalidPhotoResourceError(error) else { throw error }
+            guard shouldRetryLivePhotoWithoutAudio(after: error) else { throw error }
         }
 
         try? FileManager.default.removeItem(at: pairedURL)
@@ -205,6 +183,7 @@ enum ArtworkExporter {
                     sourceVideoURLs: sourceVideoURLs,
                     destinationURL: pairedURL,
                     outputSize: videoOutputSize,
+                    settledImage: settledImage,
                     assetIdentifier: identifier,
                     includesAudio: false,
                     renderFrame: { frames in
@@ -439,6 +418,7 @@ enum ArtworkExporter {
         sourceVideoURLs: [Int: URL],
         destinationURL: URL,
         outputSize: CGSize,
+        settledImage: CGImage,
         assetIdentifier: String,
         includesAudio: Bool,
         renderFrame: @escaping @MainActor ([Int: UIImage]) -> UIImage?,
@@ -448,14 +428,20 @@ enum ArtworkExporter {
         guard let sourceTrack = try await asset.loadTracks(withMediaType: .video).first else {
             throw ArtworkExportError.missingVideo
         }
-        let duration = try await asset.load(.duration)
-        guard duration.isValid, duration.seconds > 0 else { throw ArtworkExportError.missingVideo }
+        let videoRange = try await sourceTrack.load(.timeRange)
+        let duration = videoRange.duration
+        guard videoRange.start.isNumeric, duration.isNumeric, duration.seconds > 0 else {
+            throw ArtworkExportError.missingVideo
+        }
         let nominalFrameRate = try await sourceTrack.load(.nominalFrameRate)
-        let framesPerSecond = min(max(Double(nominalFrameRate), 15), 24)
+        let framesPerSecond = nominalFrameRate.isFinite && nominalFrameRate > 0
+            ? min(max(Double(nominalFrameRate), 15), 24)
+            : 24
         let frameCount = max(2, Int(ceil(duration.seconds * framesPerSecond)))
-        let sourceAudioTrack = try await asset.loadTracks(withMediaType: .audio).first
-
         let writer = try AVAssetWriter(outputURL: destinationURL, fileType: .mov)
+        defer {
+            if writer.status == .writing { writer.cancelWriting() }
+        }
         let width = max(2, Int(outputSize.width.rounded()) / 2 * 2)
         let height = max(2, Int(outputSize.height.rounded()) / 2 * 2)
         let videoOutputSettings: [String: Any] = [
@@ -522,37 +508,56 @@ enum ArtworkExporter {
         var audioReader: AVAssetReader?
         var audioOutput: AVAssetReaderTrackOutput?
         var audioInput: AVAssetWriterInput?
-        if includesAudio,
-           let sourceAudioTrack,
-           let formatHint = try await sourceAudioTrack.load(.formatDescriptions).first,
-           let audioDescription = CMAudioFormatDescriptionGetStreamBasicDescription(formatHint)?.pointee {
-            let reader = try AVAssetReader(asset: asset)
-            let output = AVAssetReaderTrackOutput(
-                track: sourceAudioTrack,
-                outputSettings: [
-                    AVFormatIDKey: kAudioFormatLinearPCM,
-                    AVLinearPCMBitDepthKey: 16,
-                    AVLinearPCMIsFloatKey: false,
-                    AVLinearPCMIsBigEndianKey: false,
-                    AVLinearPCMIsNonInterleaved: false
-                ]
-            )
-            let input = AVAssetWriterInput(
-                mediaType: .audio,
-                outputSettings: [
-                    AVFormatIDKey: kAudioFormatMPEG4AAC,
-                    AVSampleRateKey: audioDescription.mSampleRate,
-                    AVNumberOfChannelsKey: max(1, Int(audioDescription.mChannelsPerFrame)),
-                    AVEncoderBitRateKey: 128_000
-                ]
-            )
-            input.expectsMediaDataInRealTime = false
-            if reader.canAdd(output), writer.canAdd(input) {
-                reader.add(output)
-                writer.add(input)
-                audioReader = reader
-                audioOutput = output
-                audioInput = input
+        if includesAudio {
+            do {
+                if let sourceAudioTrack = try await asset.loadTracks(withMediaType: .audio).first {
+                    guard let formatHint = try await sourceAudioTrack.load(.formatDescriptions).first,
+                          let audioDescription = CMAudioFormatDescriptionGetStreamBasicDescription(formatHint)?.pointee,
+                          audioDescription.mSampleRate.isFinite,
+                          audioDescription.mSampleRate > 0,
+                          (1...2).contains(audioDescription.mChannelsPerFrame) else {
+                        throw ArtworkExportError.audioWriterFailed("Live Photo 音频格式不可用。".appLocalized)
+                    }
+                    let reader = try AVAssetReader(asset: asset)
+                    reader.timeRange = videoRange
+                    let sampleRate = audioDescription.mSampleRate > 44_100 ? 48_000.0 : 44_100.0
+                    let channelCount = Int(audioDescription.mChannelsPerFrame)
+                    let output = AVAssetReaderTrackOutput(
+                        track: sourceAudioTrack,
+                        outputSettings: [
+                            AVFormatIDKey: kAudioFormatLinearPCM,
+                            AVSampleRateKey: sampleRate,
+                            AVNumberOfChannelsKey: channelCount,
+                            AVLinearPCMBitDepthKey: 16,
+                            AVLinearPCMIsFloatKey: false,
+                            AVLinearPCMIsBigEndianKey: false,
+                            AVLinearPCMIsNonInterleaved: false
+                        ]
+                    )
+                    let audioSettings: [String: Any] = [
+                        AVFormatIDKey: kAudioFormatMPEG4AAC,
+                        AVSampleRateKey: sampleRate,
+                        AVNumberOfChannelsKey: channelCount,
+                        AVEncoderBitRateKey: 128_000
+                    ]
+                    guard writer.canApply(outputSettings: audioSettings, forMediaType: .audio) else {
+                        throw ArtworkExportError.audioWriterFailed("当前设备不支持所需的音频编码格式。".appLocalized)
+                    }
+                    let input = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+                    input.expectsMediaDataInRealTime = false
+                    guard reader.canAdd(output), writer.canAdd(input) else {
+                        throw ArtworkExportError.audioWriterFailed("当前设备不支持读取或写入这段音频。".appLocalized)
+                    }
+                    reader.add(output)
+                    writer.add(input)
+                    audioReader = reader
+                    audioOutput = output
+                    audioInput = input
+                }
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                throw ArtworkExportError.audioWriterFailed(error.localizedDescription)
             }
         }
 
@@ -572,36 +577,29 @@ enum ArtworkExporter {
             throw ArtworkExportError.videoWriterFailed(writer.error?.localizedDescription ?? "视频写入器无法启动。")
         }
         writer.startSession(atSourceTime: .zero)
-        let audioWritingTask: Task<Void, Error>?
-        if let audioReader, let audioOutput, let audioInput {
-            audioWritingTask = Task {
-                try await writeAudioSamples(
-                    reader: audioReader,
-                    output: audioOutput,
-                    input: audioInput,
-                    writer: writer
-                )
-            }
-        } else {
-            audioWritingTask = nil
-        }
 
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
         generator.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 60)
         generator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 60)
-        var frameGenerators: [Int: (generator: AVAssetImageGenerator, duration: CMTime)] = [:]
+        var frameGenerators: [Int: (generator: AVAssetImageGenerator, range: CMTimeRange)] = [:]
+        defer { for source in frameGenerators.values { source.generator.cancelAllCGImageGeneration() } }
         for (index, url) in sourceVideoURLs {
             if url == sourceURL {
-                frameGenerators[index] = (generator, duration)
+                frameGenerators[index] = (generator, videoRange)
             } else {
                 let additionalAsset = AVURLAsset(url: url)
-                let additionalDuration = try await additionalAsset.load(.duration)
+                guard let additionalTrack = try await additionalAsset.loadTracks(withMediaType: .video).first else {
+                    throw ArtworkExportError.missingVideo
+                }
+                let additionalRange = try await additionalTrack.load(.timeRange)
+                guard additionalRange.start.isNumeric, additionalRange.duration.isNumeric,
+                      additionalRange.duration.seconds > 0 else { throw ArtworkExportError.missingVideo }
                 let additionalGenerator = AVAssetImageGenerator(asset: additionalAsset)
                 additionalGenerator.appliesPreferredTrackTransform = true
                 additionalGenerator.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 60)
                 additionalGenerator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 60)
-                frameGenerators[index] = (additionalGenerator, additionalDuration)
+                frameGenerators[index] = (additionalGenerator, additionalRange)
             }
         }
 
@@ -614,86 +612,150 @@ enum ArtworkExporter {
             writer.cancelWriting()
             throw ArtworkExportError.videoWriterFailed(writer.error?.localizedDescription ?? "无法写入动态照片时间标记。")
         }
-
-        // Every source Live Photo can have a slightly different duration. The
-        // old implementation used the first photo's absolute clock for all of
-        // them, so shorter clips froze while photo one kept moving and appeared
-        // to zoom on its own. Keep one normalized visual timeline instead.
-        guard let settledImage = await renderFrame([:]),
-              let settledCGImage = settledImage.cgImage else {
-            writer.cancelWriting()
+        metadataInput.markAsFinished()
+        guard let settledCGImage = normalizedVideoImage(settledImage, width: width, height: height) else {
             throw ArtworkExportError.encodingFailed
         }
 
-        for index in 0..<frameCount {
-            try Task.checkCancellation()
-            let presentationTime = CMTime(seconds: Double(index) / framesPerSecond, preferredTimescale: 600)
-            let normalizedProgress = min(
-                1,
-                max(0, presentationTime.seconds / duration.seconds)
-            )
-            var dynamicFrames: [Int: UIImage] = [:]
-            for (photoIndex, source) in frameGenerators {
-                let lastReadableTime = CMTimeSubtract(
-                    source.duration,
-                    CMTime(value: 1, timescale: 600)
+        let audioWritingTask: Task<Void, Error>?
+        if let audioReader, let audioOutput, let audioInput {
+            audioWritingTask = Task {
+                try await writeAudioSamples(
+                    reader: audioReader,
+                    output: audioOutput,
+                    input: audioInput,
+                    writer: writer,
+                    sourceStart: videoRange.start
                 )
-                let requestedTime = CMTimeMinimum(
-                    CMTime(
-                        seconds: source.duration.seconds * normalizedProgress,
-                        preferredTimescale: 600
-                    ),
-                    lastReadableTime
-                )
-                let (sourceImage, _) = try await source.generator.image(at: requestedTime)
-                dynamicFrames[photoIndex] = UIImage(cgImage: sourceImage)
             }
-            guard let composedImage = await renderFrame(dynamicFrames),
-                  let dynamicCGImage = composedImage.cgImage else {
-                writer.cancelWriting()
-                throw ArtworkExportError.encodingFailed
-            }
-            // Ease all cells back onto the exported key photo together during
-            // the final beat. This creates a deliberate resting frame instead
-            // of letting any one source continue zooming after the others stop.
-            let settleProgress = min(1, max(0, (normalizedProgress - 0.86) / 0.14))
-            guard let composedCGImage = crossfadedImage(
-                from: dynamicCGImage,
-                to: settledCGImage,
-                amount: settleProgress
-            ) else {
-                writer.cancelWriting()
-                throw ArtworkExportError.encodingFailed
-            }
+        } else {
+            audioWritingTask = nil
+        }
 
-            while !videoInput.isReadyForMoreMediaData {
-                if writer.status == .failed {
-                    throw ArtworkExportError.videoWriterFailed(writer.error?.localizedDescription ?? "视频编码中断。")
+        do {
+            for index in 0..<frameCount {
+                try Task.checkCancellation()
+                let presentationTime = CMTime(seconds: Double(index) / framesPerSecond, preferredTimescale: 600)
+                let normalizedProgress = min(
+                    1,
+                    max(0, presentationTime.seconds / duration.seconds)
+                )
+                var dynamicFrames: [Int: UIImage] = [:]
+                for (photoIndex, source) in frameGenerators {
+                    let lastReadableTime = CMTimeSubtract(
+                        CMTimeRangeGetEnd(source.range),
+                        CMTime(seconds: min(1 / framesPerSecond, source.range.duration.seconds / 2), preferredTimescale: 600)
+                    )
+                    let requestedTime = CMTimeMinimum(
+                        CMTimeAdd(
+                            source.range.start,
+                            CMTime(seconds: source.range.duration.seconds * normalizedProgress, preferredTimescale: 600)
+                        ),
+                        lastReadableTime
+                    )
+                    let sourceImage = try await readableFrame(from: source.generator, at: requestedTime)
+                    dynamicFrames[photoIndex] = UIImage(cgImage: sourceImage)
                 }
-                try await Task.sleep(for: .milliseconds(4))
-            }
-            guard let pool = pixelAdaptor.pixelBufferPool,
-                  let pixelBuffer = makePixelBuffer(from: composedCGImage, width: width, height: height, pool: pool),
-                  pixelAdaptor.append(pixelBuffer, withPresentationTime: presentationTime) else {
-                writer.cancelWriting()
-                throw ArtworkExportError.videoWriterFailed(writer.error?.localizedDescription ?? "视频帧写入失败。")
-            }
+                guard let composedImage = await renderFrame(dynamicFrames),
+                      let dynamicCGImage = composedImage.cgImage else {
+                    throw ArtworkExportError.encodingFailed
+                }
+                let settleProgress = min(1, max(0, (normalizedProgress - 0.86) / 0.14))
+                guard let composedCGImage = crossfadedImage(
+                    from: dynamicCGImage,
+                    to: settledCGImage,
+                    amount: settleProgress
+                ) else {
+                    throw ArtworkExportError.encodingFailed
+                }
 
-            await progress(Double(index + 1) / Double(frameCount))
+                let readinessDeadline = ContinuousClock.now.advanced(by: .seconds(30))
+                while !videoInput.isReadyForMoreMediaData {
+                    try Task.checkCancellation()
+                    if writer.status != .writing || ContinuousClock.now >= readinessDeadline {
+                        throw ArtworkExportError.videoWriterFailed(
+                            writer.error?.localizedDescription ?? "视频编码中断。"
+                        )
+                    }
+                    try await Task.sleep(for: .milliseconds(4))
+                }
+                guard let pool = pixelAdaptor.pixelBufferPool,
+                      let pixelBuffer = makePixelBuffer(
+                          from: composedCGImage,
+                          width: width,
+                          height: height,
+                          pool: pool
+                      ),
+                      pixelAdaptor.append(pixelBuffer, withPresentationTime: presentationTime) else {
+                    throw ArtworkExportError.videoWriterFailed(
+                        writer.error?.localizedDescription ?? "视频帧写入失败。"
+                    )
+                }
+
+                await progress(Double(index + 1) / Double(frameCount))
+            }
+        } catch {
+            var audioFailure: Error?
+            if writer.status == .failed, let audioWritingTask {
+                do { try await audioWritingTask.value } catch { audioFailure = error }
+            }
+            audioWritingTask?.cancel()
+            if let audioWritingTask {
+                _ = try? await audioWritingTask.value
+            }
+            writer.cancelWriting()
+            if let audioFailure, case .audioWriterFailed = audioFailure as? ArtworkExportError {
+                throw audioFailure
+            }
+            throw error
         }
 
         videoInput.markAsFinished()
-        metadataInput.markAsFinished()
-        do {
-            try await audioWritingTask?.value
-        } catch {
-            writer.cancelWriting()
-            throw error
+        if let audioWritingTask {
+            do {
+                try await audioWritingTask.value
+            } catch {
+                writer.cancelWriting()
+                throw error
+            }
         }
+        writer.endSession(atSourceTime: duration)
         await writer.finishWriting()
         guard writer.status == .completed else {
             throw ArtworkExportError.videoWriterFailed(writer.error?.localizedDescription ?? "动态视频未完成。")
         }
+    }
+
+    nonisolated private static func readableFrame(
+        from generator: AVAssetImageGenerator,
+        at time: CMTime
+    ) async throws -> CGImage {
+        do {
+            return try await generator.image(at: time).image
+        } catch {
+            try Task.checkCancellation()
+            let before = generator.requestedTimeToleranceBefore
+            let after = generator.requestedTimeToleranceAfter
+            generator.requestedTimeToleranceBefore = .positiveInfinity
+            generator.requestedTimeToleranceAfter = .positiveInfinity
+            defer {
+                generator.requestedTimeToleranceBefore = before
+                generator.requestedTimeToleranceAfter = after
+            }
+            return try await generator.image(at: time).image
+        }
+    }
+
+    nonisolated private static func normalizedVideoImage(_ image: CGImage, width: Int, height: Int) -> CGImage? {
+        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                      bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        let rect = CGRect(x: 0, y: 0, width: width, height: height)
+        context.setFillColor(CGColor(gray: 1, alpha: 1))
+        context.fill(rect)
+        context.interpolationQuality = .high
+        context.draw(image, in: rect)
+        return context.makeImage()
     }
 
     nonisolated private static func crossfadedImage(
@@ -726,48 +788,100 @@ enum ArtworkExporter {
         reader: AVAssetReader,
         output: AVAssetReaderTrackOutput,
         input: AVAssetWriterInput,
-        writer: AVAssetWriter
+        writer: AVAssetWriter,
+        sourceStart: CMTime
     ) async throws {
-        guard reader.startReading() else {
-            input.markAsFinished()
-            return
-        }
+        do {
+            guard reader.startReading() else {
+                throw ArtworkExportError.audioWriterFailed(
+                    reader.error?.localizedDescription ?? "Live Photo 音频读取器无法启动。".appLocalized
+                )
+            }
+            var readinessDeadline = ContinuousClock.now.advanced(by: .seconds(30))
+            while true {
+                try Task.checkCancellation()
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let context = LiveAudioWriterContext(
-                reader: reader,
-                output: output,
-                input: input,
-                writer: writer
-            )
-            let queue = DispatchQueue(label: "LivePhotoAudioWriter")
-            context.input.requestMediaDataWhenReady(on: queue) {
-                while context.input.isReadyForMoreMediaData {
-                    if context.writer.status == .failed {
-                        context.finish(.failure(ArtworkExportError.videoWriterFailed(
-                            context.writer.error?.localizedDescription ?? "Live Photo 音频写入中断。"
-                        )), continuation: continuation)
-                        return
+                switch writer.status {
+                case .writing:
+                    break
+                case .failed:
+                    throw ArtworkExportError.audioWriterFailed(
+                        writer.error?.localizedDescription ?? "Live Photo 音频写入中断。".appLocalized
+                    )
+                default:
+                    throw ArtworkExportError.audioWriterFailed("Live Photo 音频写入器状态异常。".appLocalized)
+                }
+
+                guard input.isReadyForMoreMediaData else {
+                    guard ContinuousClock.now < readinessDeadline else {
+                        throw ArtworkExportError.audioWriterFailed("Live Photo 音频写入超时。".appLocalized)
                     }
-                    guard let sampleBuffer = context.output.copyNextSampleBuffer() else {
-                        if context.reader.status == .failed {
-                            context.finish(.failure(ArtworkExportError.videoWriterFailed(
-                                context.reader.error?.localizedDescription ?? "Live Photo 音频读取失败。"
-                            )), continuation: continuation)
-                        } else {
-                            context.finish(.success(()), continuation: continuation)
-                        }
-                        return
+                    try await Task.sleep(for: .milliseconds(3))
+                    continue
+                }
+
+                if let sampleBuffer = output.copyNextSampleBuffer() {
+                    let normalizedSample = try normalizedAudioSample(sampleBuffer, sourceStart: sourceStart)
+                    guard input.append(normalizedSample) else {
+                        throw ArtworkExportError.audioWriterFailed(
+                            writer.error?.localizedDescription ?? "Live Photo 音频写入失败。".appLocalized
+                        )
                     }
-                    guard context.input.append(sampleBuffer) else {
-                        context.finish(.failure(ArtworkExportError.videoWriterFailed(
-                            context.writer.error?.localizedDescription ?? "Live Photo 音频写入失败。"
-                        )), continuation: continuation)
-                        return
+                    readinessDeadline = ContinuousClock.now.advanced(by: .seconds(30))
+                    continue
+                }
+
+                switch reader.status {
+                case .reading:
+                    guard ContinuousClock.now < readinessDeadline else {
+                        throw ArtworkExportError.audioWriterFailed("Live Photo 音频读取超时。".appLocalized)
                     }
+                    try await Task.sleep(for: .milliseconds(3))
+                case .completed:
+                    input.markAsFinished()
+                    return
+                case .failed:
+                    throw ArtworkExportError.audioWriterFailed(
+                    reader.error?.localizedDescription ?? "Live Photo 音频读取失败。".appLocalized
+                    )
+                case .cancelled:
+                    throw CancellationError()
+                default:
+                    throw ArtworkExportError.audioWriterFailed("Live Photo 音频读取器状态异常。".appLocalized)
                 }
             }
+        } catch {
+            reader.cancelReading()
+            if writer.status == .writing {
+                input.markAsFinished()
+            }
+            throw error
         }
+    }
+
+    nonisolated private static func normalizedAudioSample(_ sample: CMSampleBuffer, sourceStart: CMTime) throws -> CMSampleBuffer {
+        guard CMTimeCompare(sourceStart, .zero) != 0 else { return sample }
+        var count = 0
+        guard CMSampleBufferGetSampleTimingInfoArray(sample, entryCount: 0, arrayToFill: nil, entriesNeededOut: &count) == noErr else {
+            throw ArtworkExportError.audioWriterFailed("无法读取音频时间信息。".appLocalized)
+        }
+        var timing = Array(repeating: CMSampleTimingInfo(), count: count)
+        guard CMSampleBufferGetSampleTimingInfoArray(sample, entryCount: count, arrayToFill: &timing, entriesNeededOut: &count) == noErr else {
+            throw ArtworkExportError.audioWriterFailed("无法读取音频时间信息。".appLocalized)
+        }
+        for index in timing.indices {
+            timing[index].presentationTimeStamp = CMTimeSubtract(timing[index].presentationTimeStamp, sourceStart)
+            if timing[index].decodeTimeStamp.isNumeric {
+                timing[index].decodeTimeStamp = CMTimeSubtract(timing[index].decodeTimeStamp, sourceStart)
+            }
+        }
+        var result: CMSampleBuffer?
+        guard CMSampleBufferCreateCopyWithNewTiming(allocator: kCFAllocatorDefault, sampleBuffer: sample,
+                                                  sampleTimingEntryCount: count, sampleTimingArray: &timing,
+                                                  sampleBufferOut: &result) == noErr, let result else {
+            throw ArtworkExportError.audioWriterFailed("无法对齐音频时间信息。".appLocalized)
+        }
+        return result
     }
 
     nonisolated private static func makePixelBuffer(
@@ -792,6 +906,8 @@ enum ArtworkExporter {
                 bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
               ) else { return nil }
         context.interpolationQuality = .high
+        context.setFillColor(CGColor(gray: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
         context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
         return buffer
     }
@@ -834,6 +950,15 @@ enum ArtworkExporter {
                 }
             }
         }
+    }
+
+    private static func shouldRetryLivePhotoWithoutAudio(after error: Error) -> Bool {
+        if isInvalidPhotoResourceError(error) { return true }
+        if let exportError = error as? ArtworkExportError,
+           case .audioWriterFailed = exportError {
+            return true
+        }
+        return false
     }
 
     private static func isInvalidPhotoResourceError(_ error: Error) -> Bool {

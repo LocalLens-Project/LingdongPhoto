@@ -32,6 +32,7 @@ struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
     let colorScheme: ColorScheme
     var assetRepresentationMode: PHPickerConfiguration.AssetRepresentationMode = .current
     var usesOrderedSelection = false
+    var deliversSelectionBeforeDismissal = false
     let onSelection: ([PhotoPickerSelection]) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -74,6 +75,11 @@ struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
                 PhotoPickerSelection(itemProvider: $0.itemProvider)
             }
             let onSelection = parent.onSelection
+            if parent.deliversSelectionBeforeDismissal {
+                onSelection(selections)
+                parent.isPresented = false
+                return
+            }
             parent.isPresented = false
             DispatchQueue.main.async {
                 onSelection(selections)

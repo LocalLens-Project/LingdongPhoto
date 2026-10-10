@@ -215,7 +215,6 @@ struct OnboardingExperienceView: View {
             subtitle: "照片记下所见，笔墨留下所感。",
             imageName: "imagepainting",
             caption: "用多层水彩洗染画心把原照片自然融入纸面；可选横扫、上扬、下掠、竖落、弧扫与枯笔，还可拖动、缩放调整取景并自定义画笺标题。",
-            showsNewBadge: true,
             appendedProCaptionPrefix: "自定义画笺字体为“支持我们 ",
             appendedProCaptionSuffix: "”用户专属，可选用邮票与明信片的内置字体。",
             imageHeightFactor: 0.78
@@ -225,7 +224,6 @@ struct OnboardingExperienceView: View {
             subtitle: "支持我们后，即可把琉璃六色与专属文字写进档案。",
             imageName: "archivecustom",
             caption: "”用户专属\n· 档案栏开头或末尾固定一至六色\n· 专属文字搭配邮票与明信片字体",
-            showsNewBadge: true,
             showsProBadge: true,
             centersHeader: true,
             captionShowsProBadge: true,
@@ -236,15 +234,12 @@ struct OnboardingExperienceView: View {
             subtitle: "一个月，一张照片，把日子留在画面旁边。",
             imageName: "monthlycalendarphoto",
             caption: "照片与单月月历并排呈现，圈出拍摄当天。",
-            showsNewBadge: true,
             appendedProCaptionPrefix: "支持我们 ",
             appendedProCaptionSuffix: " 后，可让底板自动取自照片颜色，或自由选择颜色，文字深浅会自动适配。",
             imageHeightFactor: 0.66,
             artworkCaptionSpacing: 4
         ),
     ]
-
-    private static let versionUpdateFeatureCount = 3
 
     init(
         supportsIslandLauncher: Bool,
@@ -262,12 +257,10 @@ struct OnboardingExperienceView: View {
         let requiresIOS26Notice = !ProcessInfo.processInfo.isOperatingSystemAtLeast(
             OperatingSystemVersion(majorVersion: 26, minorVersion: 0, patchVersion: 0)
         )
-        let featureOffset = (usesWideLayout
-            ? 1
-            : (supportsIslandLauncher ? 2 : 1))
+        let totalPages = Self.pages.count + 5
+            + (supportsIslandLauncher && !usesWideLayout ? 1 : 0)
             + (requiresIOS26Notice ? 1 : 0)
-        let versionUpdateStartPage = Self.pages.count - Self.versionUpdateFeatureCount + featureOffset
-        _pageIndex = State(initialValue: startsAtUpdatePage ? versionUpdateStartPage : 0)
+        _pageIndex = State(initialValue: startsAtUpdatePage ? totalPages - 1 : 0)
     }
 
     private var pages: [OnboardingPage] { Self.pages }
@@ -278,21 +271,13 @@ struct OnboardingExperienceView: View {
     }
     private var isLastPage: Bool { pageIndex == totalPages - 1 }
     private var versionUpdateStartPage: Int {
-        let featureOffset = (usesWideLayout ? 1 : (supportsIslandLauncher ? 2 : 1))
-            + (requiresIOS26Notice ? 1 : 0)
-        return Self.pages.count - Self.versionUpdateFeatureCount + featureOffset
+        totalPages - 1
     }
     private var displayedPageNumber: Int {
-        guard startsAtUpdatePage else {
-            return pageIndex >= totalPages - 1 ? pageIndex : pageIndex + 1
-        }
-        if isLastPage { return Self.versionUpdateFeatureCount + 3 }
-        if pageIndex == totalPages - 2 { return Self.versionUpdateFeatureCount + 2 }
-        if pageIndex == totalPages - 3 { return Self.versionUpdateFeatureCount + 1 }
-        return pageIndex - versionUpdateStartPage + 1
+        startsAtUpdatePage ? 1 : (pageIndex >= totalPages - 1 ? pageIndex : pageIndex + 1)
     }
     private var displayedTotalPages: Int {
-        startsAtUpdatePage ? Self.versionUpdateFeatureCount + 3 : totalPages - 1
+        startsAtUpdatePage ? 1 : totalPages - 1
     }
 
     private var requiresIOS26Notice: Bool {
@@ -891,7 +876,7 @@ struct OnboardingExperienceView: View {
             subtitle: "让名字、字迹与图章留在完整影像上。",
             imageName: "signaturestamp",
             caption: "输入签名或导入自己的 PNG 签章，直接拖动放置并调整大小。自定义 PNG 与非系统字体需支持我们 PRO 解锁。",
-            showsNewBadge: true
+            showsNewBadge: false
         )
         return Group {
             if !LocalizedVisualPolicy.showsOnboardingFeatureImage(
@@ -1146,53 +1131,22 @@ struct OnboardingExperienceView: View {
                     Text("本次更新")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("灵动照片 3.0.2（Build 202635）")
+                    Text("灵动照片 3.0.3（Build 202614）")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white.opacity(0.48))
                 }
 
                 VStack(alignment: .leading, spacing: 16) {
                     updateItem(
-                        symbol: "paintbrush.pointed.fill",
-                        title: "影像入画·一照两境",
-                        detail: "用纯代码叠加多层水彩洗染，将原照片融入横扫、上扬、下掠、竖落、弧扫或枯笔画心；可调整笔锋、晕染与飞白，也可拖动、缩放调整取景并修改画笺标题。"
-                    )
-                    updateItem(
-                        symbol: "textformat",
-                        title: "一照两境自定义字体",
-                        detail: "支持我们后，可从邮票与明信片内置字体中自由选择，让画笺的标题、地点、日期与题识共用同一种字韵。",
+                        symbol: "textformat.alt",
+                        title: "三项创作，自由选字",
+                        detail: "支持我们 PRO 后，可为灵动卡片、气泡印章与一键手帐选用应用内置字体。",
                         showsProBadge: true
                     )
                     updateItem(
-                        symbol: "archivebox",
-                        title: "琉璃档案，由你书写",
-                        detail: "支持我们后，档案栏开头或末尾可固定显示琉璃色盘中的一至六色，亦可写下专属文字，并选用邮票与明信片的内置字体。",
-                        showsProBadge: true
-                    )
-                    updateItem(
-                        symbol: "livephoto",
-                        title: "邮票支持实况照片",
-                        detail: "邮票可播放实况画面，导出时也能产出实况照片；邮集中也能轻点城市邮票回看那一刻。"
-                    )
-                    updateItem(
-                        symbol: "fan.fill",
-                        title: "流光折扇单张成扇",
-                        detail: "流光折扇新增单张成扇：一张照片自动铺满整个扇面，成扇后双指捏合缩放，细看扇面上的连续画面。"
-                    )
-                    updateItem(
-                        symbol: "rectangle.landscape.rotate",
-                        title: "琉璃档案与灵动月历横屏查看",
-                        detail: "iOS 端使用横向照片时，可将琉璃档案与灵动月历翻转为横屏查看，预览更宽阔，所有操作集中在右侧。"
-                    )
-                    updateItem(
-                        symbol: "calendar.badge.plus",
-                        title: "灵动月历·摄影排版",
-                        detail: "新增照片与单月月历并排的摄影排版，圈出拍摄当天；PRO 用户还可自动取色或自定义底板颜色。"
-                    )
-                    updateItem(
-                        symbol: "checkmark.seal",
-                        title: "体验优化",
-                        detail: "修复了部分错误和界面显示问题，并提升了整体使用流畅性。"
+                        symbol: "photo.badge.plus",
+                        title: "照片选择，更加可靠",
+                        detail: "针对 iOS 27.0 及以后系统，修复了点击“+”选择照片后偶尔无响应的问题。"
                     )
                 }
             }

@@ -17,6 +17,7 @@ private enum CanvasDragRole {
     case bubble
     case font
     case textSize
+    case inactive
 }
 
 private enum SignatureDragElement {
@@ -96,7 +97,7 @@ struct ContentView: View {
     init() {
         let defaults = UserDefaults.standard
         let didShowOnboarding = defaults.bool(forKey: "didShowOnboardingExperience")
-        let didShowUpdate = defaults.bool(forKey: "didShowVersion302Update")
+        let didShowUpdate = defaults.bool(forKey: "didShowVersion303Update")
         let presentsOnboarding = !didShowOnboarding || !didShowUpdate
         _onboardingStartsAtUpdate = State(
             initialValue: didShowOnboarding && !didShowUpdate
@@ -163,6 +164,7 @@ struct ContentView: View {
     @AppStorage("didShowOnboardingExperience") private var didShowOnboardingExperience = false
     @AppStorage("didShowVersion301Update") private var didShowVersion301Update = false
     @AppStorage("didShowVersion302Update") private var didShowVersion302Update = false
+    @AppStorage("didShowVersion303Update") private var didShowVersion303Update = false
     @AppStorage("didShowCreationSeasonEvent301") private var didShowCreationSeasonEvent = false
     @AppStorage("didShowModeSelectionHint101") private var didShowModeSelectionHint101 = false
     @AppStorage("didShowTicketLandscapeHint") private var didShowTicketLandscapeHint = false
@@ -175,6 +177,9 @@ struct ContentView: View {
     @AppStorage("glassArchiveCustomTextEnabled") private var glassArchiveCustomTextEnabled = false
     @AppStorage("glassArchiveCustomText") private var glassArchiveCustomText = ""
     @AppStorage("glassArchiveFontRaw") private var glassArchiveFontRaw = PostalFont.original.rawValue
+    @AppStorage("motionCardFontRaw") private var motionCardFontRaw = PostalFont.original.rawValue
+    @AppStorage("bubbleStampFontRaw") private var bubbleStampFontRaw = PostalFont.original.rawValue
+    @AppStorage("journalFontRaw") private var journalFontRaw = PostalFont.original.rawValue
     @AppStorage("signatureStampText") private var signatureStampText = "灵动照片".appLocalized
     @AppStorage("signatureStampFontRaw") private var signatureStampFontRaw = PostalFont.original.rawValue
     @AppStorage("signatureStampSourceRaw") private var signatureStampSourceRaw = SignatureStampSource.text.rawValue
@@ -363,6 +368,7 @@ struct ContentView: View {
     @State private var glassArchiveEditing = false
     @State private var motionCardSettingsPresented = false
     @State private var bubbleStampSettingsPresented = false
+    @State private var journalSettingsPresented = false
     @State private var paletteCardSettingsPresented = false
     @State private var paletteCardSwatchOrder: [Int] = []
     @State private var isPaletteSwapHintPresented = false
@@ -424,6 +430,13 @@ struct ContentView: View {
     @State private var supportUsPresented = false
     @State private var pickerMode: CreationMode?
     @State private var photoImportTask: Task<Void, Never>?
+    @State private var photoImportWatchdogTask: Task<Void, Never>?
+    @State private var photoImportRequestID: UUID?
+    @State private var pickerSessionID: UUID?
+    @State private var pickerCallbackReceived = false
+    @State private var pendingPickerSelections: [PhotoPickerSelection] = []
+    @State private var pendingPickerMode: CreationMode?
+    @State private var pendingPickerOperation: PhotoSelectionOperation?
     @StateObject private var cameraWatermarkLibrary = CameraWatermarkLibrary()
     @StateObject private var signatureStampLibrary = SignatureStampLibrary()
 
@@ -433,6 +446,14 @@ struct ContentView: View {
 
     private var modeLauncherChoicePresented: Bool {
         launchExperienceStage == .modeLauncherChoice
+    }
+
+    private var usesIOS27OrLaterPhotoPickerRecovery: Bool {
+        let version = ProcessInfo.processInfo.operatingSystemVersion
+        if version.majorVersion != 27 {
+            return version.majorVersion > 27
+        }
+        return true
     }
 
     private var creationSeasonEventPresented: Bool {
@@ -634,6 +655,21 @@ struct ContentView: View {
 
     private var glassArchiveCustomFont: PostalFont {
         PostalFont(rawValue: glassArchiveFontRaw) ?? .original
+    }
+
+    private var motionCardFont: PostalFont {
+        guard supporterUnlocked else { return .original }
+        return PostalFont(rawValue: motionCardFontRaw) ?? .original
+    }
+
+    private var bubbleStampFont: PostalFont {
+        guard supporterUnlocked else { return .original }
+        return PostalFont(rawValue: bubbleStampFontRaw) ?? .original
+    }
+
+    private var journalFont: PostalFont {
+        guard supporterUnlocked else { return .original }
+        return PostalFont(rawValue: journalFontRaw) ?? .original
     }
 
     private var signatureStampFont: PostalFont {
@@ -1111,11 +1147,12 @@ struct ContentView: View {
                 poeticNamesEnabled = true
             }
         }
-        .sheet(isPresented: $isPickerPresented) {
+        .sheet(isPresented: $isPickerPresented, onDismiss: handlePickerDismissal) {
             PrivacyPreservingPhotoPicker(
                 isPresented: $isPickerPresented,
                 selectionLimit: pickerLimit,
-                colorScheme: systemColorScheme
+                colorScheme: systemColorScheme,
+                deliversSelectionBeforeDismissal: usesIOS27OrLaterPhotoPickerRecovery
             ) { selections in
                 handlePickerSelections(selections)
             }
@@ -1375,7 +1412,18 @@ struct ContentView: View {
                 showsCaptureTime: $motionCardShowsCaptureTime,
                 usesCustomCaptureTime: $motionCardUsesCustomCaptureTime,
                 displayedCaptureDate: $motionCardDisplayedCaptureDate,
-                originalCaptureDate: primaryMetadata.captureDate
+                originalCaptureDate: primaryMetadata.captureDate,
+                font: Binding(
+                    get: { motionCardFont },
+                    set: { motionCardFontRaw = $0.rawValue }
+                ),
+                isSupporter: supporterUnlocked,
+                onOpenSupport: {
+                    motionCardSettingsPresented = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        supportUsPresented = true
+                    }
+                }
             )
             .environment(\.colorScheme, systemColorScheme)
             .featureSettingsSheetChrome()
@@ -1389,7 +1437,18 @@ struct ContentView: View {
                     ),
                     ratio: $ratio,
                     showDeviceInfo: $showDeviceInfo,
-                    showBubbles: $showBubbles
+                    showBubbles: $showBubbles,
+                    font: Binding(
+                        get: { bubbleStampFont },
+                        set: { bubbleStampFontRaw = $0.rawValue }
+                    ),
+                    isSupporter: supporterUnlocked,
+                    onOpenSupport: {
+                        bubbleStampSettingsPresented = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                            supportUsPresented = true
+                        }
+                    }
                 )
                 .environment(\.colorScheme, systemColorScheme)
                 .featureSettingsSheetChrome()
@@ -1424,6 +1483,23 @@ struct ContentView: View {
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(nil)
             }
+        }
+        .sheet(isPresented: $journalSettingsPresented) {
+            JournalSettingsSheet(
+                font: Binding(
+                    get: { journalFont },
+                    set: { journalFontRaw = $0.rawValue }
+                ),
+                isSupporter: supporterUnlocked,
+                onOpenSupport: {
+                    journalSettingsPresented = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        supportUsPresented = true
+                    }
+                }
+            )
+            .environment(\.colorScheme, systemColorScheme)
+            .featureSettingsSheetChrome()
         }
         .fullScreenCover(isPresented: $ticketScannerPresented) {
             TicketQRScannerScreen(
@@ -1718,6 +1794,7 @@ struct ContentView: View {
         }
         .onDisappear {
             modeChangeTask?.cancel()
+            photoImportWatchdogTask?.cancel()
             paletteSwapHintTask?.cancel()
             paletteSwapHintTask = nil
             stopLivePhotoPlayback()
@@ -2051,7 +2128,8 @@ struct ContentView: View {
                     images: images, selectedIndex: $selectedJournalIndex,
                     layout: Binding(get: { journalLayout }, set: { journalLayoutRaw = $0.rawValue }),
                     onReplace: { openPicker(replacing: $0) }, onDelete: removeJournalPhoto,
-                    onMove: moveJournalPhoto, onReset: resetJournalComposition
+                    onMove: moveJournalPhoto, onReset: resetJournalComposition,
+                    onOpenSettings: { journalSettingsPresented = true }
                 )
             case .travelTicket:
                 TicketEditorControls(
@@ -2829,7 +2907,8 @@ struct ContentView: View {
                     onReplace: { openPicker(replacing: $0) },
                     onDelete: removeJournalPhoto,
                     onMove: moveJournalPhoto,
-                    onReset: resetJournalComposition
+                    onReset: resetJournalComposition,
+                    onOpenSettings: { journalSettingsPresented = true }
                 )
                 .padding(.horizontal, 18)
                 .padding(.top, 10)
@@ -3284,6 +3363,9 @@ struct ContentView: View {
             showsCaptureTime: motionCardShowsCaptureTime,
             copy: artworkCopy,
             fontStyle: fontStyle,
+            motionCardFont: motionCardFont,
+            bubbleStampFont: bubbleStampFont,
+            journalFont: journalFont,
             templateStyle: templateStyle,
             motionCardHeaderStyle: motionCardHeaderStyle,
             motionCardHeaderPalette: effectiveMotionCardPalette,
@@ -3870,7 +3952,7 @@ struct ContentView: View {
                         )
                     case .bubble:
                         bubbleScale = min(max(storedBubbleScale - value.translation.height / 150, 0.45), 2.1)
-                    case .font, .textSize:
+                    case .font, .textSize, .inactive:
                         break
                     }
                 }
@@ -3907,6 +3989,8 @@ struct ContentView: View {
                             UISelectionFeedbackGenerator().selectionChanged()
                             showToast("文字大小：\(Int((textScale * 100).rounded()))%", duration: 1.2)
                         }
+                    case .inactive:
+                        break
                     }
                     activeDragRole = nil
                 },
@@ -4011,11 +4095,11 @@ struct ContentView: View {
         guard abs(translation.width) > abs(translation.height) else { return .image }
         switch mode {
         case .motionCard where point.y < canvasSize.height * 0.43:
-            return point.y < canvasSize.height * 0.22 ? .font : .textSize
+            return point.y < canvasSize.height * 0.22 ? .inactive : .textSize
         case .bubbleStamp where point.y > canvasSize.width * 0.91:
-            return point.y < canvasSize.height * 0.82 ? .font : .textSize
+            return point.y < canvasSize.height * 0.82 ? .inactive : .textSize
         case .journal where point.y < canvasSize.height * 0.28 || point.y > canvasSize.height * 0.68:
-            return point.y < canvasSize.height * 0.28 ? .font : .textSize
+            return point.y < canvasSize.height * 0.28 ? .inactive : .textSize
         case .travelTicket:
             return .image
         default:
@@ -4337,12 +4421,32 @@ struct ContentView: View {
             photoSelectionOperation = .replaceAll
         }
         pickerMode = selectedMode ?? mode
+        if usesIOS27OrLaterPhotoPickerRecovery {
+            pickerSessionID = UUID()
+            pickerCallbackReceived = false
+            pendingPickerSelections = []
+            pendingPickerMode = nil
+            pendingPickerOperation = nil
+        }
         isPickerPresented = true
     }
 
     private func handlePickerSelections(_ selections: [PhotoPickerSelection]) {
         let selectedMode = pickerMode ?? mode
         pickerMode = nil
+        if usesIOS27OrLaterPhotoPickerRecovery {
+            pickerCallbackReceived = true
+            guard !selections.isEmpty else {
+                pendingPickerSelections = []
+                pendingPickerMode = nil
+                pendingPickerOperation = nil
+                return
+            }
+            pendingPickerSelections = selections
+            pendingPickerMode = selectedMode
+            pendingPickerOperation = photoSelectionOperation
+            return
+        }
         guard !selections.isEmpty else { return }
         let operation = photoSelectionOperation
         photoImportTask = Task { @MainActor in
@@ -4353,6 +4457,86 @@ struct ContentView: View {
                 requestedOperation: operation
             )
             photoImportTask = nil
+        }
+    }
+
+    private func handlePickerDismissal() {
+        guard usesIOS27OrLaterPhotoPickerRecovery,
+              pickerSessionID != nil else { return }
+        let receivedCallback = pickerCallbackReceived
+        let selections = pendingPickerSelections
+        let selectedMode = pendingPickerMode ?? mode
+        let operation = pendingPickerOperation ?? photoSelectionOperation
+        pickerSessionID = nil
+        pickerCallbackReceived = false
+        pendingPickerSelections = []
+        pendingPickerMode = nil
+        pendingPickerOperation = nil
+
+        guard !selections.isEmpty else {
+            if !receivedCallback {
+                pickerMode = nil
+                photoSelectionOperation = .replaceAll
+                presentSaveError(
+                    "未能读取所选照片，请确认照片已下载到本机后重试。",
+                    title: "无法读取照片"
+                )
+            }
+            return
+        }
+
+        startIOS27PhotoImport(
+            selections,
+            requestedMode: selectedMode,
+            requestedOperation: operation
+        )
+    }
+
+    private func startIOS27PhotoImport(
+        _ selections: [PhotoPickerSelection],
+        requestedMode: CreationMode,
+        requestedOperation: PhotoSelectionOperation
+    ) {
+        photoImportTask?.cancel()
+        photoImportWatchdogTask?.cancel()
+        let requestID = UUID()
+        photoImportRequestID = requestID
+        photoImportTask = Task { @MainActor in
+            await Task.yield()
+            await loadSelectedPhotos(
+                selections,
+                requestedMode: requestedMode,
+                requestedOperation: requestedOperation
+            )
+            guard photoImportRequestID == requestID else { return }
+            photoImportWatchdogTask?.cancel()
+            photoImportWatchdogTask = nil
+            photoImportTask = nil
+            photoImportRequestID = nil
+        }
+        photoImportWatchdogTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(45))
+            guard !Task.isCancelled,
+                  photoImportRequestID == requestID,
+                  isLoading else { return }
+            photoImportTask?.cancel()
+            photoImportTask = nil
+            photoImportRequestID = nil
+            photoImportWatchdogTask = nil
+            withAnimation(.easeOut(duration: 0.18)) {
+                isLoading = false
+                importStatus = ""
+                if !images.isEmpty {
+                    isEditorVisible = true
+                    canSave = true
+                    canvasRevealed = true
+                }
+            }
+            photoSelectionOperation = .replaceAll
+            presentSaveError(
+                "未能读取所选照片，请确认照片已下载到本机后重试。",
+                title: "无法读取照片"
+            )
         }
     }
 
@@ -4467,7 +4651,7 @@ struct ContentView: View {
         requestedMode: CreationMode? = nil,
         requestedOperation: PhotoSelectionOperation? = nil
     ) async {
-        guard !isLoading else { return }
+        guard !Task.isCancelled, !isLoading else { return }
         let selections = requestedSelections
         guard !selections.isEmpty else { return }
         if let requestedMode, mode != requestedMode {
@@ -4501,8 +4685,16 @@ struct ContentView: View {
 
             do {
                 let photo = try await PhotoAssetLoader.load(selection, includeLiveResource: true)
+                guard !Task.isCancelled else {
+                    PhotoAssetLoader.removeTemporaryResources(for: imported + [photo])
+                    return
+                }
                 imported.append(photo)
             } catch {
+                guard !Task.isCancelled else {
+                    PhotoAssetLoader.removeTemporaryResources(for: imported)
+                    return
+                }
                 firstImportError = firstImportError ?? error
             }
         }
@@ -4562,6 +4754,10 @@ struct ContentView: View {
         let paletteResult = await Task.detached(priority: .userInitiated) {
             Self.combinedPaletteResult(from: paletteInput.images)
         }.value
+        guard !Task.isCancelled else {
+            PhotoAssetLoader.removeTemporaryResources(for: imported)
+            return
+        }
         selectedPhotos = combined
         images = combined.map(\.image)
         if isTicketLandscape && !supportsLandscapeEditor {
@@ -5399,7 +5595,7 @@ struct ContentView: View {
                     case .livePhoto:
                         break
                     case .livePhotoWithoutAudio:
-                        exportCompletionNotice = "已避开系统的 Live Photo 资源错误；动态作品已保存，本次不含声音。"
+                        exportCompletionNotice = "实况照片已保存，本次不含声音。"
                     case .stillImageFallback:
                         exportCompletionNotice = "系统仍未接受这组 Live Photo 动态资源，已先为你保存静态作品。"
                     }
@@ -5624,7 +5820,7 @@ struct ContentView: View {
         if !didShowOnboardingExperience {
             onboardingStartsAtUpdate = false
             launchExperienceStage = .onboarding
-        } else if !didShowVersion302Update {
+        } else if !didShowVersion303Update {
             onboardingStartsAtUpdate = true
             launchExperienceStage = .onboarding
         } else if supportsIsland && !didChooseModeLauncherStyle {
@@ -5643,6 +5839,7 @@ struct ContentView: View {
         didShowOnboardingExperience = true
         didShowVersion301Update = true
         didShowVersion302Update = true
+        didShowVersion303Update = true
         onboardingStartsAtUpdate = false
 
         if supportsIslandLauncher && !didChooseModeLauncherStyle {
@@ -5709,7 +5906,7 @@ struct ContentView: View {
     private func presentCreationSeasonEventIfReady() {
         guard creationSeasonEventPending,
               didShowOnboardingExperience,
-              didShowVersion302Update,
+              didShowVersion303Update,
               didChooseModeLauncherStyle,
               launchExperienceStage == .none,
               creationSeasonEventIgnoresHistory || !didShowCreationSeasonEvent else { return }
@@ -6235,6 +6432,9 @@ struct ContentView: View {
                 showsCaptureTime: motionCardShowsCaptureTime,
                 copy: artworkCopy,
                 fontStyle: fontStyle,
+                motionCardFont: motionCardFont,
+                bubbleStampFont: bubbleStampFont,
+                journalFont: journalFont,
                 templateStyle: templateStyle,
                 motionCardHeaderStyle: motionCardHeaderStyle,
                 motionCardHeaderPalette: effectiveMotionCardPalette,
@@ -6850,6 +7050,12 @@ private struct MotionCardSettingsSheet: View {
     @Binding var usesCustomCaptureTime: Bool
     @Binding var displayedCaptureDate: Date
     let originalCaptureDate: Date?
+    @Binding var font: PostalFont
+    let isSupporter: Bool
+    let onOpenSupport: () -> Void
+
+    @State private var proPromptMessage: String?
+    @State private var promptTask: Task<Void, Never>?
 
     private var isImmersiveTemplate: Bool { templateStyle == .immersive }
 
@@ -6886,6 +7092,16 @@ private struct MotionCardSettingsSheet: View {
                         }
                     }
                     .pickerStyle(.menu)
+                }
+
+                Section("自定义字体") {
+                    PostalFontSelectionGrid(
+                        selection: $font,
+                        locksPremiumFonts: !isSupporter,
+                        onLockedTap: {
+                            showProPrompt("支持我们 PRO，即可使用全部灵动卡片字体。")
+                        }
+                    )
                 }
 
                 Section {
@@ -6927,6 +7143,29 @@ private struct MotionCardSettingsSheet: View {
             .navigationTitle("灵动卡片设定")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .overlay(alignment: .bottom) {
+            if let proPromptMessage {
+                SupporterProUnlockPrompt(message: proPromptMessage) {
+                    promptTask?.cancel()
+                    self.proPromptMessage = nil
+                    onOpenSupport()
+                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, 24)
+                .transition(.scale(scale: 0.88).combined(with: .opacity))
+            }
+        }
+        .onDisappear { promptTask?.cancel() }
+    }
+
+    private func showProPrompt(_ message: String) {
+        promptTask?.cancel()
+        withAnimation(.easeOut(duration: 0.18)) { proPromptMessage = message }
+        promptTask = Task {
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.22)) { proPromptMessage = nil }
+        }
     }
 }
 
@@ -6935,6 +7174,12 @@ private struct BubbleStampSettingsSheet: View {
     @Binding var ratio: ArtworkRatio
     @Binding var showDeviceInfo: Bool
     @Binding var showBubbles: Bool
+    @Binding var font: PostalFont
+    let isSupporter: Bool
+    let onOpenSupport: () -> Void
+
+    @State private var proPromptMessage: String?
+    @State private var promptTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -6957,6 +7202,16 @@ private struct BubbleStampSettingsSheet: View {
                     .pickerStyle(.menu)
                 }
 
+                Section("自定义字体") {
+                    PostalFontSelectionGrid(
+                        selection: $font,
+                        locksPremiumFonts: !isSupporter,
+                        onLockedTap: {
+                            showProPrompt("支持我们 PRO，即可使用全部气泡印章字体。")
+                        }
+                    )
+                }
+
                 Section {
                     Toggle("显示手机和相机信息", isOn: $showDeviceInfo)
                 } footer: {
@@ -6970,6 +7225,80 @@ private struct BubbleStampSettingsSheet: View {
             .formStyle(.grouped)
             .navigationTitle("气泡印章设定")
             .navigationBarTitleDisplayMode(.inline)
+        }
+        .overlay(alignment: .bottom) {
+            if let proPromptMessage {
+                SupporterProUnlockPrompt(message: proPromptMessage) {
+                    promptTask?.cancel()
+                    self.proPromptMessage = nil
+                    onOpenSupport()
+                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, 24)
+                .transition(.scale(scale: 0.88).combined(with: .opacity))
+            }
+        }
+        .onDisappear { promptTask?.cancel() }
+    }
+
+    private func showProPrompt(_ message: String) {
+        promptTask?.cancel()
+        withAnimation(.easeOut(duration: 0.18)) { proPromptMessage = message }
+        promptTask = Task {
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.22)) { proPromptMessage = nil }
+        }
+    }
+}
+
+private struct JournalSettingsSheet: View {
+    @Binding var font: PostalFont
+    let isSupporter: Bool
+    let onOpenSupport: () -> Void
+
+    @State private var proPromptMessage: String?
+    @State private var promptTask: Task<Void, Never>?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("自定义字体") {
+                    PostalFontSelectionGrid(
+                        selection: $font,
+                        locksPremiumFonts: !isSupporter,
+                        onLockedTap: {
+                            showProPrompt("支持我们 PRO，即可使用全部一键手帐字体。")
+                        }
+                    )
+                }
+            }
+            .formStyle(.grouped)
+            .navigationTitle("一键手帐设定")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .overlay(alignment: .bottom) {
+            if let proPromptMessage {
+                SupporterProUnlockPrompt(message: proPromptMessage) {
+                    promptTask?.cancel()
+                    self.proPromptMessage = nil
+                    onOpenSupport()
+                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, 24)
+                .transition(.scale(scale: 0.88).combined(with: .opacity))
+            }
+        }
+        .onDisappear { promptTask?.cancel() }
+    }
+
+    private func showProPrompt(_ message: String) {
+        promptTask?.cancel()
+        withAnimation(.easeOut(duration: 0.18)) { proPromptMessage = message }
+        promptTask = Task {
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.22)) { proPromptMessage = nil }
         }
     }
 }
