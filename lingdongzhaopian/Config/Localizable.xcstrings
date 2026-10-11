@@ -1,6 +1,40 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "紧急修复" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emergency Fix"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "緊急修復"
+          }
+        }
+      }
+    },
+    "本次更新未添加任何新功能，针对 iOS 27 及后续版本紧急修复照片选择无响应及模式切换不同步的问题。" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This update adds no new features. It provides an emergency fix for iOS 27 and later, addressing unresponsive photo selection and out-of-sync mode switching."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本次更新未新增任何功能，針對 iOS 27 與後續版本緊急修復選取照片無回應及模式切換不同步的問題。"
+          }
+        }
+      }
+    },
     "Live Photo 音频格式不可用。" : {
       "extractionState": "manual",
       "localizations": {
@@ -33316,18 +33350,18 @@
         }
       }
     },
-    "灵动照片 3.0.3（Build 202614）" : {
+    "灵动照片 3.0.4（Build 202610）" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lingdong Photo 3.0.3 (Build 202614)"
+            "value" : "Lingdong Photo 3.0.4 (Build 202610)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "靈動照片 3.0.3（Build 202614）"
+            "value" : "靈動照片 3.0.4（Build 202610）"
           }
         }
       }
@@ -34749,18 +34783,18 @@
         }
       }
     },
-    "版本 3.0.3 (Build 202614)" : {
+    "版本 3.0.4 (Build 202610)" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Version 3.0.3 (Build 202614)"
+            "value" : "Version 3.0.4 (Build 202610)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "版本 3.0.3 (Build 202614)"
+            "value" : "版本 3.0.4 (Build 202610)"
           }
         }
       }

@@ -61,6 +61,7 @@ struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
 
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
         private var parent: PrivacyPreservingPhotoPicker
+        private var didFinishPicking = false
 
         init(parent: PrivacyPreservingPhotoPicker) {
             self.parent = parent
@@ -71,6 +72,8 @@ struct PrivacyPreservingPhotoPicker: UIViewControllerRepresentable {
         }
 
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            guard !didFinishPicking else { return }
+            didFinishPicking = true
             let selections = results.map {
                 PhotoPickerSelection(itemProvider: $0.itemProvider)
             }

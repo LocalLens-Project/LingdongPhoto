@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 LocalLens-Project
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import Observation
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -36,6 +37,18 @@ private enum LaunchExperienceStage: Equatable {
     case onboarding
     case modeLauncherChoice
     case creationSeason
+}
+
+@MainActor
+@Observable
+private final class CreationSession {
+    var mode: CreationMode = .motionCard
+    var introPageID = CreationMode.motionCard.rawValue
+    var isPickerPresented = false
+    var selectedPhotos: [SelectedPhoto] = []
+    var images: [UIImage] = []
+    var isLoading = false
+    var isEditorVisible = false
 }
 
 private struct OverflowContentHeightKey: PreferenceKey {
@@ -97,7 +110,7 @@ struct ContentView: View {
     init() {
         let defaults = UserDefaults.standard
         let didShowOnboarding = defaults.bool(forKey: "didShowOnboardingExperience")
-        let didShowUpdate = defaults.bool(forKey: "didShowVersion303Update")
+        let didShowUpdate = defaults.bool(forKey: "didShowVersion304Update")
         let presentsOnboarding = !didShowOnboarding || !didShowUpdate
         _onboardingStartsAtUpdate = State(
             initialValue: didShowOnboarding && !didShowUpdate
@@ -165,6 +178,7 @@ struct ContentView: View {
     @AppStorage("didShowVersion301Update") private var didShowVersion301Update = false
     @AppStorage("didShowVersion302Update") private var didShowVersion302Update = false
     @AppStorage("didShowVersion303Update") private var didShowVersion303Update = false
+    @AppStorage("didShowVersion304Update") private var didShowVersion304Update = false
     @AppStorage("didShowCreationSeasonEvent301") private var didShowCreationSeasonEvent = false
     @AppStorage("didShowModeSelectionHint101") private var didShowModeSelectionHint101 = false
     @AppStorage("didShowTicketLandscapeHint") private var didShowTicketLandscapeHint = false
@@ -187,7 +201,11 @@ struct ContentView: View {
     @AppStorage("signatureStampShowsTime") private var signatureStampShowsTime = false
     @AppStorage("signatureStampUsesEnglishDateTime") private var signatureStampUsesEnglishDateTime = false
 
-    @State private var mode: CreationMode = .motionCard
+    @State private var creationSession = CreationSession()
+    private var mode: CreationMode {
+        get { creationSession.mode }
+        nonmutating set { creationSession.mode = newValue }
+    }
     @State private var ipadDestination: IPadWorkspaceEntry = .creation(.motionCard)
     @State private var ipadVisitedDestinations: Set<IPadWorkspaceEntry> = []
     @State private var ipadSidebarResetToken = 0
@@ -220,10 +238,22 @@ struct ContentView: View {
         !usesWideLayout && supportsIslandLauncher && modeLauncherStyle == .islandReveal
     }
     private var usesFloatingMenuLauncher: Bool { !usesIslandLauncher }
-    @State private var introPageID = CreationMode.motionCard.rawValue
-    @State private var isPickerPresented = false
-    @State private var selectedPhotos: [SelectedPhoto] = []
-    @State private var images: [UIImage] = []
+    private var introPageID: String {
+        get { creationSession.introPageID }
+        nonmutating set { creationSession.introPageID = newValue }
+    }
+    private var isPickerPresented: Bool {
+        get { creationSession.isPickerPresented }
+        nonmutating set { creationSession.isPickerPresented = newValue }
+    }
+    private var selectedPhotos: [SelectedPhoto] {
+        get { creationSession.selectedPhotos }
+        nonmutating set { creationSession.selectedPhotos = newValue }
+    }
+    private var images: [UIImage] {
+        get { creationSession.images }
+        nonmutating set { creationSession.images = newValue }
+    }
     @State private var palette = RGBColor.fallback
     @State private var palettePercentages = [Double](repeating: 0, count: 6)
     @State private var colorInsightPage: ColorInsightPage = .palette
@@ -278,8 +308,14 @@ struct ContentView: View {
         mode == .paletteCard || mode == .monthlyCalendar
     }
 
-    @State private var isLoading = false
-    @State private var isEditorVisible = false
+    private var isLoading: Bool {
+        get { creationSession.isLoading }
+        nonmutating set { creationSession.isLoading = newValue }
+    }
+    private var isEditorVisible: Bool {
+        get { creationSession.isEditorVisible }
+        nonmutating set { creationSession.isEditorVisible = newValue }
+    }
     @State private var canvasRevealed = false
     @State private var paletteRevealStage = 0
     @State private var generationProgress: CGFloat = 0
@@ -434,9 +470,6 @@ struct ContentView: View {
     @State private var photoImportRequestID: UUID?
     @State private var pickerSessionID: UUID?
     @State private var pickerCallbackReceived = false
-    @State private var pendingPickerSelections: [PhotoPickerSelection] = []
-    @State private var pendingPickerMode: CreationMode?
-    @State private var pendingPickerOperation: PhotoSelectionOperation?
     @StateObject private var cameraWatermarkLibrary = CameraWatermarkLibrary()
     @StateObject private var signatureStampLibrary = SignatureStampLibrary()
 
@@ -923,6 +956,7 @@ struct ContentView: View {
     }
 
     var body: some View {
+        @Bindable var session = creationSession
         let presentedContent = AnyView(GeometryReader { proxy in
             ZStack {
                 if usesWideLayout && ipadDestination == .colorRelationship {
@@ -1147,9 +1181,9 @@ struct ContentView: View {
                 poeticNamesEnabled = true
             }
         }
-        .sheet(isPresented: $isPickerPresented, onDismiss: handlePickerDismissal) {
+        .sheet(isPresented: $session.isPickerPresented, onDismiss: handlePickerDismissal) {
             PrivacyPreservingPhotoPicker(
-                isPresented: $isPickerPresented,
+                isPresented: $session.isPickerPresented,
                 selectionLimit: pickerLimit,
                 colorScheme: systemColorScheme,
                 deliversSelectionBeforeDismissal: usesIOS27OrLaterPhotoPickerRecovery
@@ -1794,7 +1828,6 @@ struct ContentView: View {
         }
         .onDisappear {
             modeChangeTask?.cancel()
-            photoImportWatchdogTask?.cancel()
             paletteSwapHintTask?.cancel()
             paletteSwapHintTask = nil
             stopLivePhotoPlayback()
@@ -2203,8 +2236,9 @@ struct ContentView: View {
 
 
     private var introView: some View {
-        GeometryReader { proxy in
-            TabView(selection: $introPageID) {
+        @Bindable var session = creationSession
+        return GeometryReader { proxy in
+            TabView(selection: $session.introPageID) {
                 ForEach(CreationMode.allCases) { item in
                     modeIntro(item)
                         .frame(width: proxy.size.width, height: proxy.size.height)
@@ -4424,9 +4458,6 @@ struct ContentView: View {
         if usesIOS27OrLaterPhotoPickerRecovery {
             pickerSessionID = UUID()
             pickerCallbackReceived = false
-            pendingPickerSelections = []
-            pendingPickerMode = nil
-            pendingPickerOperation = nil
         }
         isPickerPresented = true
     }
@@ -4435,16 +4466,14 @@ struct ContentView: View {
         let selectedMode = pickerMode ?? mode
         pickerMode = nil
         if usesIOS27OrLaterPhotoPickerRecovery {
+            guard pickerSessionID != nil, !pickerCallbackReceived else { return }
             pickerCallbackReceived = true
-            guard !selections.isEmpty else {
-                pendingPickerSelections = []
-                pendingPickerMode = nil
-                pendingPickerOperation = nil
-                return
-            }
-            pendingPickerSelections = selections
-            pendingPickerMode = selectedMode
-            pendingPickerOperation = photoSelectionOperation
+            guard !selections.isEmpty else { return }
+            startIOS27PhotoImport(
+                selections,
+                requestedMode: selectedMode,
+                requestedOperation: photoSelectionOperation
+            )
             return
         }
         guard !selections.isEmpty else { return }
@@ -4464,32 +4493,16 @@ struct ContentView: View {
         guard usesIOS27OrLaterPhotoPickerRecovery,
               pickerSessionID != nil else { return }
         let receivedCallback = pickerCallbackReceived
-        let selections = pendingPickerSelections
-        let selectedMode = pendingPickerMode ?? mode
-        let operation = pendingPickerOperation ?? photoSelectionOperation
         pickerSessionID = nil
         pickerCallbackReceived = false
-        pendingPickerSelections = []
-        pendingPickerMode = nil
-        pendingPickerOperation = nil
-
-        guard !selections.isEmpty else {
-            if !receivedCallback {
-                pickerMode = nil
-                photoSelectionOperation = .replaceAll
-                presentSaveError(
-                    "未能读取所选照片，请确认照片已下载到本机后重试。",
-                    title: "无法读取照片"
-                )
-            }
-            return
+        if !receivedCallback {
+            pickerMode = nil
+            photoSelectionOperation = .replaceAll
+            presentSaveError(
+                "未能读取所选照片，请确认照片已下载到本机后重试。",
+                title: "无法读取照片"
+            )
         }
-
-        startIOS27PhotoImport(
-            selections,
-            requestedMode: selectedMode,
-            requestedOperation: operation
-        )
     }
 
     private func startIOS27PhotoImport(
@@ -5000,8 +5013,13 @@ struct ContentView: View {
     }
 
     private func queueCreationModeSelection(_ selectedMode: CreationMode) {
-        modeSelectionPresented = false
         modeChangeTask?.cancel()
+        if usesIOS27OrLaterPhotoPickerRecovery {
+            modeChangeTask = nil
+            selectCreationMode(selectedMode)
+            return
+        }
+        modeSelectionPresented = false
         modeChangeTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(120))
             guard !Task.isCancelled else { return }
@@ -5820,7 +5838,7 @@ struct ContentView: View {
         if !didShowOnboardingExperience {
             onboardingStartsAtUpdate = false
             launchExperienceStage = .onboarding
-        } else if !didShowVersion303Update {
+        } else if !didShowVersion304Update {
             onboardingStartsAtUpdate = true
             launchExperienceStage = .onboarding
         } else if supportsIsland && !didChooseModeLauncherStyle {
@@ -5840,6 +5858,7 @@ struct ContentView: View {
         didShowVersion301Update = true
         didShowVersion302Update = true
         didShowVersion303Update = true
+        didShowVersion304Update = true
         onboardingStartsAtUpdate = false
 
         if supportsIslandLauncher && !didChooseModeLauncherStyle {
@@ -5906,7 +5925,7 @@ struct ContentView: View {
     private func presentCreationSeasonEventIfReady() {
         guard creationSeasonEventPending,
               didShowOnboardingExperience,
-              didShowVersion303Update,
+              didShowVersion304Update,
               didChooseModeLauncherStyle,
               launchExperienceStage == .none,
               creationSeasonEventIgnoresHistory || !didShowCreationSeasonEvent else { return }

@@ -1131,22 +1131,16 @@ struct OnboardingExperienceView: View {
                     Text("本次更新")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("灵动照片 3.0.3（Build 202614）")
+                    Text("灵动照片 3.0.4（Build 202610）")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white.opacity(0.48))
                 }
 
                 VStack(alignment: .leading, spacing: 16) {
                     updateItem(
-                        symbol: "textformat.alt",
-                        title: "三项创作，自由选字",
-                        detail: "支持我们 PRO 后，可为灵动卡片、气泡印章与一键手帐选用应用内置字体。",
-                        showsProBadge: true
-                    )
-                    updateItem(
-                        symbol: "photo.badge.plus",
-                        title: "照片选择，更加可靠",
-                        detail: "针对 iOS 27.0 及以后系统，修复了点击“+”选择照片后偶尔无响应的问题。"
+                        symbol: "wrench.and.screwdriver",
+                        title: "紧急修复",
+                        detail: "本次更新未添加任何新功能，针对 iOS 27 及后续版本紧急修复照片选择无响应及模式切换不同步的问题。"
                     )
                 }
             }
