@@ -1,10 +1,12 @@
 # Lingdong Photo
 
+> This is the **4.0.0 Public Edition (Build 202649)**: local photo-creation code and standalone encryption transparency materials. The complete Letter feature and server implementation are excluded. Local-processing and account statements below describe this Public Edition's creation tools. See [publication scope](PUBLIC_EDITION.md) and [encryption protocol and checks](Transparency/README.md).
+
 > **Language notice:** The Android version is currently not available in English. Its interface remains in Simplified Chinese for now.
 
 Lingdong Photo is a local-first photo creation app for iOS and Android. The iOS app is built with SwiftUI, while the Android app uses Kotlin and Jetpack Compose. Both versions can extract perceptual colors, understand image content, read real capture metadata, and create photo cards, palettes, journals, bubble stamps, wallpapers, privacy masks, verifiable Photo Tickets, and multi-page Photo Albums. Color Relationship compares the shared, contrasting, and transitional colors of two photos. The iOS version also includes a plain-language Light Analysis for everyday users, turns photos into pencil, charcoal, or watercolor sketches, blends original photos into watercolor study sheets with Photo Painting, adds text or PNG artwork with Photo Signatures, converts a selected video segment into a Live Photo with a user-selected key photo, arranges photos into a complete Flowing-Light Fan, collects traditional colors by solar term in Solar-term Colors, and preserves thoughts beyond the frame in Photo Backs.
 
-**Official App Store release (iOS 3.0.2, Build 202635):** [Download Lingdong Photo](https://apps.apple.com/cn/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
+**Official app download (its feature scope differs from this Public Edition):** [Download Lingdong Photo](https://apps.apple.com/cn/app/%E7%81%B5%E5%8A%A8%E7%85%A7%E7%89%87/id6791514422)
 
 The app is free to download, with no subscriptions or advertising. The iOS app offers optional “Support Us” content through a one-time purchase. Photo recognition, color analysis, and artwork rendering are performed on the device.
 
@@ -68,7 +70,6 @@ Some similar utilities charge a monthly subscription or a one-time fee. That is 
 - Open independent tools without first entering the main editor. After importing a photo, switch creation modes or enter any tool from the same panel without selecting the image again.
 - The mode picker uses translucent Liquid Glass and follows the system light or dark appearance.
 - Every feature reorganizes its preview and controls for iPad portrait, landscape, larger displays, and resizable windows while retaining the compact iPhone experience.
-- The Simplified and Traditional Chinese interfaces present the Lingdong Photo 3.0 Creation Season after onboarding; `lingdongphoto://home` can reopen it at any time.
 
 ### Palette Card and Lingdong Calendar
 

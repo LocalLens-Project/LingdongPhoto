@@ -119,18 +119,14 @@ struct SolarColorFeatureRootView: View {
         }
         .environment(\.colorScheme, colorScheme)
         .tint(colorScheme == .dark ? Color.white : Color.black)
-        .sheet(isPresented: $pickerPresented) {
+        .sheet(isPresented: $pickerPresented, onDismiss: finishPhotoPicker) {
             PrivacyPreservingPhotoPicker(
                 isPresented: $pickerPresented,
                 selectionLimit: 1,
-                colorScheme: colorScheme
+                colorScheme: colorScheme,
+                deliversSelectionBeforeDismissal: true
             ) { pickerSelections = $0 }
             .ignoresSafeArea()
-        }
-        .onChange(of: pickerPresented) { _, presented in
-            guard !presented, let selection = pickerSelections.first else { return }
-            pickerSelections = []
-            load(selection)
         }
         .sheet(item: $importDraft) { draft in
             SolarColorImportReviewView(draft: draft) { request in
@@ -363,6 +359,12 @@ struct SolarColorFeatureRootView: View {
     private func openPicker() {
         guard !isLoading else { return }
         pickerPresented = true
+    }
+
+    private func finishPhotoPicker() {
+        guard let selection = pickerSelections.first else { return }
+        pickerSelections = []
+        load(selection)
     }
 
     private func load(_ selection: PhotoPickerSelection) {

@@ -107,18 +107,14 @@ struct PhotoBackCollectionView: View {
         }
         .environment(\.colorScheme, colorScheme)
         .tint(colorScheme == .dark ? Color.white : Color.black)
-        .sheet(isPresented: $pickerPresented) {
+        .sheet(isPresented: $pickerPresented, onDismiss: finishPhotoPicker) {
             PrivacyPreservingPhotoPicker(
                 isPresented: $pickerPresented,
                 selectionLimit: 1,
-                colorScheme: colorScheme
+                colorScheme: colorScheme,
+                deliversSelectionBeforeDismissal: true
             ) { pickerSelections = $0 }
             .ignoresSafeArea()
-        }
-        .onChange(of: pickerPresented) { _, presented in
-            guard !presented, let selection = pickerSelections.first else { return }
-            pickerSelections = []
-            load(selection)
         }
         .fullScreenCover(item: $draft) { draft in
             PhotoBackComposerView(draft: draft, store: store) { id in
@@ -235,6 +231,12 @@ struct PhotoBackCollectionView: View {
     }
 
     private func openPicker() { pickerPresented = true }
+
+    private func finishPhotoPicker() {
+        guard let selection = pickerSelections.first else { return }
+        pickerSelections = []
+        load(selection)
+    }
 
     private func load(_ selection: PhotoPickerSelection) {
         isLoading = true

@@ -129,7 +129,7 @@ enum ModeLauncherDestination: Identifiable {
     }
 }
 
-private enum IslandLauncherDevice {
+enum ModeLauncherDevice {
     private static let compactIslandModelIdentifiers: Set<String> = [
         "iPhone19,2",
         "iPhone19,3",
@@ -138,6 +138,9 @@ private enum IslandLauncherDevice {
     static let usesCompactIslandGeometry = compactIslandModelIdentifiers.contains(
         modelIdentifier
     )
+
+    // The Duo's camera cutout does not provide an island launcher surface.
+    static let isDuo = modelIdentifier == "iPhone19,4"
 
     private static var modelIdentifier: String {
         #if targetEnvironment(simulator)
@@ -226,7 +229,7 @@ struct IslandModeLauncher: View {
             : isLandscape
                 ? min(max(520, screenSize.width - 80), 720)
                 : min(max(320, screenSize.width - 16), 408)
-        let islandWidth: CGFloat = IslandLauncherDevice.usesCompactIslandGeometry ? 95 : 126
+        let islandWidth: CGFloat = ModeLauncherDevice.usesCompactIslandGeometry ? 95 : 126
         let width = islandWidth + (expandedWidth - islandWidth) * progress
         let islandHeight: CGFloat = 37
         let expandedHeight = usesPortraitSurface
@@ -310,7 +313,7 @@ struct IslandModeLauncher: View {
         )
         let progress = min(max(expansionProgress, 0), 1)
         let expandedWidth = min(max(320, portraitSize.width - 16), 408)
-        let islandWidth: CGFloat = IslandLauncherDevice.usesCompactIslandGeometry ? 95 : 126
+        let islandWidth: CGFloat = ModeLauncherDevice.usesCompactIslandGeometry ? 95 : 126
         let width = islandWidth + (expandedWidth - islandWidth) * progress
         let islandHeight: CGFloat = 37
         let expandedHeight = max(340, safeAreaTop + 289)
@@ -636,7 +639,7 @@ struct ModeLauncherSettingsView: View {
                 Text("选择模式入口方式")
                     .font(.system(size: 25, weight: .bold, design: .rounded))
 
-                ForEach(ModeLauncherStyle.allCases) { style in
+                ForEach(ModeLauncherStyle.allCases.filter { !ModeLauncherDevice.isDuo || $0 != .islandReveal }) { style in
                     Button {
                         guard style != .islandReveal || supportsIsland else { return }
                         styleRaw = style.rawValue
@@ -663,11 +666,13 @@ struct ModeLauncherSettingsView: View {
                     .opacity(style == .islandReveal && !supportsIsland ? 0.46 : 1)
                 }
 
-                Text((supportsIsland
-                      ? "切换后会立即应用。灵屿展开仅在竖屏的灵动岛机型上显示。"
-                      : "当前设备不支持灵屿展开，将继续使用浮光菜单。").appLocalized)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                if !ModeLauncherDevice.isDuo {
+                    Text((supportsIsland
+                          ? "切换后会立即应用。灵屿展开仅在竖屏的灵动岛机型上显示。"
+                          : "当前设备不支持灵屿展开，将继续使用浮光菜单。").appLocalized)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
             .padding(22)
             .frame(maxWidth: 620)

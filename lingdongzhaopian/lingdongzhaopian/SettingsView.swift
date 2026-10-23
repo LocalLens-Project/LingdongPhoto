@@ -4,7 +4,7 @@ import UIKit
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     private static let maintenanceStatementText =
-        "本开源项目由 Wenzhou Dulan Network Technology Co., Ltd. 倾力维护与托管。"
+        "本开源代码项目由 Wenzhou Dulan Network Technology Co., Ltd. 倾力维护与托管。"
 
     private static let sourceRepositoryURL = URL(
         string: "https://github.com/LocalLens-Project/LingdongPhoto"
@@ -39,6 +39,7 @@ struct SettingsView: View {
     @State private var cameraWatermarkManagerPresented = false
     @State private var workManagerPresented = false
     @State private var sourceRepositoryConfirmationPresented = false
+    @State private var legalPage: URL?
     @State private var qqGroupCopied = false
     @State private var emailCopied = false
     @State private var savedWorkCount = 0
@@ -107,10 +108,10 @@ struct SettingsView: View {
             .alert("将在默认浏览器中打开", isPresented: $sourceRepositoryConfirmationPresented) {
                 Button("取消", role: .cancel) {}
                 Button("确认打开") {
-                    openURL(Self.sourceRepositoryURL)
+                    openURL(legalPage ?? Self.sourceRepositoryURL)
                 }
             } message: {
-                Text("即将前往灵动照片的 GitHub 开源地址。本应用不会进行任何联网，网页内容将由系统默认浏览器加载。")
+                Text("网页将由系统默认浏览器联网加载。此公开版本包含本机照片创作；来信服务的隐私与加密边界见公开版本说明。")
             }
             .alert("二十四节气色名已开启", isPresented: $poeticNamesNoticePresented) {
                 Button("知道了", role: .cancel) {}
@@ -175,6 +176,8 @@ struct SettingsView: View {
         let content = ScrollView {
             LazyVStack(alignment: .leading, spacing: 28) {
                 projectSupportSection
+                PublicEditionInfoCard()
+                legalLinks
                 interfaceOptions
                 storageAndWorks
                 paletteOptions
@@ -186,11 +189,11 @@ struct SettingsView: View {
                 supportAndContactSection
 
                 VStack(spacing: 10) {
-                    Text("版本 3.0.4 (Build 202610)")
+                    Text("版本 4.0.0 (Build 202649)")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
 
-                    Text("灵动照片 · 开源项目")
+                    Text("灵动照片 · 开源代码项目")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
 
@@ -237,7 +240,7 @@ struct SettingsView: View {
                 .padding(.horizontal, 18)
 
             Button {
-                sourceRepositoryConfirmationPresented = true
+                legalPage = nil; sourceRepositoryConfirmationPresented = true
             } label: {
                 HStack(spacing: 14) {
                     Image(systemName: "chevron.left.forwardslash.chevron.right")
@@ -245,7 +248,7 @@ struct SettingsView: View {
                         .frame(width: 30)
 
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("开源地址")
+                        Text("开源代码地址")
                             .font(.subheadline.weight(.semibold))
                         Text("github.com/LocalLens-Project/LingdongPhoto")
                             .font(.caption)
@@ -266,10 +269,29 @@ struct SettingsView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("打开灵动照片 GitHub 开源地址")
-            .accessibilityHint("确认后将在系统默认浏览器中打开；本应用不会联网")
+            .accessibilityLabel("打开灵动照片 GitHub 开源代码地址")
+            .accessibilityHint("确认后将在系统默认浏览器中打开；普通创作照片仅在本机处理")
         }
         .background(settingsCardBackground, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+    }
+
+    private var legalLinks: some View {
+        VStack(spacing: 0) {
+            legalLink(String(localized: "隐私政策"), symbol: "hand.raised", page: .privacy)
+            Divider().padding(.horizontal, 18)
+            legalLink(String(localized: "用户协议"), symbol: "doc.text", page: .terms)
+        }.background(settingsCardBackground, in: RoundedRectangle(cornerRadius: 28))
+    }
+    private func legalLink(_ title: String, symbol: String, page: PublicEditionLegal.Page) -> some View {
+        Button { legalPage = PublicEditionLegal.url(page); sourceRepositoryConfirmationPresented = true } label: {
+            HStack(spacing: 14) {
+                Image(systemName: symbol).frame(width: 30)
+                Text(title).font(.subheadline.weight(.semibold))
+                Spacer()
+                Image(systemName: "arrow.up.right").foregroundStyle(.secondary)
+            }.foregroundStyle(.primary).padding(.horizontal, 18)
+                .frame(maxWidth: .infinity, minHeight: 62).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityIdentifier(page == .privacy ? "settings.privacy" : "settings.terms")
     }
 
     private var supportCraftButton: some View {
@@ -286,7 +308,7 @@ struct SettingsView: View {
 
                     Text((supporterUnlocked
                          ? "所有PRO功能都已解锁"
-                         : "开源项目 · 持续维护").appLocalized)
+                         : "开源代码项目 · 持续维护").appLocalized)
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white.opacity(0.68))
                 }
@@ -409,7 +431,7 @@ struct SettingsView: View {
             }
 
             Button {
-                UIPasteboard.general.string = "help@locallens.cn"
+                UIPasteboard.general.string = "help@moerzhi.com"
                 withAnimation(.snappy) {
                     emailCopied = true
                 }
@@ -430,7 +452,7 @@ struct SettingsView: View {
                         Text("客服邮箱")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.primary)
-                        Text(emailCopied ? "邮箱已复制" : "help@locallens.cn")
+                        Text(emailCopied ? "邮箱已复制" : "help@moerzhi.com")
                             .font(.caption)
                             .foregroundStyle(emailCopied ? .green : Color(UIColor.secondaryLabel))
                             .lineLimit(1)
@@ -449,7 +471,7 @@ struct SettingsView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("复制客服邮箱地址")
-            .accessibilityHint("邮箱 help@locallens.cn 将被复制到剪贴板")
+            .accessibilityHint("邮箱 help@moerzhi.com 将被复制到剪贴板")
 
             sectionDivider
             tipRow(symbol: "c.circle", text: "项目源代码公开；请通过官方渠道获取应用")
@@ -537,25 +559,27 @@ struct SettingsView: View {
                     .accessibilityIdentifier("settings.appIcon")
                     sectionDivider
 
-                    Button { modeLauncherPickerPresented = true } label: {
-                        SettingRow(
-                            symbol: "rectangle.topthird.inset.filled",
-                            title: "模式入口方式",
-                            subtitle: "在浮光菜单与灵屿展开之间切换。"
-                        ) {
-                            HStack(spacing: 7) {
-                                Text(currentModeLauncherStyle.title)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.bold)).foregroundStyle(.tertiary)
+                    if !ModeLauncherDevice.isDuo {
+                        Button { modeLauncherPickerPresented = true } label: {
+                            SettingRow(
+                                symbol: "rectangle.topthird.inset.filled",
+                                title: "模式入口方式",
+                                subtitle: "在浮光菜单与灵屿展开之间切换。"
+                            ) {
+                                HStack(spacing: 7) {
+                                    Text(currentModeLauncherStyle.title)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.bold)).foregroundStyle(.tertiary)
+                                }
                             }
+                            .contentShape(Rectangle())
                         }
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("settings.modeLauncher")
+                        sectionDivider
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("settings.modeLauncher")
-                    sectionDivider
 
                     Button {
                         emptyCanvasThemePickerPresented = true
@@ -757,8 +781,6 @@ struct SettingsView: View {
         settingsSection("一键手帐选项") {
             VStack(spacing: 0) {
                 tipRow(symbol: "info.circle", text: "使用顶部加号继续添加，选中缩略图后可替换、重排或删除；点击 Emoji 或文案可直接编辑")
-                sectionDivider
-                tipRow(symbol: "textformat", text: "自定义字体：在“一键手帐设定”中选择")
                 sectionDivider
                 ratioRow
                 sectionDivider

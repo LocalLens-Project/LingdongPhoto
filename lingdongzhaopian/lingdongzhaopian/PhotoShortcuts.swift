@@ -132,34 +132,19 @@ private enum PhotoShortcutError: LocalizedError {
 private enum ShortcutArtworkGenerator {
     static func spectrumWallpaper(from image: UIImage) -> UIImage? {
         let size = CGSize(width: 1290, height: 2796)
-        let palette = PaletteExtractor.extract(from: image).colors
-        guard palette.count >= 3 else { return nil }
+        guard let gradient = SpectrumWallpaperRenderer.gradient(from: image) else { return nil }
 
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
-        return UIGraphicsImageRenderer(size: size, format: format).image { renderer in
-            let context = renderer.cgContext
-            let colorSpace = CGColorSpaceCreateDeviceRGB()
-            let colors = [
-                palette[2].adjusted(brightness: 0.18, saturation: -0.18).uiColor.cgColor,
-                UIColor.white.withAlphaComponent(0.94).cgColor,
-                palette[0].adjusted(brightness: 0.10, saturation: -0.34).uiColor.cgColor
-            ] as CFArray
-            let locations: [CGFloat] = [0, 0.54, 1]
-            guard let gradient = CGGradient(colorsSpace: colorSpace, colors: colors, locations: locations) else {
-                return
-            }
-            context.drawLinearGradient(
-                gradient,
-                start: CGPoint(x: size.width * 0.18, y: 0),
-                end: CGPoint(x: size.width * 0.82, y: size.height),
-                options: []
-            )
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            let scale = max(size.width / gradient.size.width, size.height / gradient.size.height)
+            let drawnSize = CGSize(width: gradient.size.width * scale, height: gradient.size.height * scale)
+            gradient.draw(in: CGRect(
+                x: (size.width - drawnSize.width) / 2,
+                y: (size.height - drawnSize.height) / 2,
+                width: drawnSize.width, height: drawnSize.height
+            ))
         }
     }
-}
-
-private extension RGBColor {
-    var uiColor: UIColor { UIColor(red: red, green: green, blue: blue, alpha: 1) }
 }

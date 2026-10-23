@@ -1568,10 +1568,6 @@ struct ArtworkCanvas: View {
         let gradientPhase = min(max((generationProgress - 0.48) / 0.38, 0), 1)
 
         return ZStack {
-            colors[min(2, colors.count - 1)]
-                .adjusted(brightness: 0.18, saturation: -0.18)
-                .color
-
             if let image = images.first {
                 Image(uiImage: image)
                     .resizable()
@@ -1580,22 +1576,16 @@ struct ArtworkCanvas: View {
                     .scaleEffect(imageScale)
                     .offset(x: imageOffset.width, y: imageOffset.height)
                     .blur(radius: 34 * blurPhase)
-                    .saturation(1 + 0.22 * blurPhase)
-                    .opacity(1 - gradientPhase * (gentleBackground ? 0.76 : 0.58))
-            }
 
-            LinearGradient(
-                colors: [
-                    colors[min(2, colors.count - 1)].adjusted(brightness: 0.18, saturation: -0.18).color,
-                    Color.white.opacity(0.88),
-                    Color.white.opacity(0.92),
-                    colors[0].adjusted(brightness: 0.10, saturation: -0.34).color
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .blendMode(.screen)
-            .opacity(gradientPhase * (gentleBackground ? 0.94 : 0.76))
+                Image(uiImage: SpectrumWallpaperRenderer.gradient(from: image, gentle: gentleBackground) ?? image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFill()
+                    .frame(width: size.width, height: size.height)
+                    .scaleEffect(imageScale)
+                    .offset(x: imageOffset.width, y: imageOffset.height)
+                    .opacity(gradientPhase)
+            }
         }
     }
 

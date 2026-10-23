@@ -400,7 +400,10 @@ enum PhotoAssetLoader {
         guard let provider = selection.itemProvider else {
             throw PhotoImportError.unreadableImage
         }
-        let isLivePhoto = provider.canLoadObject(ofClass: PHLivePhoto.self)
+        // Query the advertised type rather than PHLivePhoto's object-reader
+        // identifiers: iOS 27.1's simulator can throw an Objective-C exception
+        // from that reader even when the selected item is an ordinary JPEG.
+        let isLivePhoto = provider.hasItemConformingToTypeIdentifier(UTType.livePhoto.identifier)
         let resourceInfo: LivePhotoResourceInfo
         if isLivePhoto {
             guard let livePhoto = try await loadLivePhoto(from: provider) else {

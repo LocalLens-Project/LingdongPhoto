@@ -58,7 +58,8 @@ enum TicketIslandAvailability {
         screenSize: CGSize,
         safeAreaTop: CGFloat
     ) -> Bool {
-        guard UIDevice.current.userInterfaceIdiom == .phone else {
+        guard UIDevice.current.userInterfaceIdiom == .phone,
+              !ModeLauncherDevice.isDuo else {
             return false
         }
         let windowTopInset = UIApplication.shared.connectedScenes

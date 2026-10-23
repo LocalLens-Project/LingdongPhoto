@@ -303,7 +303,8 @@ struct PostalFlowPage<Actions: View>: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let usesWidePadLayout = UIDevice.current.userInterfaceIdiom == .pad && proxy.size.width >= 900
+            let usesWidePadLayout = (UIDevice.current.userInterfaceIdiom == .pad && proxy.size.width >= 900)
+                || (ModeLauncherDevice.isDuo && step == .photo && proxy.size.width >= 600)
             let detailsWidth = min(430, proxy.size.width * 0.38)
             let seamOverlap = min(110, max(72, proxy.size.width * 0.07))
             VStack(spacing: 0) {

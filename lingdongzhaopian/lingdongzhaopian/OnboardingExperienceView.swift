@@ -1131,16 +1131,21 @@ struct OnboardingExperienceView: View {
                     Text("本次更新")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("灵动照片 3.0.4（Build 202610）")
+                    Text("灵动照片 4.0.0（Build 202649）· 公开版本")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white.opacity(0.48))
                 }
 
                 VStack(alignment: .leading, spacing: 16) {
                     updateItem(
-                        symbol: "wrench.and.screwdriver",
-                        title: "紧急修复",
-                        detail: "本次更新未添加任何新功能，针对 iOS 27 及后续版本紧急修复照片选择无响应及模式切换不同步的问题。"
+                        symbol: "photo.on.rectangle",
+                        title: "普通创作 · 公开版本",
+                        detail: "保留本机照片创作与相关工具，包含当前版本的界面适配与渲染改进。"
+                    )
+                    updateItem(
+                        symbol: "lock.shield",
+                        title: "加密透明说明",
+                        detail: "灵动来信的业务界面与服务端不包含在此版本中；加密协议与独立验证示例见仓库 Transparency 目录。"
                     )
                 }
             }

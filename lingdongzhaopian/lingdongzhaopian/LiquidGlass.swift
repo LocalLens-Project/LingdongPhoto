@@ -385,7 +385,7 @@ struct OpenSourceProjectPill: View {
     var body: some View {
         HStack(spacing: 7) {
             Image(systemName: "checkmark.seal.fill")
-            Text("开源项目 · 请认准官方渠道")
+            Text("开源代码项目 · 请认准官方渠道")
                 .fontWeight(.semibold)
         }
         .font(.caption)

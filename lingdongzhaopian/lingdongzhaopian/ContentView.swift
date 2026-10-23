@@ -36,7 +36,6 @@ private enum LaunchExperienceStage: Equatable {
     case none
     case onboarding
     case modeLauncherChoice
-    case creationSeason
 }
 
 @MainActor
@@ -95,8 +94,6 @@ private struct OverflowOnlyVerticalScroll<Content: View>: View {
 }
 
 struct ContentView: View {
-    private static let creationSeasonEventHost = "event"
-    private static let creationSeasonEventPath = "creation-season-3"
     private static let ticketScannerIntroID = "ticketScanner"
     private static let albumIntroID = "photoAlbum"
     private static let colorRelationshipIntroID = "colorRelationship"
@@ -110,7 +107,7 @@ struct ContentView: View {
     init() {
         let defaults = UserDefaults.standard
         let didShowOnboarding = defaults.bool(forKey: "didShowOnboardingExperience")
-        let didShowUpdate = defaults.bool(forKey: "didShowVersion304Update")
+        let didShowUpdate = defaults.bool(forKey: "didShowVersion400Update")
         let presentsOnboarding = !didShowOnboarding || !didShowUpdate
         _onboardingStartsAtUpdate = State(
             initialValue: didShowOnboarding && !didShowUpdate
@@ -177,9 +174,7 @@ struct ContentView: View {
     @AppStorage("didShowOnboardingExperience") private var didShowOnboardingExperience = false
     @AppStorage("didShowVersion301Update") private var didShowVersion301Update = false
     @AppStorage("didShowVersion302Update") private var didShowVersion302Update = false
-    @AppStorage("didShowVersion303Update") private var didShowVersion303Update = false
-    @AppStorage("didShowVersion304Update") private var didShowVersion304Update = false
-    @AppStorage("didShowCreationSeasonEvent301") private var didShowCreationSeasonEvent = false
+    @AppStorage("didShowVersion400Update") private var didShowVersion400Update = false
     @AppStorage("didShowModeSelectionHint101") private var didShowModeSelectionHint101 = false
     @AppStorage("didShowTicketLandscapeHint") private var didShowTicketLandscapeHint = false
     @AppStorage("didShowArchiveCalendarLandscapeHintBuild202625") private var didShowArchiveCalendarLandscapeHintBuild202625 = false
@@ -238,6 +233,7 @@ struct ContentView: View {
         !usesWideLayout && supportsIslandLauncher && modeLauncherStyle == .islandReveal
     }
     private var usesFloatingMenuLauncher: Bool { !usesIslandLauncher }
+    private var usesDuoCompactTools: Bool { ModeLauncherDevice.isDuo && !usesWideLayout }
     private var introPageID: String {
         get { creationSession.introPageID }
         nonmutating set { creationSession.introPageID = newValue }
@@ -461,8 +457,6 @@ struct ContentView: View {
     @State private var onboardingStartsAtUpdate = false
     @State private var modeLauncherDraft: ModeLauncherStyle?
     @State private var launchExperienceStage = LaunchExperienceStage.none
-    @State private var creationSeasonEventPending = false
-    @State private var creationSeasonEventIgnoresHistory = false
     @State private var supportUsPresented = false
     @State private var pickerMode: CreationMode?
     @State private var photoImportTask: Task<Void, Never>?
@@ -489,9 +483,6 @@ struct ContentView: View {
         return true
     }
 
-    private var creationSeasonEventPresented: Bool {
-        launchExperienceStage == .creationSeason
-    }
 
     private var pickerLimit: Int {
         if mode == .journal, photoSelectionOperation == .append {
@@ -1063,6 +1054,7 @@ struct ContentView: View {
 
                 if !usesWideLayout,
                    !isEditorVisible,
+                   !usesDuoCompactTools,
                    didChooseModeLauncherStyle,
                    !onboardingPresented,
                    !modeLauncherChoicePresented {
@@ -1092,6 +1084,21 @@ struct ContentView: View {
                     .padding(.top, max(proxy.safeAreaInsets.top, 18) + 8)
                     .padding(.trailing, 16)
                     .zIndex(70)
+                }
+
+                if ModeLauncherDevice.isDuo,
+                   !usesWideLayout || ipadDestination == .creation(mode),
+                   !ticketPrintPhase.isPresented,
+                   !onboardingPresented,
+                   !modeLauncherChoicePresented {
+                    duoToolbar
+                        .padding(.top, max(proxy.safeAreaInsets.top, 18) + (usesWideLayout ? 88 : 56))
+                        .padding(.trailing, 24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                        // Align the column below the outer camera or the inner
+                        // status indicators, within the trailing safe-area strip.
+                        .offset(x: proxy.safeAreaInsets.trailing)
+                        .zIndex(70)
                 }
 
                 if usesIslandLauncher,
@@ -1134,12 +1141,6 @@ struct ContentView: View {
                     .transition(.opacity)
                 }
 
-                if creationSeasonEventPresented {
-                    CreationSeasonEventView(onClose: dismissCreationSeasonEvent)
-                        .environment(\.colorScheme, .dark)
-                        .transition(.opacity)
-                        .zIndex(300)
-                }
 
                 paletteSwapHintOverlay
                     .zIndex(200)
@@ -1214,6 +1215,20 @@ struct ContentView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(nil)
+            }
+        }
+        .onChange(of: usesWideLayout) { _, expanded in
+            guard ModeLauncherDevice.isDuo else { return }
+            modeSelectionPresented = false
+            dismissModeSelectionHint(animated: false)
+            // Both layouts share creationSession and the composition state.
+            // Only synchronize navigation; folding must not reselect the mode
+            // or reset the photo, crop, zoom or other edits.
+            if expanded {
+                ipadDestination = .creation(mode)
+                if isTicketLandscape { setTicketLandscape(false) }
+            } else {
+                introPageID = mode.rawValue
             }
         }
         .onChange(of: mode) { _, newMode in
@@ -1850,10 +1865,6 @@ struct ContentView: View {
     }
 
     private func handleIncomingURL(_ url: URL) {
-        if isCreationSeasonEventURL(url) {
-            requestCreationSeasonEvent(ignoresHistory: true)
-            return
-        }
         let queryItems = URLComponents(
             url: url,
             resolvingAgainstBaseURL: false
@@ -1880,16 +1891,6 @@ struct ContentView: View {
         Task {
             await importSharedPhotoIfAvailable(preferredModeRawValue: modeValue)
         }
-    }
-
-    private func isCreationSeasonEventURL(_ url: URL) -> Bool {
-        guard url.scheme?.lowercased() == SharedPhotoHandoff.urlScheme else { return false }
-        let host = url.host?.lowercased()
-        let path = url.pathComponents.filter { $0 != "/" }
-        if host == "home" {
-            return path.isEmpty
-        }
-        return host == Self.creationSeasonEventHost && path == [Self.creationSeasonEventPath]
     }
 
     private func importSharedPhotoIfAvailable(
@@ -1982,6 +1983,59 @@ struct ContentView: View {
         .accessibilityIdentifier("ipad.workspace")
     }
 
+    private var duoToolbar: some View {
+        VStack(spacing: 8) {
+            if !usesWideLayout {
+                LiquidCircleButton(
+                    symbol: "square.grid.2x2",
+                    isEnabled: !controlsAreDimmed,
+                    action: openModeSelection
+                )
+                .accessibilityIdentifier("modeLauncher.floatingButton")
+                if isEditorVisible && supportsLandscapeEditor {
+                    LiquidCircleButton(
+                        symbol: isTicketLandscape ? "rectangle.portrait.rotate" : "rectangle.landscape.rotate",
+                        isEnabled: !controlsAreDimmed,
+                        action: {
+                            if isTicketLandscape { exitTicketLandscape() }
+                            else { enterTicketLandscape() }
+                        }
+                    )
+                    .accessibilityLabel(isTicketLandscape ? "返回竖屏预览" : "翻转为横屏\(mode.title)预览")
+                    .accessibilityIdentifier("duo.rotate")
+                }
+            }
+            if usesWideLayout || isEditorVisible {
+                LiquidCircleButton(
+                    symbol: "plus",
+                    isEnabled: !controlsAreDimmed && !isLoading && (mode != .journal || selectedPhotos.count < 5)
+                ) {
+                    openPicker(append: mode == .journal && isEditorVisible)
+                }
+                .accessibilityIdentifier(usesWideLayout ? "ipad.addPhoto" : "duo.addPhoto")
+                if mode == .journal && selectedPhotos.count > 1 {
+                    LiquidCircleButton(symbol: "minus", isEnabled: !controlsAreDimmed, action: removeLastJournalPhoto)
+                        .accessibilityIdentifier("duo.removePhoto")
+                }
+                LiquidCircleButton(
+                    symbol: saveState == .success ? "checkmark" : "arrow.down",
+                    isEnabled: canSaveCurrentArtwork && isEditorVisible,
+                    isBusy: saveState == .saving,
+                    action: saveArtwork
+                )
+                .accessibilityLabel("导出作品")
+                .accessibilityValue(saveState == .saving ? "正在导出" : saveState == .success ? "保存成功" : "")
+                .accessibilityIdentifier(usesWideLayout ? "ipad.export" : "duo.export")
+            }
+            LiquidCircleButton(symbol: "gearshape", isEnabled: !controlsAreDimmed) {
+                dismissModeSelectionHint()
+                dismissLivePhotoHint()
+                settingsPresented = true
+            }
+            .accessibilityIdentifier(usesWideLayout ? "ipad.settings" : "welcome.settings")
+        }
+    }
+
     private func ipadWorkspaceTitle(compact: Bool) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             if showAppTitle {
@@ -2003,29 +2057,31 @@ struct ContentView: View {
     private var ipadToolbar: some View {
         HStack(spacing: 8) {
             Spacer(minLength: 0)
-            LiquidCircleButton(
-                symbol: "plus",
-                isEnabled: !controlsAreDimmed && !isLoading && (mode != .journal || selectedPhotos.count < 5)
-            ) { openPicker(append: mode == .journal && isEditorVisible) }
-            .accessibilityIdentifier("ipad.addPhoto")
+            if !ModeLauncherDevice.isDuo {
+                LiquidCircleButton(
+                    symbol: "plus",
+                    isEnabled: !controlsAreDimmed && !isLoading && (mode != .journal || selectedPhotos.count < 5)
+                ) { openPicker(append: mode == .journal && isEditorVisible) }
+                .accessibilityIdentifier("ipad.addPhoto")
 
-            if mode == .journal && selectedPhotos.count > 1 {
-                LiquidCircleButton(symbol: "minus", isEnabled: !controlsAreDimmed, action: removeLastJournalPhoto)
+                if mode == .journal && selectedPhotos.count > 1 {
+                    LiquidCircleButton(symbol: "minus", isEnabled: !controlsAreDimmed, action: removeLastJournalPhoto)
+                }
+                LiquidCircleButton(
+                    symbol: saveState == .success ? "checkmark" : "arrow.down",
+                    isEnabled: canSaveCurrentArtwork && isEditorVisible,
+                    isBusy: saveState == .saving,
+                    action: saveArtwork
+                )
+                .accessibilityLabel("导出作品")
+                .accessibilityValue(saveState == .saving ? "正在导出" : saveState == .success ? "保存成功" : "")
+                .accessibilityIdentifier("ipad.export")
+                LiquidCircleButton(symbol: "gearshape", isEnabled: !controlsAreDimmed) {
+                    dismissLivePhotoHint()
+                    settingsPresented = true
+                }
+                .accessibilityIdentifier("ipad.settings")
             }
-            LiquidCircleButton(
-                symbol: saveState == .success ? "checkmark" : "arrow.down",
-                isEnabled: canSaveCurrentArtwork && isEditorVisible,
-                isBusy: saveState == .saving,
-                action: saveArtwork
-            )
-            .accessibilityLabel("导出作品")
-            .accessibilityValue(saveState == .saving ? "正在导出" : saveState == .success ? "保存成功" : "")
-            .accessibilityIdentifier("ipad.export")
-            LiquidCircleButton(symbol: "gearshape", isEnabled: !controlsAreDimmed) {
-                dismissLivePhotoHint()
-                settingsPresented = true
-            }
-            .accessibilityIdentifier("ipad.settings")
         }
         .frame(minHeight: 56)
     }
@@ -2075,8 +2131,9 @@ struct ContentView: View {
         return VStack(spacing: 12) {
             GeometryReader { proxy in
                 let ratioValue = editorRatio(in: proxy.size)
-                let width = max(1, min(proxy.size.width - 16, max(1, proxy.size.height - 12) * ratioValue))
-                artworkPreview(width: width, height: width / ratioValue)
+                let playbackWidth: CGFloat = mode == .journal && showsLivePlaybackControl ? 52 : 0
+                let width = max(1, min(proxy.size.width - 16 - playbackWidth, max(1, proxy.size.height - 12) * ratioValue))
+                artworkPreviewWithJournalPlayback(width: width, height: width / ratioValue)
                     .accessibilityElement(children: .contain)
                     .accessibilityValue("\(Int(imageScale * 100))%")
                     .accessibilityIdentifier("ipad.artwork")
@@ -2103,7 +2160,7 @@ struct ContentView: View {
 
     @ViewBuilder private var ipadEditorControls: some View {
         VStack(spacing: 12) {
-            if showsLivePlaybackControl && mode != .colorPalette {
+            if showsLivePlaybackControl && mode != .colorPalette && mode != .journal {
                 LivePhotoPlaybackButton(
                     isAvailable: !liveSourceVideoURLs.isEmpty,
                     isPlaying: isLivePhotoPlaying,
@@ -2574,7 +2631,8 @@ struct ContentView: View {
         } else if mode == .journal {
 
             let editorReserve: CGFloat = size.height < 760 ? 285 : 230
-            canvasWidth = min(availableWidth, max(280, size.height - editorReserve) * ratioValue)
+            let playbackWidth: CGFloat = showsLivePlaybackControl ? 52 : 0
+            canvasWidth = min(max(1, availableWidth - playbackWidth), max(280, size.height - editorReserve) * ratioValue)
         } else if mode == .travelTicket {
             let editorReserve: CGFloat = size.height < 760 ? 250 : 215
             canvasWidth = min(availableWidth, max(280, size.height - editorReserve) * ratioValue)
@@ -2619,95 +2677,97 @@ struct ContentView: View {
 
                 Spacer()
 
-                if usesFloatingMenuLauncher {
-                    LiquidCircleButton(
-                        symbol: "square.grid.2x2",
-                        isEnabled: !controlsAreDimmed,
-                        action: openModeSelection
-                    )
-                    .overlay(alignment: .top) {
-                        if isModeSelectionHintPresented {
-                            ModeSelectionHint(
-                                tint: livePhotoHintTint,
-                                foreground: livePhotoHintForeground,
-                                action: openModeSelection
-                            )
-                            .offset(y: 49)
-                            .transition(
-                                .asymmetric(
-                                    insertion: .scale(scale: 0.72, anchor: .top)
-                                        .combined(with: .opacity)
-                                        .combined(with: .move(edge: .top)),
-                                    removal: .scale(scale: 0.80, anchor: .top)
-                                        .combined(with: .opacity)
+                if !usesDuoCompactTools {
+                    if usesFloatingMenuLauncher {
+                        LiquidCircleButton(
+                            symbol: "square.grid.2x2",
+                            isEnabled: !controlsAreDimmed,
+                            action: openModeSelection
+                        )
+                        .overlay(alignment: .top) {
+                            if isModeSelectionHintPresented {
+                                ModeSelectionHint(
+                                    tint: livePhotoHintTint,
+                                    foreground: livePhotoHintForeground,
+                                    action: openModeSelection
                                 )
-                            )
-                        }
-                    }
-                    .zIndex(50)
-                }
-
-                if supportsLandscapeEditor {
-                    LiquidCircleButton(
-                        symbol: "rectangle.landscape.rotate",
-                        isEnabled: !controlsAreDimmed,
-                        action: enterTicketLandscape
-                    )
-                    .overlay(alignment: .top) {
-                        if isTicketLandscapeHintPresented {
-                            TicketLandscapeHint(
-                                tint: livePhotoHintTint,
-                                foreground: livePhotoHintForeground,
-                                featureName: mode.title,
-                                action: enterTicketLandscape
-                            )
-                            .offset(y: 49)
-                            .transition(
-                                .asymmetric(
-                                    insertion: .scale(scale: 0.72, anchor: .top)
-                                        .combined(with: .opacity)
-                                        .combined(with: .move(edge: .top)),
-                                    removal: .scale(scale: 0.80, anchor: .top)
-                                        .combined(with: .opacity)
+                                .offset(y: 49)
+                                .transition(
+                                    .asymmetric(
+                                        insertion: .scale(scale: 0.72, anchor: .top)
+                                            .combined(with: .opacity)
+                                            .combined(with: .move(edge: .top)),
+                                        removal: .scale(scale: 0.80, anchor: .top)
+                                            .combined(with: .opacity)
+                                    )
                                 )
-                            )
+                            }
                         }
+                        .zIndex(50)
                     }
-                    .zIndex(49)
-                    .accessibilityLabel("翻转为横屏\(mode.title)预览")
-                }
 
-                LiquidCircleButton(
-                    symbol: "plus",
-                    isEnabled: !controlsAreDimmed && (mode != .journal || selectedPhotos.count < 5)
-                ) {
-                    openPicker(append: mode == .journal)
-                }
+                    if supportsLandscapeEditor {
+                        LiquidCircleButton(
+                            symbol: "rectangle.landscape.rotate",
+                            isEnabled: !controlsAreDimmed,
+                            action: enterTicketLandscape
+                        )
+                        .overlay(alignment: .top) {
+                            if isTicketLandscapeHintPresented {
+                                TicketLandscapeHint(
+                                    tint: livePhotoHintTint,
+                                    foreground: livePhotoHintForeground,
+                                    featureName: mode.title,
+                                    action: enterTicketLandscape
+                                )
+                                .offset(y: 49)
+                                .transition(
+                                    .asymmetric(
+                                        insertion: .scale(scale: 0.72, anchor: .top)
+                                            .combined(with: .opacity)
+                                            .combined(with: .move(edge: .top)),
+                                        removal: .scale(scale: 0.80, anchor: .top)
+                                            .combined(with: .opacity)
+                                    )
+                                )
+                            }
+                        }
+                        .zIndex(49)
+                        .accessibilityLabel("翻转为横屏\(mode.title)预览")
+                    }
 
-                if mode == .journal && selectedPhotos.count > 1 {
                     LiquidCircleButton(
-                        symbol: "minus",
-                        isEnabled: !controlsAreDimmed,
-                        action: removeLastJournalPhoto
+                        symbol: "plus",
+                        isEnabled: !controlsAreDimmed && (mode != .journal || selectedPhotos.count < 5)
+                    ) {
+                        openPicker(append: mode == .journal)
+                    }
+
+                    if mode == .journal && selectedPhotos.count > 1 {
+                        LiquidCircleButton(
+                            symbol: "minus",
+                            isEnabled: !controlsAreDimmed,
+                            action: removeLastJournalPhoto
+                        )
+                        .transition(.scale.combined(with: .opacity))
+                    }
+
+                    LiquidCircleButton(
+                        symbol: saveState == .success ? "checkmark" : "arrow.down",
+                        isEnabled: canSaveCurrentArtwork,
+                        isBusy: saveState == .saving,
+                        action: saveArtwork
                     )
-                    .transition(.scale.combined(with: .opacity))
-                }
+                    .opacity(canSaveCurrentArtwork || saveState != .idle ? 1 : 0)
 
-                LiquidCircleButton(
-                    symbol: saveState == .success ? "checkmark" : "arrow.down",
-                    isEnabled: canSaveCurrentArtwork,
-                    isBusy: saveState == .saving,
-                    action: saveArtwork
-                )
-                .opacity(canSaveCurrentArtwork || saveState != .idle ? 1 : 0)
-
-                LiquidCircleButton(
-                    symbol: "gearshape",
-                    isEnabled: !controlsAreDimmed
-                ) {
-                    dismissModeSelectionHint()
-                    dismissLivePhotoHint()
-                    settingsPresented = true
+                    LiquidCircleButton(
+                        symbol: "gearshape",
+                        isEnabled: !controlsAreDimmed
+                    ) {
+                        dismissModeSelectionHint()
+                        dismissLivePhotoHint()
+                        settingsPresented = true
+                    }
                 }
             }
             .animation(.easeInOut(duration: 0.22), value: controlsAreDimmed)
@@ -2734,7 +2794,7 @@ struct ContentView: View {
                     .zIndex(25)
             }
 
-            if showsLivePlaybackControl && mode != .colorPalette {
+            if showsLivePlaybackControl && mode != .colorPalette && mode != .journal {
                 HStack(spacing: 8) {
                     LivePhotoPlaybackButton(
                         isAvailable: !liveSourceVideoURLs.isEmpty,
@@ -2771,10 +2831,10 @@ struct ContentView: View {
                 Spacer(minLength: 24)
             }
 
-            artworkPreview(width: canvasWidth, height: canvasHeight)
+            artworkPreviewWithJournalPlayback(width: canvasWidth, height: canvasHeight)
             .padding(.top, mode == .travelTicket
                 ? 0
-                : (mode == .colorPalette ? 10 : (showsLivePlaybackControl ? 8 : 20)))
+                : (mode == .colorPalette ? 10 : (showsLivePlaybackControl && mode != .journal ? 8 : 20)))
             .zIndex(mode == .colorPalette ? 2 : 0)
 
             if mode == .colorPalette {
@@ -3253,24 +3313,26 @@ struct ContentView: View {
 
                 Spacer(minLength: 8)
 
-                LiquidCircleButton(
-                    symbol: "plus",
-                    isEnabled: !controlsAreDimmed,
-                    action: { openPicker(append: false) }
-                )
+                if !usesDuoCompactTools {
+                    LiquidCircleButton(
+                        symbol: "plus",
+                        isEnabled: !controlsAreDimmed,
+                        action: { openPicker(append: false) }
+                    )
 
-                LiquidCircleButton(
-                    symbol: saveState == .success ? "checkmark" : "arrow.down",
-                    isEnabled: canSaveCurrentArtwork,
-                    isBusy: saveState == .saving,
-                    action: saveArtwork
-                )
+                    LiquidCircleButton(
+                        symbol: saveState == .success ? "checkmark" : "arrow.down",
+                        isEnabled: canSaveCurrentArtwork,
+                        isBusy: saveState == .saving,
+                        action: saveArtwork
+                    )
 
-                LiquidCircleButton(
-                    symbol: "gearshape",
-                    isEnabled: !controlsAreDimmed,
-                    action: { settingsPresented = true }
-                )
+                    LiquidCircleButton(
+                        symbol: "gearshape",
+                        isEnabled: !controlsAreDimmed,
+                        action: { settingsPresented = true }
+                    )
+                }
             }
             .frame(height: 48)
 
@@ -3374,6 +3436,36 @@ struct ContentView: View {
             default:
                 EmptyView()
             }
+        }
+    }
+
+    @ViewBuilder
+    private func artworkPreviewWithJournalPlayback(width: CGFloat, height: CGFloat) -> some View {
+        if mode == .journal && showsLivePlaybackControl {
+            HStack(alignment: .top, spacing: 8) {
+                LivePhotoPlaybackButton(
+                    isAvailable: !liveSourceVideoURLs.isEmpty,
+                    isPlaying: isLivePhotoPlaying,
+                    action: playLivePhotoOnce
+                )
+                .frame(width: 44, height: 44)
+                .overlay(alignment: .leading) {
+                    if isLivePhotoHintPresented {
+                        LivePhotoPlaybackHint(
+                            tint: livePhotoHintTint,
+                            foreground: livePhotoHintForeground,
+                            action: playLivePhotoOnce
+                        )
+                        .fixedSize()
+                        .offset(x: 52)
+                        .transition(.opacity)
+                    }
+                }
+                .zIndex(20)
+                artworkPreview(width: width, height: height)
+            }
+        } else {
+            artworkPreview(width: width, height: height)
         }
     }
 
@@ -5838,7 +5930,7 @@ struct ContentView: View {
         if !didShowOnboardingExperience {
             onboardingStartsAtUpdate = false
             launchExperienceStage = .onboarding
-        } else if !didShowVersion304Update {
+        } else if !didShowVersion400Update {
             onboardingStartsAtUpdate = true
             launchExperienceStage = .onboarding
         } else if supportsIsland && !didChooseModeLauncherStyle {
@@ -5849,7 +5941,6 @@ struct ContentView: View {
                 modeLauncherStyleRaw = ModeLauncherStyle.floatingMenu.rawValue
                 didChooseModeLauncherStyle = true
             }
-            requestCreationSeasonEvent()
         }
     }
 
@@ -5857,8 +5948,7 @@ struct ContentView: View {
         didShowOnboardingExperience = true
         didShowVersion301Update = true
         didShowVersion302Update = true
-        didShowVersion303Update = true
-        didShowVersion304Update = true
+        didShowVersion400Update = true
         onboardingStartsAtUpdate = false
 
         if supportsIslandLauncher && !didChooseModeLauncherStyle {
@@ -5875,10 +5965,7 @@ struct ContentView: View {
         }
 
         launchExperienceStage = .none
-        requestCreationSeasonEvent()
-        if !creationSeasonEventPresented {
-            restorePrimaryInterfaceState()
-        }
+        restorePrimaryInterfaceState()
     }
 
     private func completeModeLauncherChoice() {
@@ -5888,10 +5975,7 @@ struct ContentView: View {
         withAnimation(.easeOut(duration: reduceMotion ? 0.12 : 0.24)) {
             launchExperienceStage = .none
         }
-        requestCreationSeasonEvent()
-        if !creationSeasonEventPresented {
-            restorePrimaryInterfaceState()
-        }
+        restorePrimaryInterfaceState()
     }
 
     private func restorePrimaryInterfaceState() {
@@ -5905,34 +5989,6 @@ struct ContentView: View {
         if usesWideLayout {
             ipadDestination = .creation(mode)
         }
-    }
-
-    private func dismissCreationSeasonEvent() {
-        withAnimation(.easeOut(duration: reduceMotion ? 0.08 : 0.2)) {
-            launchExperienceStage = .none
-        }
-        restorePrimaryInterfaceState()
-    }
-
-    private func requestCreationSeasonEvent(ignoresHistory: Bool = false) {
-        if creationSeasonEventPresented { return }
-        guard ignoresHistory || !didShowCreationSeasonEvent else { return }
-        creationSeasonEventPending = true
-        creationSeasonEventIgnoresHistory = creationSeasonEventIgnoresHistory || ignoresHistory
-        presentCreationSeasonEventIfReady()
-    }
-
-    private func presentCreationSeasonEventIfReady() {
-        guard creationSeasonEventPending,
-              didShowOnboardingExperience,
-              didShowVersion304Update,
-              didChooseModeLauncherStyle,
-              launchExperienceStage == .none,
-              creationSeasonEventIgnoresHistory || !didShowCreationSeasonEvent else { return }
-        creationSeasonEventPending = false
-        creationSeasonEventIgnoresHistory = false
-        didShowCreationSeasonEvent = true
-        launchExperienceStage = .creationSeason
     }
 
     private func openModeLauncherDestination(_ destination: ModeLauncherDestination) {

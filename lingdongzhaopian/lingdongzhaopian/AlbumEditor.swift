@@ -65,19 +65,19 @@ struct AlbumEditorView: View {
 
             overlays
         }
-        .fullScreenCover(isPresented: $systemPickerPresented) {
+        .fullScreenCover(isPresented: $systemPickerPresented, onDismiss: {
+            guard !pickerSelections.isEmpty else { return }
+            Task { await importPickerSelections() }
+        }) {
             PrivacyPreservingPhotoPicker(
                 isPresented: $systemPickerPresented,
                 selectionLimit: pickerLimit,
-                colorScheme: .light
+                colorScheme: .light,
+                deliversSelectionBeforeDismissal: true
             ) { selections in
                 pickerSelections = selections
             }
             .ignoresSafeArea()
-        }
-        .onChange(of: systemPickerPresented) { _, presented in
-            guard !presented, !pickerSelections.isEmpty else { return }
-            Task { await importPickerSelections() }
         }
         .sheet(item: $sharedExport) { item in
             SystemShareSheet(url: item.url)

@@ -35,7 +35,7 @@
     <key>LingdongAppGroupIdentifier</key>
     <string>$(APP_GROUP_IDENTIFIER)</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>用于精确匹配您分享的实况照片并读取动态片段。照片仅在本机处理，不会上传；本应用已开源，可公开审查。</string>
+    <string>用于精确匹配您分享的实况照片并读取动态片段。照片仅在本机处理，不会上传；本应用的核心逻辑为开源代码，可公开审查。</string>
     <key>NSExtension</key>
     <dict>
         <key>NSExtensionAttributes</key>

@@ -85,11 +85,10 @@ struct IPadModeButtons: View {
     @State private var scrollRequest: ScrollRequest?
     @State private var isPreparingCollapse = false
     @State private var showCollapseHint = false
-    @State private var idleDelay: TimeInterval = 5
     @State private var lastInteraction = Date()
     @State private var collapseWorkItem: DispatchWorkItem?
-    @State private var lastHoverBump = Date.distantPast
 
+    private let idleDelay: TimeInterval = 5
     private let baseSpacing: CGFloat = 9
     private let minSpacing: CGFloat = 4
     private let minButtonHeight: CGFloat = 40
@@ -120,14 +119,12 @@ struct IPadModeButtons: View {
                 .coordinateSpace(name: "ipadModes")
                 .onPreferenceChange(ContentMinYKey.self) { minY in
                     contentMinY = minY
-                    if !isPreparingCollapse { bumpIdle() }
                 }
                 .accessibilityIdentifier("ipad.modeButtons")
                 .onAppear { viewportHeight = proxy.size.height }
                 .onChange(of: selection) { _, entry in
-                    bumpIdle()
                     if collapsed {
-                        withAnimation(baseCollapseAnimation) { collapsed = false }
+                        expand()
                     }
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
                         reader.scrollTo(entry.id, anchor: nil)
@@ -135,26 +132,20 @@ struct IPadModeButtons: View {
                 }
                 .onChange(of: scrollRequest) { _, request in
                     guard request == .revealSelection else { return }
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
-                        reader.scrollTo(selection.id, anchor: .top)
-                    }
+                    // Reveal immediately so scrolling cannot restart or cancel
+                    // the collapse, and the remaining button stays reachable.
+                    reader.scrollTo(selection.id, anchor: .center)
                     scrollRequest = nil
                 }
                 .onChange(of: disabled) { _, isDisabled in
-                    if isDisabled { cancelIdleTimer() } else { bumpIdle() }
+                    if isDisabled { cancelIdleTimer() } else { scheduleIdleTimer() }
+                }
+                .onChange(of: labelPresented) { _, _ in
+                    scheduleIdleTimer()
                 }
                 .onChange(of: proxy.size.height) { _, height in
                     viewportHeight = height
-                    bumpIdle()
                 }
-                .onContinuousHover { _ in
-                    let now = Date()
-                    if now.timeIntervalSince(lastHoverBump) > 0.5 {
-                        lastHoverBump = now
-                        bumpIdle()
-                    }
-                }
-                .simultaneousGesture(TapGesture().onEnded { bumpIdle() })
             }
         }
         .frame(width: width)
@@ -162,7 +153,6 @@ struct IPadModeButtons: View {
         .onDisappear { cancelIdleTimer() }
         .task(id: collapsed) {
             if collapsed {
-                idleDelay = 5
                 if !didShowCollapseHint {
                     didShowCollapseHint = true
                     withAnimation(.easeOut(duration: 0.3)) { showCollapseHint = true }
@@ -178,19 +168,25 @@ struct IPadModeButtons: View {
     private var canAutoCollapse: Bool {
         !collapsed
             && !disabled
-            && !reduceMotion
             && labelPresented == nil
             && !UIAccessibility.isVoiceOverRunning
     }
 
     private func bumpIdle() {
+        // Only a mode button click (or the initial appearance) starts a new
+        // five-second idle period. Hovering and scrolling do not extend it.
         lastInteraction = Date()
         isPreparingCollapse = false
+        scheduleIdleTimer()
+    }
+
+    private func scheduleIdleTimer() {
         cancelIdleTimer()
         guard canAutoCollapse else { return }
+        let remaining = max(0, idleDelay - Date().timeIntervalSince(lastInteraction))
         let item = DispatchWorkItem { attemptCollapse() }
         collapseWorkItem = item
-        DispatchQueue.main.asyncAfter(deadline: .now() + idleDelay, execute: item)
+        DispatchQueue.main.asyncAfter(deadline: .now() + remaining, execute: item)
     }
 
     private func cancelIdleTimer() {
@@ -208,13 +204,19 @@ struct IPadModeButtons: View {
             scrollRequest = .revealSelection
             let item = DispatchWorkItem { performCollapse() }
             collapseWorkItem = item
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: item)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: item)
         }
     }
 
     private func performCollapse() {
         collapseWorkItem = nil
         guard canAutoCollapse else { return }
+        // A new button click must win over a pending collapse. Do not restart
+        // the idle period for geometry changes after revealing the selection.
+        if Date().timeIntervalSince(lastInteraction) < idleDelay - 0.05 {
+            scheduleIdleTimer()
+            return
+        }
         isPreparingCollapse = false
         withAnimation(baseCollapseAnimation) {
             collapsed = true
@@ -226,7 +228,6 @@ struct IPadModeButtons: View {
         withAnimation(baseCollapseAnimation) {
             collapsed = false
         }
-        idleDelay = 10
         bumpIdle()
     }
 
@@ -243,6 +244,7 @@ struct IPadModeButtons: View {
                     if collapsed {
                         expand()
                     } else {
+                        bumpIdle()
                         onSelect(entry)
                     }
                 }

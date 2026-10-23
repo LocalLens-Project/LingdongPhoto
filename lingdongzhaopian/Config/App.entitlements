@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-appclip-app-identifiers</key>
 	<array>
-		<string>$(AppIdentifierPrefix)top.locallensapp.lingdongzhaopian.clip</string>
+		<string>$(AppIdentifierPrefix)$(APP_CLIP_BUNDLE_IDENTIFIER)</string>
 	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>

@@ -1,150 +1,150 @@
 {
-  "sourceLanguage" : "zh-Hans",
-  "strings" : {
-    "CFBundleDisplayName" : {
-      "comment" : "Bundle display name",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lingdong Photo"
+  "sourceLanguage": "zh-Hans",
+  "strings": {
+    "CFBundleDisplayName": {
+      "comment": "Bundle display name",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lingdong Photo"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "灵动照片"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "new",
+            "value": "灵动照片"
           }
         },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "靈動照片"
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "靈動照片"
           }
         }
       }
     },
-    "CFBundleName" : {
-      "comment" : "Bundle name",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lingdong Photo"
+    "CFBundleName": {
+      "comment": "Bundle name",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lingdong Photo"
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "lingdongzhaopian"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "new",
+            "value": "lingdongzhaopian"
           }
         },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "靈動照片"
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "靈動照片"
           }
         }
       }
     },
-    "NSCameraUsageDescription" : {
-      "comment" : "Privacy - Camera Usage Description",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Used to scan Photo Ticket QR codes created by Lingdong Photo. Camera images are recognized only on this device and are never saved or uploaded."
+    "NSCameraUsageDescription": {
+      "comment": "Privacy - Camera Usage Description",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Used to scan Photo Ticket QR codes created by Lingdong Photo. Camera images are recognized only on this device and are never saved or uploaded."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "用于扫描灵动照片票根二维码，以及拍摄制作邮票和明信片的照片。照片仅在本机处理，不会上传。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "new",
+            "value": "用于扫描灵动照片票根二维码，以及拍摄制作邮票和明信片的照片。照片仅在本机处理，不会上传。"
           }
         },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "用於掃描由靈動照片產生的影像票根 QR Code。相機畫面只會在本機辨識，不會儲存或上傳。"
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "用於掃描由靈動照片產生的影像票根 QR Code。相機畫面只會在本機辨識，不會儲存或上傳。"
           }
         }
       }
     },
-    "NSLocationWhenInUseUsageDescription" : {
-      "comment" : "Privacy - Location When In Use Usage Description",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Used to record the city when you take a photo for a stamp, so it can be added to your Postal Collection. Photos chosen from the library use their own location metadata and do not request the device's location."
+    "NSLocationWhenInUseUsageDescription": {
+      "comment": "Privacy - Location When In Use Usage Description",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Used to record the city when you take a photo for a stamp, so it can be added to your Postal Collection. Photos chosen from the library use their own location metadata and do not request the device's location."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "用于在现场拍摄邮票照片时记录城市，点亮您的邮集。相册照片直接读取自身定位，不申请设备定位权限。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "new",
+            "value": "用于在现场拍摄邮票照片时记录城市，点亮您的邮集。相册照片直接读取自身定位，不申请设备定位权限。"
           }
         },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "用於在現場拍攝郵票照片時記錄城市，並加入您的郵集。從照片圖庫選取的照片會直接讀取自身的定位資料，不會要求取用裝置定位。"
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用於在現場拍攝郵票照片時記錄城市，並加入您的郵集。從照片圖庫選取的照片會直接讀取自身的定位資料，不會要求取用裝置定位。"
           }
         }
       }
     },
-    "NSPhotoLibraryAddUsageDescription" : {
-      "comment" : "Privacy - Photo Library Additions Usage Description",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Allows your Lingdong Photo creations to be saved to your photo library."
+    "NSPhotoLibraryAddUsageDescription": {
+      "comment": "Privacy - Photo Library Additions Usage Description",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Allows your Lingdong Photo creations to be saved to your photo library."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "用于将生成的灵动照片作品保存到您的相册。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "new",
+            "value": "用于将生成的灵动照片作品保存到您的相册。"
           }
         },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "用於將靈動照片作品儲存至您的照片圖庫。"
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "用於將靈動照片作品儲存至您的照片圖庫。"
           }
         }
       }
     },
-    "NSPhotoLibraryUsageDescription" : {
-      "comment" : "Privacy - Photo Library Usage Description",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Used to match a shared Live Photo and read its motion clip. Photos are processed only on this device and never uploaded; the app is open source and publicly auditable."
+    "NSPhotoLibraryUsageDescription": {
+      "comment": "Privacy - Photo Library Usage Description",
+      "extractionState": "extracted_with_value",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Used to match a shared Live Photo and read its motion clip. Photos are processed only on this device and never uploaded; the app’s core logic is open-source code and publicly auditable."
           }
         },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "用于精确匹配您分享的实况照片并读取动态片段。照片仅在本机处理，不会上传；本应用已开源，可公开审查。"
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "new",
+            "value": "用于精确匹配您分享的实况照片并读取动态片段。照片仅在本机处理，不会上传；本应用的核心逻辑为开源代码，可公开审查。"
           }
         },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "用於精確配對您分享的 Live Photo 並讀取動態片段。照片只會在本機處理，不會上傳；本 App 已開放原始碼，可公開檢視。"
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "用於精確配對您分享的 Live Photo 並讀取動態片段。照片只會在本機處理，不會上傳；本 App 的核心邏輯為開源程式碼，可公開檢視。"
           }
         }
       }
     }
   },
-  "version" : "1.2"
+  "version": "1.2"
 }

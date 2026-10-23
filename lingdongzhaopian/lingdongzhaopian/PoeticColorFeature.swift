@@ -400,6 +400,7 @@ struct SupportUsView: View {
                     )
                     .scrollBounceBehavior(.basedOnSize)
                 }
+                .ignoresSafeArea(.container, edges: .bottom)
             }
         }
         .onPreferenceChange(SupportContentHeightKey.self) { supportContentHeight = $0 }
@@ -420,6 +421,9 @@ struct SupportUsView: View {
             .accessibilityIdentifier("support.close")
             .padding(18)
         }
+        .foregroundStyle(.white)
+        .tint(.white)
+        .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)
         .task {
             await supporterStore.bootstrap()
@@ -473,7 +477,9 @@ struct SupportUsView: View {
             Text("让照片的颜色，有诗的名字")
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.62))
-            Text("三百八十四种传统色名与出处，取自中国古籍与历代诗词。")
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+            Text("解锁更多创作模板、字体与个性设置。公开版本使用非商业占位实现。")
                 .font(.system(size: 11.5, weight: .medium, design: .rounded))
                 .foregroundStyle(.white.opacity(0.42))
                 .multilineTextAlignment(.center)
@@ -484,27 +490,25 @@ struct SupportUsView: View {
 
     private var featureCard: some View {
         VStack(spacing: 0) {
-            supportFeature("camera.filters", "二十四节气", "从三百八十四种传统色中全局匹配")
-            supportFeatureDivider
-            supportFeature("text.quote", "出处可考", "384 色逐条附古籍与诗词出处")
-            supportFeatureDivider
-            supportFeature("ticket.fill", "典藏票面", "八类实体票专属纹样与原票色矿物箔光")
-            supportFeatureDivider
             supportFeature("photo.artframe", "更多邮票模板", "解锁全部比例与三角形、扇形、圆形邮票；3:4 邮票免费。")
             supportFeatureDivider
             supportFeature("envelope", "更多明信片版式", "解锁竖版寄语、白边快照与满版邮趣；经典邮政版式免费。")
-            supportFeatureDivider
-            supportFeature("app.badge", "专属应用图标", "解锁四款应用图标，随心更换主屏幕上的灵动照片。")
             supportFeatureDivider
             supportFeature("text.below.photo", "琉璃档案自定义", "档案栏开头或末尾可固定一至六色琉璃色，亦可书写专属文字并选用内置字体。")
             supportFeatureDivider
             supportFeature("textformat", "自定义画笺字体", "支持我们，即可为一照两境画笺选用邮票与明信片的内置字体。")
             supportFeatureDivider
-            supportFeature("calendar.badge.plus", "灵动月历专属底板", "摄影月历可自动提取照片颜色或自定义底板，文字深浅会自动适配。")
+            supportFeature("calendar.badge.plus", "灵动月历专属底板", "摄影月历可自动提取照片颜色或自定义底板。")
             supportFeatureDivider
             supportFeature("signature", "光影签章自定义", "解锁全部签章字体，并可导入自己的 PNG 签章留在完整影像上。")
             supportFeatureDivider
             supportFeature("textformat.alt", "三项创作字体", "为灵动卡片、气泡印章与一键手帐选用全部内置字体。")
+            supportFeatureDivider
+            supportFeature("camera.filters", "二十四节气 · 出处可考", "按二十四节气匹配传统色名，查阅古籍与诗词出处。")
+            supportFeatureDivider
+            supportFeature("app.badge", "专属应用图标", "解锁四款应用图标，随心更换主屏幕上的灵动照片。")
+            supportFeatureDivider
+            supportFeature("ticket.fill", "典藏票面", "八类实体票专属纹样与原票色矿物箔光")
             supportFeatureDivider
             supportFeature(
                 "checkmark.seal",
@@ -559,7 +563,7 @@ struct SupportUsView: View {
             Text((supporterUnlocked ? "支持者礼物已解锁" : "一次支持 · 长久感谢").appLocalized)
                 .font(.system(size: 17, weight: .bold, design: .rounded))
                 .frame(maxWidth: .infinity, alignment: .center)
-            Text(supportSubtitle.appLocalized)
+            Text("一次解锁所有PRO功能")
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundStyle(.white.opacity(0.55))
                 .multilineTextAlignment(.center)
@@ -673,13 +677,6 @@ struct SupportUsView: View {
             return "重新连接 App Store".appLocalized
         }
         return "连接 App Store".appLocalized
-    }
-
-    private var supportSubtitle: String {
-        if supporterUnlocked {
-            return "你已可以使用节气诗名、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、三项创作字体、专属应用图标及支持者标志。".appLocalized
-        }
-        return "一次解锁节气词库、典藏票面、全部邮票与明信片模板、琉璃档案自定义、灵动月历专属底板、光影签章自定义、三项创作字体、专属应用图标及支持者标志。".appLocalized
     }
 
     private var firstBatchBannerText: String? {
