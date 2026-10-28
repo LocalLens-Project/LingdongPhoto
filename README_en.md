@@ -1,6 +1,6 @@
 # Lingdong Photo
 
-> This is the **4.0.0 Public Edition (Build 202649)**: local photo-creation code and standalone encryption transparency materials. The complete Letter feature and server implementation are excluded. Local-processing and account statements below describe this Public Edition's creation tools. See [publication scope](PUBLIC_EDITION.md) and [encryption protocol and checks](Transparency/README.md).
+> This is the **4.1.0 Public Edition (Build 202603)**: local photo-creation code and standalone encryption transparency materials. The complete Letter feature and server implementation are excluded. Local-processing and account statements below describe this Public Edition's creation tools. See [publication scope](PUBLIC_EDITION.md) and [encryption protocol and checks](Transparency/README.md).
 
 > **Language notice:** The Android version is currently not available in English. Its interface remains in Simplified Chinese for now.
 

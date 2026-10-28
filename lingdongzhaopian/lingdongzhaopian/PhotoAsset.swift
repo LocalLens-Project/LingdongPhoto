@@ -400,21 +400,18 @@ enum PhotoAssetLoader {
         guard let provider = selection.itemProvider else {
             throw PhotoImportError.unreadableImage
         }
-        // Query the advertised type rather than PHLivePhoto's object-reader
-        // identifiers: iOS 27.1's simulator can throw an Objective-C exception
-        // from that reader even when the selected item is an ordinary JPEG.
-        let isLivePhoto = provider.hasItemConformingToTypeIdentifier(UTType.livePhoto.identifier)
+        let isLivePhoto = LivePhotoImportCapabilities.isLivePhoto(provider)
         let resourceInfo: LivePhotoResourceInfo
         if isLivePhoto {
-            guard let livePhoto = try await loadLivePhoto(from: provider) else {
-                throw PhotoImportError.unreadableLivePhoto
-            }
-            resourceInfo = try await livePhotoResourceInfo(
-                livePhoto: livePhoto,
-                copyPairedVideo: includeLiveResource
-            )
+            resourceInfo = try await loadLivePhotoResources(from: provider, copyPairedVideo: includeLiveResource)
         } else {
             resourceInfo = .unavailable
+        }
+        var keepsResources = false
+        defer {
+            if !keepsResources, let url = resourceInfo.pairedVideoURL {
+                try? FileManager.default.removeItem(at: url)
+            }
         }
 
         let data: Data
@@ -434,11 +431,14 @@ enum PhotoAssetLoader {
             metadata.placeName = await reverseGeocode(coordinate)
         }
 
+        let semantic = await semanticAnalysis
+        try Task.checkCancellation()
+        keepsResources = true
         return SelectedPhoto(
             image: image,
             originalData: data,
             metadata: metadata,
-            semantic: await semanticAnalysis,
+            semantic: semantic,
             pairedVideoURL: resourceInfo.pairedVideoURL,
             isLivePhoto: isLivePhoto
         )
@@ -557,6 +557,65 @@ enum PhotoAssetLoader {
         }
     }
 
+    private static func loadLivePhotoResources(
+        from provider: NSItemProvider,
+        copyPairedVideo: Bool
+    ) async throws -> LivePhotoResourceInfo {
+        var objectError: Error?
+        if LivePhotoImportCapabilities.canReadObject(from: provider) {
+            do {
+                guard let livePhoto = try await loadLivePhoto(from: provider) else {
+                    throw PhotoImportError.unreadableLivePhoto
+                }
+                return try await livePhotoResourceInfo(livePhoto: livePhoto, copyPairedVideo: copyPairedVideo)
+            } catch { objectError = error }
+        }
+        guard provider.hasItemConformingToTypeIdentifier(LivePhotoImportCapabilities.bundleIdentifier) else {
+            throw objectError ?? PhotoImportError.unreadableLivePhoto
+        }
+        let folder = try await copyLivePhotoBundle(from: provider)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let enumerator = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: [.isRegularFileKey])
+        let files = (enumerator?.allObjects as? [URL] ?? []).filter {
+            (try? $0.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true
+        }
+        guard let still = files.first(where: { UTType(filenameExtension: $0.pathExtension)?.conforms(to: .image) == true }),
+              let video = files.first(where: { UTType(filenameExtension: $0.pathExtension)?.conforms(to: .movie) == true }) else {
+            throw PhotoImportError.missingLivePhotoVideo
+        }
+        let data = try Data(contentsOf: still)
+        guard fileSize(at: video) > 0 else { throw PhotoImportError.missingLivePhotoVideo }
+        var destination: URL?
+        if copyPairedVideo {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("lingdong-live-\(UUID().uuidString)")
+                .appendingPathExtension(video.pathExtension.isEmpty ? "mov" : video.pathExtension)
+            do { try FileManager.default.copyItem(at: video, to: url) }
+            catch { try? FileManager.default.removeItem(at: url); throw error }
+            destination = url
+        }
+        return LivePhotoResourceInfo(isLivePhoto: true, imageData: data, pairedVideoURL: destination)
+    }
+
+    private static func copyLivePhotoBundle(from provider: NSItemProvider) async throws -> URL {
+        try await withCheckedThrowingContinuation { continuation in
+            provider.loadFileRepresentation(forTypeIdentifier: LivePhotoImportCapabilities.bundleIdentifier) { source, error in
+                guard let source else {
+                    continuation.resume(throwing: error ?? PhotoImportError.unreadableLivePhoto)
+                    return
+                }
+                let folder = FileManager.default.temporaryDirectory.appendingPathComponent("lingdong-live-bundle-\(UUID().uuidString)", isDirectory: true)
+                do {
+                    try FileManager.default.copyItem(at: source, to: folder)
+                    continuation.resume(returning: folder)
+                } catch {
+                    try? FileManager.default.removeItem(at: folder)
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
     private static func loadImageData(from provider: NSItemProvider) async throws -> Data {
         let typeIdentifier = provider.registeredTypeIdentifiers.first { identifier in
             guard !identifier.localizedCaseInsensitiveContains("live-photo"),
@@ -660,14 +719,6 @@ enum PhotoAssetLoader {
         livePhoto: PHLivePhoto,
         copyPairedVideo: Bool
     ) async throws -> LivePhotoResourceInfo {
-        guard copyPairedVideo else {
-            return LivePhotoResourceInfo(
-                isLivePhoto: true,
-                imageData: nil,
-                pairedVideoURL: nil
-            )
-        }
-
         let resources = PHAssetResource.assetResources(for: livePhoto)
         let imageResource = resources.first(where: { $0.type == .fullSizePhoto })
             ?? resources.first(where: { $0.type == .photo })
@@ -676,6 +727,9 @@ enum PhotoAssetLoader {
             imageData = try await resourceData(imageResource)
         } else {
             imageData = nil
+        }
+        guard copyPairedVideo else {
+            return LivePhotoResourceInfo(isLivePhoto: true, imageData: imageData, pairedVideoURL: nil)
         }
         guard let resource = resources.first(where: { $0.type == .fullSizePairedVideo })
                 ?? resources.first(where: { $0.type == .pairedVideo }) else {
@@ -691,6 +745,7 @@ enum PhotoAssetLoader {
 
         do {
             try await write(resource, to: url, options: options)
+            guard fileSize(at: url) > 0 else { throw PhotoImportError.missingLivePhotoVideo }
         } catch {
             try? FileManager.default.removeItem(at: url)
             throw error

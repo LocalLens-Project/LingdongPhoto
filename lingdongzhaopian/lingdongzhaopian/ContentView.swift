@@ -107,7 +107,7 @@ struct ContentView: View {
     init() {
         let defaults = UserDefaults.standard
         let didShowOnboarding = defaults.bool(forKey: "didShowOnboardingExperience")
-        let didShowUpdate = defaults.bool(forKey: "didShowVersion400Update")
+        let didShowUpdate = defaults.bool(forKey: "didShowVersion410Update")
         let presentsOnboarding = !didShowOnboarding || !didShowUpdate
         _onboardingStartsAtUpdate = State(
             initialValue: didShowOnboarding && !didShowUpdate
@@ -175,6 +175,7 @@ struct ContentView: View {
     @AppStorage("didShowVersion301Update") private var didShowVersion301Update = false
     @AppStorage("didShowVersion302Update") private var didShowVersion302Update = false
     @AppStorage("didShowVersion400Update") private var didShowVersion400Update = false
+    @AppStorage("didShowVersion410Update") private var didShowVersion410Update = false
     @AppStorage("didShowModeSelectionHint101") private var didShowModeSelectionHint101 = false
     @AppStorage("didShowTicketLandscapeHint") private var didShowTicketLandscapeHint = false
     @AppStorage("didShowArchiveCalendarLandscapeHintBuild202625") private var didShowArchiveCalendarLandscapeHintBuild202625 = false
@@ -5930,7 +5931,7 @@ struct ContentView: View {
         if !didShowOnboardingExperience {
             onboardingStartsAtUpdate = false
             launchExperienceStage = .onboarding
-        } else if !didShowVersion400Update {
+        } else if !didShowVersion410Update {
             onboardingStartsAtUpdate = true
             launchExperienceStage = .onboarding
         } else if supportsIsland && !didChooseModeLauncherStyle {
@@ -5949,6 +5950,7 @@ struct ContentView: View {
         didShowVersion301Update = true
         didShowVersion302Update = true
         didShowVersion400Update = true
+        didShowVersion410Update = true
         onboardingStartsAtUpdate = false
 
         if supportsIslandLauncher && !didChooseModeLauncherStyle {

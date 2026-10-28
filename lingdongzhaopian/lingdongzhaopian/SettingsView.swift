@@ -189,7 +189,7 @@ struct SettingsView: View {
                 supportAndContactSection
 
                 VStack(spacing: 10) {
-                    Text("版本 4.0.0 (Build 202649)")
+                    Text("版本 4.1.0 (Build 202603)")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
 

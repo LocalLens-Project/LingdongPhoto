@@ -1,6 +1,6 @@
 # 灵动照片/Lingdong Photo
 
-> 本目录为 **4.0.0（Build 202649）公开版本**，包含普通创作代码与独立加密透明资料。完整灵动来信功能和服务端不在本公开版本中；下文的本地处理与账户说明适用于本公开版本的普通创作范围。详见 [公开版本范围](PUBLIC_EDITION.md) 与 [加密协议和验证](Transparency/README.md)。
+> 本目录为 **4.1.0（Build 202603）公开版本**，包含普通创作代码与独立加密透明资料。完整灵动来信功能和服务端不在本公开版本中；下文的本地处理与账户说明适用于本公开版本的普通创作范围。详见 [公开版本范围](PUBLIC_EDITION.md) 与 [加密协议和验证](Transparency/README.md)。
 
 English version: [README_en.md](./README_en.md).
 

@@ -143,7 +143,7 @@ private final class ShareImportModel: ObservableObject {
         // Keep one provider-based fallback for hosts that really do vend a
         // complete PHLivePhoto instead of Photos' flattened JPEG.
         if advertisesLivePhoto,
-           provider.canLoadObject(ofClass: PHLivePhoto.self) {
+           Self.canReadLivePhotoObject(provider) {
             let livePhoto = try await loadLivePhoto(provider: provider)
             return try await loadLiveAsset(livePhoto: livePhoto)
         }
@@ -154,6 +154,7 @@ private final class ShareImportModel: ObservableObject {
     }
 
     nonisolated private static func isLivePhotoIdentifier(_ identifier: String) -> Bool {
+        if identifier == "com.apple.live-photo-bundle" { return true }
         guard let type = UTType(identifier) else { return false }
         return type == .livePhoto || type.conforms(to: .livePhoto)
     }
@@ -266,12 +267,18 @@ private final class ShareImportModel: ObservableObject {
     nonisolated private static func hasLivePhotoRepresentation(
         _ provider: NSItemProvider
     ) -> Bool {
-        provider.canLoadObject(ofClass: PHLivePhoto.self)
+        canReadLivePhotoObject(provider)
+            || provider.hasItemConformingToTypeIdentifier("com.apple.live-photo-bundle")
             || provider.hasItemConformingToTypeIdentifier(UTType.livePhoto.identifier)
             || provider.registeredTypeIdentifiers.contains { identifier in
                 guard let type = UTType(identifier) else { return false }
                 return type == .livePhoto || type.conforms(to: .livePhoto)
             }
+    }
+
+    nonisolated private static func canReadLivePhotoObject(_ provider: NSItemProvider) -> Bool {
+        PHLivePhoto.responds(to: NSSelectorFromString("readableTypeIdentifiersForItemProvider"))
+            && provider.canLoadObject(ofClass: PHLivePhoto.self)
     }
 
     nonisolated private static func loadLivePhoto(

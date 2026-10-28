@@ -6,6 +6,7 @@ import Photos
 import PhotosUI
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct PhotoPickerSelection: Identifiable {
     let id = UUID()
@@ -20,6 +21,24 @@ struct PhotoPickerSelection: Identifiable {
     init(sharedItem: SharedPhotoHandoff.Item) {
         itemProvider = nil
         self.sharedItem = sharedItem
+    }
+}
+
+nonisolated enum LivePhotoImportCapabilities {
+    static let bundleIdentifier = "com.apple.live-photo-bundle"
+
+    static var hasObjectReader: Bool {
+        PHLivePhoto.responds(to: NSSelectorFromString("readableTypeIdentifiersForItemProvider"))
+    }
+
+    static func canReadObject(from provider: NSItemProvider) -> Bool {
+        hasObjectReader && provider.canLoadObject(ofClass: PHLivePhoto.self)
+    }
+
+    static func isLivePhoto(_ provider: NSItemProvider) -> Bool {
+        canReadObject(from: provider)
+            || provider.hasItemConformingToTypeIdentifier(bundleIdentifier)
+            || provider.hasItemConformingToTypeIdentifier(UTType.livePhoto.identifier)
     }
 }
 

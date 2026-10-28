@@ -1131,7 +1131,7 @@ struct OnboardingExperienceView: View {
                     Text("本次更新")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                    Text("灵动照片 4.0.0（Build 202649）· 公开版本")
+                    Text("灵动照片 4.1.0（Build 202603）· 公开版本")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white.opacity(0.48))
                 }
